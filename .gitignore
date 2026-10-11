@@ -2,3 +2,9 @@ __pycache__/
 *.py[cod]
 .venv/
 .ipynb_checkpoints/
+
+# Local dataset and reproducible outputs; retain locally, regenerate as needed.
+data/raw/vulnerabilities.csv
+data/processed/vulnerabilities_clean.csv
+data/processed/vulnerabilities_ranked.csv
+data/processed/baseline_summary.json
