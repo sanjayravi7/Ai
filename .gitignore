@@ -15,3 +15,12 @@ data/processed/baseline_summary.json
 data/external/
 data/processed/vulnerabilities_enriched_current.csv
 data/processed/threat_intel_coverage.json
+
+# Rejected-CVE audit (Phase 2.1) and its regenerable outputs. The authoritative
+# CVE status snapshot also lives under data/external/ (already ignored above);
+# regenerate everything with `python -m src.fetch_cve_status` followed by
+# `python -m src.audit_rejected_cves`.
+data/processed/rejected_cve_audit.csv
+data/processed/vulnerabilities_ranked_reviewed.csv
+data/processed/rejected_cve_summary.json
+data/processed/disputed_cve_report.csv
