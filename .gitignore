@@ -8,3 +8,10 @@ data/raw/vulnerabilities.csv
 data/processed/vulnerabilities_clean.csv
 data/processed/vulnerabilities_ranked.csv
 data/processed/baseline_summary.json
+
+# Threat-intelligence snapshots (CISA KEV, FIRST EPSS) and their regenerable outputs.
+# Snapshots and manifests are local provenance records; regenerate with
+# `python -m src.fetch_threat_intelligence` rather than committing large feeds.
+data/external/
+data/processed/vulnerabilities_enriched_current.csv
+data/processed/threat_intel_coverage.json
