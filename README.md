@@ -9,6 +9,12 @@ Phase 2.1 audits the 17 records whose summaries begin with `** REJECT **`,
 verifies each one against the official CVE Program records, and applies an
 explicit status-aware ranking policy: confirmed rejections leave the reviewed
 ranking, while the original CVSS baseline is kept unchanged for comparison.
+Phase 2.2 audits the 455 records carrying the `** DISPUTED **` marker against
+the same commit-pinned official records, classifies what that evidence does and
+does not resolve, and measures the ranking effect of several *hypothetical*
+treatments **without changing the policy**: all 455 remain eligible with their
+original snapshot CVSS scores. It is a data-quality and evidence audit, not a
+model-training phase.
 The repository still does **not** implement an exploitation predictor, a
 vulnerability scanner, or a live vulnerability feed. The enrichment is a
 point-in-time, descriptive join, and the ML-readiness assessment below
@@ -24,7 +30,8 @@ concludes that supervised learning is not yet defensible.
 │   ├── external/raw/                   # Source snapshots + manifests (ignored by Git)
 │   │   ├── kev/                        #   KEV JSON snapshot and manifest
 │   │   ├── epss/                       #   EPSS gzip snapshot and manifest
-│   │   └── cve_status/                 #   cvelistV5 records + manifest (Phase 2.1)
+│   │   ├── cve_status/                 #   cvelistV5 records + manifest (Phase 2.1)
+│   │   └── disputed/cve_status/        #   cvelistV5 records + manifest (Phase 2.2)
 │   └── processed/                      # Reproducible outputs; generated locally
 ├── inspect_data.py                     # Full, untruncated descriptive profile
 ├── notebooks/01_inspect_data.ipynb     # Exploratory notebook
@@ -38,7 +45,10 @@ concludes that supervised learning is not yet defensible.
 │   ├── enrich_vulnerabilities.py       # Row-preserving join and coverage report
 │   ├── cve_status_sources.py           # Reject/dispute markers + CVE 5.x record parser
 │   ├── fetch_cve_status.py             # Commit-pinned cvelistV5 status snapshots
-│   └── audit_rejected_cves.py          # Rejected-record audit and reviewed ranking
+│   ├── audit_rejected_cves.py          # Rejected-record audit and reviewed ranking
+│   ├── disputed_evidence.py            # Pure dispute-evidence parsers + classifiers
+│   ├── fetch_disputed_status.py        # Commit-pinned cvelistV5 evidence snapshots
+│   └── audit_disputed_cves.py          # Disputed-record evidence audit + sensitivity
 ├── tests/                              # Synthetic, mocked-network unit tests
 ├── requirements.txt
 └── README.md
@@ -53,13 +63,15 @@ python -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-python -m unittest discover -s tests -v   # 123 synthetic tests; no network access needed
+python -m unittest discover -s tests -v   # 192 synthetic tests; no network access needed
 ```
 
 Phase 2 adds no new runtime dependencies. The fetch step uses only the Python
 standard library for HTTPS; the rest uses pandas. Phase 2.1 adds no new runtime
 dependencies either: the status fetcher uses the standard library, and the audit
-uses pandas.
+uses pandas. Phase 2.2 follows the same rule - `src/disputed_evidence.py` is a
+pure parser, `src/fetch_disputed_status.py` uses the standard library, and
+`src/audit_disputed_cves.py` uses pandas.
 
 The scripts use `data/raw/vulnerabilities.csv` by default. The extracted CSV
 is ignored by Git; if it is absent in a fresh checkout, recreate the local copy
@@ -633,6 +645,252 @@ keeps the verbatim record files, so the offline path reproduces the same audit.
 Generated outputs are deterministic: byte-identical across re-runs of unchanged
 inputs, and `rejected_cve_summary.json` embeds the outputs' SHA-256 values.
 
+## Disputed CVE records: evidence audit (Phase 2.2)
+
+Phase 2.2 answers one question with evidence: **does anything in the authoritative
+record for a `** DISPUTED **` CVE justify treating it differently in the
+ranking?** The answer this audit supports is *no*, and it shows exactly what
+would change if the policy were revisited. The ranking policy is unchanged: all
+455 disputed records stay eligible with their original snapshot CVSS scores.
+
+### 1. Scope and the preserved marker inventory
+
+| Item | Value |
+| --- | --- |
+| Disputed rows re-detected with the existing parser (`summary` contains the exact `** DISPUTED **` marker) | 455 rows, 455 distinct CVE IDs |
+| Phase 2.1 marker inventory (`data/processed/disputed_cve_report.csv`) | read, hashed (`daeb464d…38552ac`), and re-hashed after the run: byte-identical |
+| Records successfully matched to an official CVE record | 455 / 455 (0 missing, 0 retrieval failures, 0 malformed) |
+| Records excluded, re-scored, or re-ranked by this phase | 0 |
+
+Nothing here re-raises the Phase 2.1 question (whether the 17 `** REJECT **`
+records should leave the reviewed ranking). That policy, `src/baseline.py`, the
+Phase 2 KEV/EPSS enrichment, `data/raw/vulnerabilities.csv` and `cve.csv.zip` are
+untouched.
+
+### 2. Evidence sources and pins
+
+| Source | Role | Pin | Retrieval | Integrity |
+| --- | --- | --- | --- | --- |
+| `CVEProject/cvelistV5` (official CVE Program repository) | Primary: official record per identifier - administrative state, `tags`, `rejectedReasons`, descriptions, references, dates | commit `87587212d7e3feab3c7e9082536472ddd134599c` (ref `main`), 455 record files (the first run resolved `5835abf86b2f…92ccfc8b`; see the drift check below) | GitHub contents API, 2026-10-12T12:57:56Z, method `https_download` | per-record SHA-256 **and** the repository's own Git blob SHA verified before writing; snapshot manifest `cve_status-2026-10-12-87587212d7e3.manifest.json` (SHA-256 `4b5e0c35…24e71649`) |
+| `cisagov/kev-data` (CISA's own GitHub mirror of the KEV data files) | Secondary: exploitation evidence check | commit `be330da604b41a3b29c84b3f0a0122d6d2167417`; file `known_exploited_vulnerabilities.json`; `catalogVersion` 2026.10.08, `dateReleased` 2026-10-08T20:09:18Z, 1,739 entries | local import of the pinned mirror file, 2026-10-12T12:29:03Z (declared origin recorded in the manifest) | SHA-256 `fb1621be…26dfee`; structure and declared count re-validated by the Phase 2 KEV parser |
+| FIRST EPSS daily scores | Tertiary: (would be) exploit-probability context | none | **not retrieved** - the official endpoint `epss.empiricalsecurity.com/epss_scores-current.csv.gz` is unreachable from this build environment (only `github.com`, `codeload.github.com` and `api.github.com` are reachable) | recorded as `SNAPSHOT_UNAVAILABLE` for all 455 rows: unknown, not zero |
+| `data/processed/vulnerabilities_clean.csv` (from `data/raw/vulnerabilities.csv`) | Audited input | SHA-256 `ce01eb93…ca564b` (clean), `cad0f1e3…aed5201` (raw, unchanged) | local | raw file and `cve.csv.zip` hashes re-checked at audit time |
+
+The KEV file was taken from CISA's own GitHub mirror rather than
+`www.cisa.gov` because this environment cannot reach that host. The mirror is
+pinned by commit, its checksum is recorded, and its own `catalogVersion` and
+record count are validated - but it is still a mirror: verify against the
+primary feed before relying on it for a policy change.
+
+Snapshot drift was checked explicitly. The upstream `main` branch moved between
+two runs of the fetcher (commit `5835abf86b2f…92ccfc8b`, retrieved 12:31:28Z, and commit
+`87587212d7e3…134599c`, retrieved 12:57:56Z). All 455 record files are **byte-identical
+between the two commits** (same per-record SHA-256, same states), and audits run
+against each manifest agree on every evidence column and on the whole sensitivity
+table; only the recorded commit pin, per-record URLs, and manifest checksum
+differ. The numbers quoted below hold for both. `python -m src.fetch_disputed_status`
+reuses an already-verified snapshot for the same commit unless `--refresh` is
+passed.
+
+Reference and advisory URLs *inside* the official records are recorded (with
+tag and host) but their bodies were not fetched, so their content is not evidence
+used by this audit - `official_reference_bodies_retrieved = False` on every row.
+
+### 3. How a record is classified
+
+Four things are kept strictly separate, and each has its own column:
+
+| Column | Vocabulary | Meaning |
+| --- | --- | --- |
+| `official_record_state` | `PUBLISHED`, `REJECTED`, `RESERVED`, `…` | the CVE Program's **administrative** status for the identifier |
+| `disputed_marker_at_start`, `disputed_claim_text`, `dataset_summary_original` | text | the snapshot's **marker and claim**, quoted verbatim |
+| `official_record_position` | `SUPPORTS_DISPUTE_RECORDED`, `CONTRADICTS_DISPUTE_RECORDED`, `DOES_NOT_RESOLVE`, `NO_AUTHORITATIVE_RECORD` | what the official record says about that claim |
+| `dispute_resolution` / `resolution_bucket` | `RESOLVED_WITHDRAWN`, `RESOLVED_DISPUTE_CONTRADICTED`, `OPEN_DISPUTE_DOCUMENTED`, `UNRESOLVED_NO_DISPUTE_SIGNAL`, `UNRESOLVED_NON_FINAL_STATE`, `NOT_VERIFIABLE` / `RESOLVED`, `UNRESOLVED`, `NOT_VERIFIABLE` | the audit-level outcome |
+| `evidence_status` | `SUFFICIENT`, `INSUFFICIENT`, `CONTRADICTORY`, `NOT_VERIFIABLE` | whether the retrieved evidence answers the claim at all |
+| `exclusion_evidence` | `SUPPORTED`, `NOT_SUPPORTED`, `NOT_EVALUABLE` | whether the evidence would justify removing the record from a vulnerability ranking |
+| `evidence_confidence` | `HIGH`, `MEDIUM`, `LOW`, `NONE` | `HIGH` = explicit statement in the record's own text; `MEDIUM` = the CNA `tags` say `disputed` but the text does not; `LOW` = the record is silent; `NONE` = no record |
+| `kev_snapshot_status`, `epss_snapshot_status` | `MATCHED`, `NOT_LISTED_IN_SNAPSHOT`, `SNAPSHOT_UNAVAILABLE` | exploitation context, with missing never treated as negative |
+
+Rule that matters most for any future policy: `exclusion_evidence` is
+`SUPPORTED` **only** when the official record state is `REJECTED` (the identifier
+is withdrawn, so the snapshot's CVSS value is not a severity). A `** DISPUTED **`
+marker on its own never sets it, and neither does a `PUBLISHED` record, an absent
+KEV entry, or an EPSS value.
+
+Rationale text is copied verbatim from the record - `authoritative_rationale`
+plus the JSON path in `authoritative_rationale_field`, or
+`authoritative_rationale_status = NOT_RECORDED_IN_SOURCE` when the source
+contains none. Nothing is paraphrased, summarised, or invented, and no rationale
+is inferred from the marker.
+
+### 4. What the evidence shows (455 records)
+
+| Measure | Result |
+| --- | --- |
+| Official records retrieved | **455 / 455** (all from one commit; 0 missing, 0 unreadable) |
+| Official administrative state | `PUBLISHED` 455; `REJECTED` 0; other non-final states 0 |
+| Audit outcome | `RESOLVED` 0, `UNRESOLVED` 455, `NOT_VERIFIABLE` 0 |
+| Evidence classification | dispute documented in the record's own text 449; documented by the CNA tag only 5; record silent on the dispute 1 |
+| Evidence confidence | `HIGH` 449, `MEDIUM` 5, `LOW` 1 |
+| Evidence sufficiently answers the claim | 454 of 455 (`AUTHORITATIVE_SILENT_ON_DISPUTE`: CVE-2015-2908, where the 2024 record text no longer carries the vendor's 2015 rebuttal) |
+| Evidence that **contradicts** the marker (an explicit "dispute resolved / no longer disputed / reinstated" statement) | **0 of 455** |
+| Evidence that **supports excluding** the record | **0 of 455** |
+| Who the recorded text says is disputing | vendor/upstream 257, third party 75, CNA/assigner 14, unspecified 109 (from documented wordings only) |
+| What is disputed | existence/validity 59, relevance/severity 34, behaviour/reproducibility 17, unspecified 345 |
+| Explicitly documented replacement/related CVE IDs | 1 (CVE-2018-16585 → CVE-2018-15910, in the record's own description text) |
+| KEV evidence | 0 of 455 listed in the 2026-10-08 KEV catalog (the same join matches 443 of all 89,660 dataset rows, so the join itself is working). Absence from KEV is **not** evidence that a vulnerability was never exploited |
+| EPSS evidence | none available in this environment → 455 × `SNAPSHOT_UNAVAILABLE` (unknown, not zero) |
+| Snapshot CVSS values that match the placeholder seen on confirmed rejections (5.0) | 61 of 455, disclosed as `cvss_placeholder_suspect = True`; the value is still used, because this audit changes no score |
+
+Read the two vocabularies separately. `resolved` counts records where the
+authoritative evidence **settles** the disputed claim (withdrawn, or an explicit
+statement that the dispute was resolved) - zero here. `unresolved` counts records
+where the claim is not settled - including the 454 rows whose evidence is
+nevertheless `SUFFICIENT`, because the source documents the dispute without
+settling it. So "455 unresolved, 454 sufficient" is not a contradiction: the
+marker is corroborated, the technical question is not answered.
+
+The disputes are overwhelmingly *documented and open*: the official record still
+contains the same counter-statement (or the `disputed` tag) that the 2019
+snapshot summarised. That is a coherent, well-sourced state of affairs - it is
+not evidence that any of the 455 identifiers is invalid.
+
+### 5. High-ranked disputed records and the review queue
+
+| Band (unchanged baseline) | Disputed records | IDs |
+| --- | --- | --- |
+| Top 100 | **0** | - |
+| Top 1,000 | **4** | `CVE-2006-7181` (rank 113), `CVE-2007-5364` (212), `CVE-2009-1227` (685), `CVE-2010-4931` (975) - all CVSS 10.0, all still documented as disputed by the official record |
+| Top 10,000 | **21** | the four above plus 17 more (20 of the 21 carry CVSS 10.0) |
+| Below top 10,000 | 434 | - |
+
+`data/processed/disputed_cve_review_queue.csv` holds the five records whose
+evidence needs a human reading, ordered by priority:
+
+| Priority | Rule | Records |
+| --- | --- | --- |
+| `P1_high_ranked_evidence_gap` | top 1,000 **and** (evidence insufficient, contradictory, unverifiable, or exclusion supported) | none in this run |
+| `P2_high_ranked_open_dispute` | top 1,000 and the source still documents an open dispute, so the record's rank rests on a contested claim | `CVE-2006-7181`, `CVE-2007-5364`, `CVE-2009-1227`, `CVE-2010-4931` |
+| `P3_evidence_gap` | evidence insufficient, contradictory, unverifiable, or exclusion supported at any rank | `CVE-2015-2908` |
+
+### 6. Ranking sensitivity (analytical scenarios only)
+
+Four treatments were measured against the **unchanged** baseline
+(`data/processed/vulnerabilities_ranked.csv`) and the **current** reviewed ranking
+(`data/processed/vulnerabilities_ranked_reviewed.csv`, Phase 2.1). Scenario
+rankings are recomputed with the unmodified `rank_by_cvss` rule, so they differ
+from the reference only by the rows removed.
+
+| # | Scenario | Excludes | Flags | Evidence-justified? |
+| --- | --- | --- | --- | --- |
+| S0 | keep all disputed records eligible (**policy in force**) | 0 | 0 | yes - it is the current policy, preserved for comparison |
+| S1 | exclude only records whose authoritative evidence supports exclusion | 0 | 0 | yes in principle, but **it applies to no record today**: no disputed identifier's official state is `REJECTED` |
+| S2 | exclude nothing; flag unresolved/insufficient records for manual review | 0 | 5 (4 in the top 1,000) | yes - a workflow change with no ranking effect |
+| S3 | exclude every `** DISPUTED **` record (marker-only rule) | 455 | 0 | **no - not evidence-justified.** Measured only to quantify what a marker-only rule would do |
+
+Effect on the ranking (numbers are identical against both reference rankings,
+except the full-depth positions-shifted count):
+
+| Scenario | IDs removed from top 100 | top 1,000 | top 10,000 | First position changed | Positions changed (top 1,000 / top 10,000 / all) | Largest rank shift |
+| --- | --- | --- | --- | --- | --- | --- |
+| S0 (current) | 0 | 0 | 0 | none | 0 / 0 / 0 | 0 |
+| S1 | 0 | 0 | 0 | none | 0 / 0 / 0 | 0 |
+| S2 | 0 | 0 (4 flagged in place) | 0 (4 of the 21 flagged in place) | none | 0 / 0 / 0 | 0 |
+| S3 | 0 | 4 | 21 | 113 | 888 / 9,888 / 89,531 | 4 (top-1,000 view), 21 (top-10,000 view), 455 (full view) |
+
+Reading:
+
+* **The current policy costs nothing measurable today.** S1 - the only
+  evidence-driven exclusion rule the audit can justify - removes exactly zero
+  records, because none of the 455 identifiers is withdrawn.
+* **The disputed records do reach high ranks.** There are none in the top 100,
+  but four sit at ranks 113-975. S3 removes all four and shifts the first
+  position at 113, which is a real change to what a user would see.
+* **S3 cannot be justified from the evidence.** It would drop 455 records whose
+  official records are `PUBLISHED`, 454 of which still document the dispute
+  themselves; for 449 of them the counter-statement is in the record's own text.
+  A marker copied from a 2019 snapshot is not a determination that today's
+  record is invalid.
+* **S2 is the only scenario worth acting on now**, and it changes no rank, no
+  score, and no eligibility - it just routes five records to a human.
+
+### 7. Outputs (all regenerable and Git-ignored)
+
+| File | Contents |
+| --- | --- |
+| `data/processed/disputed_cve_evidence_audit.csv` | 455 rows: every original dataset column verbatim, plus marker text, baseline rank/band, current reviewed rank, official state and dates, commit-pinned source URLs, record SHA-256 / Git blob SHA, tags, dispute-language rule and quote, actor/subject, verbatim rationale and its JSON path, replacement IDs, KEV/EPSS status with snapshot dates, retrieval failures, evidence classification, confidence rationale, exclusion evidence, and the review decision |
+| `data/processed/disputed_cve_ranking_impact.csv` | Per record: baseline, reviewed, and per-scenario ranks, top-100/1,000/10,000 membership, rank shifts, and whether each exclusion scenario applies |
+| `data/processed/disputed_cve_review_queue.csv` | The five records needing human review, with priority, reason, quoted claim, and quoted rationale |
+| `data/processed/disputed_cve_ranking_sensitivity.csv` | Scenario × reference ranking × depth (100 / 1,000 / 10,000 / full) counts, removed and added IDs, first changed position, positions changed, largest shift, and the justification text |
+| `data/processed/disputed_cve_audit_summary.json` | Counts by CVSS score, official state, evidence category, KEV/EPSS coverage, the top-N dispute ID lists, ranking-verification results, limitations, and the reproduction commands |
+| `data/processed/disputed_cve_source_manifest.json` | Every input with its pin, checksum, retrieval time, and failure list; the preserved Phase 2.1 inventory hash; and the SHA-256 of each artifact above |
+
+`data/processed/disputed_cve_report.csv` (Phase 2.1) is **not** overwritten - the
+CLI refuses any output path that would collide with it.
+
+### 8. Limitations (Phase 2.2)
+
+* The audit reads **one commit** of `CVEProject/cvelistV5`. CVE records change;
+  re-run rather than assuming today's state. `official_record_date_updated` is
+  later than the snapshot's `mod_date` for all 455 records because the CVE
+  Program migrated its backlog in 2024 - that is a record-format event, not
+  evidence that any dispute status changed.
+* Evidence is limited to the official record's own fields and text. Advisory and
+  vendor pages referenced by a record were not retrieved, so a dispute that a
+  vendor advisory settles is not settled here.
+* `PUBLISHED` is an administrative state, not a finding that a disputed technical
+  claim is true. This audit never converts one into the other, in either
+  direction.
+* Where the record is silent (1 record) or documents the dispute only through the
+  CNA tag (5 records), the evidence is recorded as insufficient or medium
+  confidence - never upgraded by inference.
+* Actor and subject extraction is rule-based over documented wordings; 109 and
+  345 rows respectively remain `UNSPECIFIED` rather than guessed. Every match
+  keeps its verbatim quote and the JSON path it came from.
+* KEV comes from CISA's GitHub mirror (see §2) and is a single dated snapshot;
+  EPSS is unavailable in this environment, so the exploitation columns are
+  explicitly unknown for all 455 rows.
+* Snapshot CVSS values that match the 5.0 placeholder seen on confirmed
+  rejections are flagged, not changed. Whether 5.0 is a placeholder *for a given
+  disputed record* is not established by this audit.
+* Scenario rankings are analytical comparisons. They do not modify, and are not
+  applied to, the baseline, the reviewed ranking, or any other artifact.
+
+### 9. Reproducing the audit
+
+```bash
+# 0. Prerequisites (clean dataset, baseline, and the Phase 2.1 reviewed ranking)
+python -m src.preprocess_data
+python -m src.baseline
+python -m src.fetch_cve_status --input data/processed/vulnerabilities_clean.csv
+python -m src.audit_rejected_cves --allow-missing-sources
+
+# 1. Snapshot the official records for all 455 disputed identifiers, pinned to
+#    one commit. Needs api.github.com; the token (GH_TOKEN by default) is read
+#    from the environment and is never written to disk. Unauthenticated runs are
+#    possible with --allow-missing-token but GitHub allows only 60 requests/hour.
+python -m src.fetch_disputed_status --input data/processed/vulnerabilities_clean.csv --workers 6
+
+# 2. Run the evidence audit and write every artifact.
+python -m src.audit_disputed_cves --allow-missing-sources
+
+# 3. Offline reproduction from already-downloaded record files (no network):
+python -m src.fetch_disputed_status --from-directory PATH_TO_CVE_JSON_DIR \
+    --origin-url https://github.com/CVEProject/cvelistV5/blob/<commit> --commit-sha <commit>
+python -m src.audit_disputed_cves --disputed-manifest data/external/raw/disputed/cve_status/<snapshot>.manifest.json
+
+# 4. Deterministic re-run: pin the report timestamp to compare byte-for-byte.
+python -m src.audit_disputed_cves --generated-utc 2026-10-12T00:00:00Z
+```
+
+The audit verifies its own inputs as it runs: the baseline ranking is recomputed
+and compared with the stored output, the Phase 2.1 reviewed ranking is checked the
+same way, every snapshot record is re-hashed against the manifest, and the raw
+dataset and Phase 2.1 disputed report are hashed before and after. In this run
+all four checks passed, and the baseline ranking reproduced byte-for-byte
+(`python -m src.baseline` re-run into a temporary directory produced the same
+SHA-256, `6bfa16f0…5db5a8`).
+
 ## Limitations (Phase 2)
 
 - The reproducible enrichment in this checkout was built from the snapshots above.
@@ -668,7 +926,9 @@ inputs, and `rejected_cve_summary.json` embeds the outputs' SHA-256 values.
 ## Reproduction
 
 Run these commands from the repository root after setup. Steps 1–4 are the
-original pipeline; steps 5–6 are the Phase 2 threat-intelligence enrichment.
+original pipeline; steps 5–6 are the Phase 2 threat-intelligence enrichment;
+steps 7–8 are the Phase 2.1 rejected-CVE audit; steps 9–10 are the Phase 2.2
+disputed-CVE evidence audit.
 
 ```bash
 # 1. Review the full schema and descriptive statistics.
@@ -696,6 +956,15 @@ python -m src.fetch_cve_status
 
 # 8. Audit those records and write the reviewed status-aware ranking.
 python -m src.audit_rejected_cves
+
+# 9. Fetch the authoritative CVE records for the '** DISPUTED **' entries,
+#    pinned to one commit of CVEProject/cvelistV5 (needs access to
+#    api.github.com; a token is read from GH_TOKEN and never written to disk).
+python -m src.fetch_disputed_status --input data/processed/vulnerabilities_clean.csv
+
+# 10. Audit every disputed record's evidence and measure the ranking
+#     sensitivity of hypothetical treatments. The policy is not changed.
+python -m src.audit_disputed_cves --allow-missing-sources
 ```
 
 Note that step 5 uses the official endpoints by default. Cached snapshots

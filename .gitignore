@@ -24,3 +24,15 @@ data/processed/rejected_cve_audit.csv
 data/processed/vulnerabilities_ranked_reviewed.csv
 data/processed/rejected_cve_summary.json
 data/processed/disputed_cve_report.csv
+
+# Disputed-CVE evidence audit (Phase 2.2) and its regenerable outputs. The
+# commit-pinned evidence snapshot lives under data/external/raw/disputed/
+# (already ignored above); regenerate everything with
+# `python -m src.fetch_disputed_status` followed by
+# `python -m src.audit_disputed_cves`.
+data/processed/disputed_cve_evidence_audit.csv
+data/processed/disputed_cve_audit_summary.json
+data/processed/disputed_cve_ranking_sensitivity.csv
+data/processed/disputed_cve_ranking_impact.csv
+data/processed/disputed_cve_review_queue.csv
+data/processed/disputed_cve_source_manifest.json
