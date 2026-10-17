@@ -118,6 +118,23 @@ def test_detail_exposes_insufficient_evidence(server):
     assert "INSUFFICIENT EVIDENCE" in detail["assessment"]["display_band"]
 
 
+def test_detail_exposes_state_and_basis(server):
+    _, detail = get(server, "/api/cve/CVE-2023-0001")
+    assert detail["record"]["source"] == "cvelistv5"
+    assert detail["record"]["state"] == "PUBLISHED"
+    assert detail["record"]["state_basis"] == "stated"
+
+
+def test_detail_preserves_alternate_source_state(server):
+    _, detail = get(server, "/api/cve/CVE-2019-0005")
+    alternate = {
+        alt["source"]: alt for alt in detail["record"]["alternate_source_records"]
+    }["legacy_cve_csv"]
+    assert alternate["state"] is None
+    assert alternate["state_basis"] == "not_stated"
+    assert alternate["retrieved_at"]
+
+
 def test_unknown_cve_returns_404_with_explanation(server):
     with pytest.raises(urllib.error.HTTPError) as excinfo:
         get(server, "/api/cve/CVE-1999-9999")

@@ -291,6 +291,15 @@ async function main() {
   check("first row shows a P1 band chip", /P1_CRITICAL/.test(textOf(rows[0])));
   check("KEV members carry a KEV chip", /KEV/.test(textOf(rows[0])));
 
+  // ---- DEF-2: the asterisk marker and its legend
+  const legendNode = doc.getElementById("ranking-legend");
+  check("DEF-2 legend element exists", !!legendNode);
+  check("DEF-2 no asterisk on a row without insufficient evidence",
+    !/\*/.test(textOf(rows[0])), textOf(rows[0]));
+  check("DEF-2 legend is hidden when no insufficient row is visible",
+    /is-empty/.test(legendNode.className) && textOf(legendNode) === "",
+    `${legendNode.className} / ${textOf(legendNode)}`);
+
   const firstId = rows[0].getAttribute("data-cve");
   const api = await (await fetch(`${BASE}/api/ranking?limit=1`)).json();
   check("rendered score matches API", textOf(rows[0]).includes(String(api.rows[0].score)), firstId);
@@ -368,6 +377,31 @@ async function main() {
   check("DEF-3 heading does not claim a source value exists",
     !/\(1 source values\)/.test(weakText), weakText.slice(0, 300));
 
+  // ---- DEF-4: state and state_basis come from the source, per source
+  await sandbox.window.__vulnova.loadDetail("CVE-2026-41940");
+  const statedStateText = textOf(doc.getElementById("detail"));
+  check("DEF-4 stated state is shown verbatim from cvelistV5",
+    /StatePUBLISHED/.test(statedStateText), statedStateText.slice(-500));
+  check("DEF-4 stated state carries basis 'stated'",
+    /State basisstated/.test(statedStateText), statedStateText.slice(-500));
+  check("DEF-4 detail names the primary source",
+    /Primary sourcecvelistv5/.test(statedStateText));
+
+  await sandbox.window.__vulnova.loadDetail("CVE-1999-0001");
+  const absentStateText = textOf(doc.getElementById("detail"));
+  check("DEF-4 absent state is rendered as not stated",
+    /Statenot stated by the source/.test(absentStateText), absentStateText.slice(-500));
+  check("DEF-4 absent state carries basis 'not_stated'",
+    /State basisnot_stated/.test(absentStateText), absentStateText.slice(-500));
+  check("DEF-4 detail does not invent a state",
+    !/StatePUBLISHED/.test(absentStateText));
+
+  await sandbox.window.__vulnova.loadDetail("CVE-2007-3010");
+  const dualStateText = textOf(doc.getElementById("detail"));
+  check("DEF-4 alternate source keeps its own state, basis and timestamp",
+    /Alternate source legacy_cve_csv: state not stated \(basis not_stated, retrieved 2026-10-17T/.test(dualStateText),
+    dualStateText.slice(-600));
+
   // ---- filters
   const reviewBox = doc.getElementById("review");
   reviewBox.checked = true;
@@ -377,6 +411,15 @@ async function main() {
   check("review filter renders only insufficient rows",
     reviewRows.length > 0 && reviewRows.every((r) => /INSUFFICIENT EVIDENCE/.test(textOf(r))),
     reviewRows.length);
+  check("DEF-2 insufficient rows are marked with an asterisk",
+    reviewRows.every((r) => textOf(r).includes("*")), reviewRows.length);
+  check("DEF-2 the asterisk is explained by a visible legend",
+    /INSUFFICIENT EVIDENCE/.test(textOf(legendNode)) &&
+    /not an assessment that the vulnerability is low risk/.test(textOf(legendNode)) &&
+    !/is-empty/.test(legendNode.className), textOf(legendNode));
+  check("DEF-2 legend refers to the marker and the page count",
+    /^\* \d+ rows? on this page (has|have) INSUFFICIENT EVIDENCE/.test(textOf(legendNode)),
+    textOf(legendNode));
 
   reviewBox.checked = false;
   reviewBox.listeners.change[0]({ target: reviewBox });
@@ -392,6 +435,9 @@ async function main() {
   kevBox.listeners.change[0]({ target: kevBox });
   await sleep(600);
   check("clearing the filter restores 25 rows", doc.getElementById("rows").children.length === 25);
+  check("DEF-2 legend clears when no insufficient row is shown",
+    /is-empty/.test(legendNode.className) && textOf(legendNode) === "",
+    `${legendNode.className} / ${textOf(legendNode)}`);
 
   // ---- dump
   if (DUMP) {

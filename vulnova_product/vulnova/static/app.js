@@ -225,6 +225,23 @@
     return tr;
   }
 
+  function renderLegend(rows) {
+    var legend = $("ranking-legend");
+    if (!legend) return;
+    var affected = rows.filter(function (row) { return row.review_required; }).length;
+    if (!affected) {
+      legend.className = "legend is-empty";
+      legend.textContent = "";
+      return;
+    }
+    legend.className = "legend";
+    legend.textContent = "* " + affected + (affected === 1 ? " row" : " rows") +
+      " on this page " + (affected === 1 ? "has" : "have") +
+      " INSUFFICIENT EVIDENCE (no CVSS and no EPSS). The numeric band is shown" +
+      " for completeness; it is not an assessment that the vulnerability is low" +
+      " risk. Missing inputs are named in the Evidence column.";
+  }
+
   function renderRows(payload) {
     state.lastRows = payload.rows;
     var body = $("rows");
@@ -237,6 +254,7 @@
     payload.rows.forEach(function (row) {
       body.appendChild(rowNode(row));
     });
+    renderLegend(payload.rows);
     var from = payload.total === 0 ? 0 : payload.offset + 1;
     var to = Math.min(payload.offset + payload.limit, payload.total);
     $("list-meta").textContent =
@@ -528,6 +546,27 @@
     root.appendChild(h("p", { class: "section-note",
       text: "publication_recency does NOT represent: " +
         (prc.does_not_represent || []).join("; ") + "." }));
+
+    root.appendChild(h("h3", { text: "Record state" }));
+    var rec = payload.record;
+    root.appendChild(kv([
+      ["Primary source", rec.source || "—"],
+      ["State", rec.state === null || rec.state === undefined || rec.state === ""
+        ? "not stated by the source" : rec.state],
+      ["State basis", rec.state_basis || "not_stated"]
+    ]));
+    root.appendChild(h("p", { class: "section-note",
+      text: "State is copied verbatim from the source's metadata. " +
+        "state_basis \"stated\" means the source supplied a state; " +
+        "\"not_stated\" means it did not (the legacy extract has no state column). " +
+        "Nothing is inferred from the other source." }));
+    (rec.alternate_source_records || []).forEach(function (alt) {
+      root.appendChild(h("p", { class: "section-note",
+        text: "Alternate source " + alt.source + ": state " +
+          (alt.state === null || alt.state === undefined || alt.state === ""
+            ? "not stated" : alt.state) +
+          " (basis " + alt.state_basis + ", retrieved " + (alt.retrieved_at || "—") + ")" }));
+    });
 
     root.appendChild(h("h3", { text: "Provenance" }));
     var prov = h("div");

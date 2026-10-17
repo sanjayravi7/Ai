@@ -54,6 +54,45 @@ def test_legacy_record_is_exposed_as_alternate_source(conn):
     )
 
 
+def test_record_exposes_primary_source_and_state_basis(conn):
+    payload = explain.explain_one(conn, "CVE-2023-0001")
+    assert payload["record"]["source"] == "cvelistv5"
+    assert payload["record"]["state"] == "PUBLISHED"
+    assert payload["record"]["state_basis"] == "stated"
+
+
+def test_conflicting_state_is_preserved_not_resolved(conn):
+    """DEF-4: each source keeps its own state and basis.
+
+    The cvelistV5 row states PUBLISHED; the legacy extract has no state column.
+    Neither is used to overwrite the other, and the alternate record carries its
+    own basis and retrieval timestamp.
+    """
+    conn.execute(
+        "INSERT INTO cve_record (cve_id, source, source_revision, retrieved_at,"
+        " published, updated, state, state_basis, reject_marker, assigner, title,"
+        " description) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        ("CVE-2023-0001", "legacy_cve_csv", None, "2026-10-17T00:00:01Z",
+         "2023-06-01", "2023-06-01", None, "not_stated", 0, None, None,
+         "Legacy copy."),
+    )
+    payload = explain.explain_one(conn, "CVE-2023-0001")
+    assert payload["record"]["source"] == "cvelistv5"
+    assert payload["record"]["state"] == "PUBLISHED"
+    assert payload["record"]["state_basis"] == "stated"
+    assert set(payload["record"]["sources"]) == {"cvelistv5", "legacy_cve_csv"}
+    alternate = {
+        alt["source"]: alt for alt in payload["record"]["alternate_source_records"]
+    }["legacy_cve_csv"]
+    assert alternate["state"] is None
+    assert alternate["state_basis"] == "not_stated"
+    assert alternate["retrieved_at"] == "2026-10-17T00:00:01Z"
+    # both rows still exist independently; nothing was merged
+    assert conn.execute(
+        "SELECT COUNT(*) FROM cve_record WHERE cve_id='CVE-2023-0001'"
+    ).fetchone()[0] == 2
+
+
 def test_provenance_lists_only_sources_with_rows(conn):
     payload = explain.explain_one(conn, "CVE-2023-0001")
     assert payload["provenance"]["sources_present"] == ["cvelistv5", "epss"]

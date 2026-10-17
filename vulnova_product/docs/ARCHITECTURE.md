@@ -53,12 +53,29 @@ lookups.
 | Table | Purpose |
 | --- | --- |
 | `ingest_run` | per-stage counters: in / new / existing / duplicate / rejected / skipped |
-| `cve_record` | one row per (CVE, source); state, publication date, description, revision, retrieved_at |
+| `cve_record` | one row per (CVE, source); state, state_basis, publication date, description, revision, retrieved_at |
 | `cvss_observation` | one row per metric; value, version, organisation, status, retrieved_at |
 | `kev` | catalog membership + `date_added` |
 | `epss` | probability, percentile, model version, score date |
 | `ranking` | materialised score, band, adequacy status, conflict flags |
 | `ranking_meta` | fingerprint, build time, reference date |
+
+### State and `state_basis`
+
+`state` is the value the source itself supplied, copied verbatim (for cvelistV5,
+`cveMetadata.state`). `state_basis` records only where that value came from:
+
+| `state_basis` | Meaning |
+| --- | --- |
+| `stated` | the source supplied a non-empty state (`PUBLISHED`, `REJECTED`, or any other value) |
+| `not_stated` | the source supplied no state field or an empty/null value |
+
+`state_basis` is never inferred from `reject_marker`, and `reject_marker` is never
+inferred from the basis. The legacy extract has no state column, so its rows are
+always `not_stated`. When a CVE has rows from more than one source, each row keeps
+its own state and basis; `/api/cve/<id>` exposes the primary record under
+`record` and the others under `record.alternate_source_records`, with their own
+retrieval timestamps. No disagreement is resolved by merging the values.
 
 ## Naming
 

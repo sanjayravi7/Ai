@@ -294,13 +294,16 @@ def explain_one(conn, cve_id, reference_day=None) -> dict | None:
         for key in ("cve_id", "published", "updated", "state", "state_basis",
                     "reject_marker", "assigner", "title", "description")
     }
+    record["source"] = fact["primary"]["source"]
     record["sources"] = [r["source"] for r in fact["records"]]
     conflicts = [
         {
             "source": r["source"],
             "published": r["published"],
             "state": r["state"],
+            "state_basis": r["state_basis"],
             "reject_marker": r["reject_marker"],
+            "retrieved_at": r["retrieved_at"],
         }
         for r in fact["records"]
         if r["source"] != fact["primary"]["source"]

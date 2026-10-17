@@ -32,6 +32,16 @@ def _day(value):
     return match.group(1) if match else None
 
 
+def _state_basis(value) -> str:
+    """Whether the source itself states a state.
+
+    ``state`` is copied verbatim by :func:`parse_file`; nothing is inferred from
+    ``reject_marker`` or from the legacy extract.  The basis records only
+    whether ``cveMetadata.state`` carried a non-empty value.
+    """
+    return "stated" if isinstance(value, str) and value.strip() else "not_stated"
+
+
 def _description(cna) -> str | None:
     for item in cna.get("descriptions") or []:
         if item.get("lang", "").startswith("en") and item.get("value"):
@@ -104,6 +114,7 @@ def parse_file(path) -> dict | None:
     return {
         "cve_id": cve_id,
         "state": state,
+        "state_basis": _state_basis(state),
         "published": _day(meta.get("datePublished")),
         "updated": _day(meta.get("dateUpdated")),
         "assigner": meta.get("assignerShortName") or meta.get("assignerOrgId"),

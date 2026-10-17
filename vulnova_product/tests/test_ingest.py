@@ -10,7 +10,8 @@ from vulnova import ingest, store
 from vulnova.sources import kev, legacy_csv
 
 
-def write_cve(root, relative, cve_id, published, state="PUBLISHED", cvss=None):
+def write_cve(root, relative, cve_id, published, state="PUBLISHED", cvss=None,
+             omit_state=False):
     path = root / relative
     path.parent.mkdir(parents=True, exist_ok=True)
     metrics = []
@@ -21,13 +22,16 @@ def write_cve(root, relative, cve_id, published, state="PUBLISHED", cvss=None):
                 "baseSeverity": "HIGH", "vectorString": "CVSS:3.1/AV:N",
             }
         })
+    metadata = {
+        "cveId": cve_id, "state": state, "assignerShortName": "acme",
+        "datePublished": published, "dateUpdated": published,
+    }
+    if omit_state:
+        metadata.pop("state")
     payload = {
         "dataType": "CVE_RECORD",
         "dataVersion": "5.1",
-        "cveMetadata": {
-            "cveId": cve_id, "state": state, "assignerShortName": "acme",
-            "datePublished": published, "dateUpdated": published,
-        },
+        "cveMetadata": metadata,
         "containers": {
             "cna": {
                 "providerMetadata": {"shortName": "acme"},
@@ -125,3 +129,49 @@ def test_missing_cvss_produces_a_missing_row(tmp_path):
     ).fetchone()
     assert row["status"] == "MISSING_FROM_SOURCE"
     assert row["value"] is None
+
+
+def test_state_basis_is_recorded_from_the_source(tmp_path):
+    """DEF-4: state_basis must reflect what cvelistV5 actually states.
+
+    ``state`` is copied verbatim.  A missing, null or empty value is
+    ``not_stated``; nothing is inferred from reject_marker or the legacy
+    extract.
+    """
+    root = tmp_path / "root"
+    write_cve(root, "cves/2023/2xxx/CVE-2023-2001.json", "CVE-2023-2001", "2023-01-01")
+    write_cve(root, "cves/2023/2xxx/CVE-2023-2002.json", "CVE-2023-2002", "2023-01-02",
+              state="RESERVED")
+    write_cve(root, "cves/2023/2xxx/CVE-2023-2003.json", "CVE-2023-2003", "2023-01-03",
+              state=None)
+    write_cve(root, "cves/2023/2xxx/CVE-2023-2004.json", "CVE-2023-2004", "2023-01-04",
+              omit_state=True)
+    write_cve(root, "cves/2023/2xxx/CVE-2023-2005.json", "CVE-2023-2005", "2023-01-05",
+              state="REJECTED")
+
+    db = tmp_path / "store.db"
+    conn = store.initialise(db)
+    ingest.load_cvelistv5(conn, root, years=[2023], revision="rev1",
+                          published_from="2020-01-01")
+
+    rows = {row["cve_id"]: row for row in conn.execute(
+        "SELECT cve_id, state, state_basis, reject_marker FROM cve_record"
+    )}
+    # stated
+    assert rows["CVE-2023-2001"]["state"] == "PUBLISHED"
+    assert rows["CVE-2023-2001"]["state_basis"] == "stated"
+    # stated but not one of the values the console uses: preserved verbatim
+    assert rows["CVE-2023-2002"]["state"] == "RESERVED"
+    assert rows["CVE-2023-2002"]["state_basis"] == "stated"
+    assert rows["CVE-2023-2002"]["reject_marker"] == 0
+    # explicit null
+    assert rows["CVE-2023-2003"]["state"] is None
+    assert rows["CVE-2023-2003"]["state_basis"] == "not_stated"
+    # key absent
+    assert rows["CVE-2023-2004"]["state"] is None
+    assert rows["CVE-2023-2004"]["state_basis"] == "not_stated"
+    # rejected is a stated state, not a basis
+    assert rows["CVE-2023-2005"]["state"] == "REJECTED"
+    assert rows["CVE-2023-2005"]["state_basis"] == "stated"
+    assert rows["CVE-2023-2005"]["reject_marker"] == 1
+    conn.close()

@@ -109,7 +109,10 @@ Independent of the score:
 
 For `INSUFFICIENT_EVIDENCE` the numeric band is preserved but the display band gains
 `(INSUFFICIENT EVIDENCE)` and the detail view states that the band is **not** an
-assessment that the vulnerability is low risk.
+assessment that the vulnerability is low risk. In the ranking list the band chip is
+marked with `*`; a legend below the table explains the marker and repeats that the
+band is not a low-risk assessment. The asterisk never replaces the separate
+`INSUFFICIENT EVIDENCE` chip in the Evidence column.
 
 ## CVSS selection
 

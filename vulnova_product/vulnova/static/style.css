@@ -133,6 +133,10 @@ tr.selected-row td { background: #1d2a24; }
   .detail { max-height: none; }
 }
 
+/* DEF-2: the asterisk on an INSUFFICIENT EVIDENCE band is explained here. */
+.legend { color: var(--muted); font-size: 12px; margin: 8px 4px 0; line-height: 1.45; }
+.legend.is-empty { display: none; }
+
 /* Comparability metadata missing or unreadable: explicit, never treated as "comparable". */
 .unknown-note {
   border-left: 3px dashed #8b6f2f;
