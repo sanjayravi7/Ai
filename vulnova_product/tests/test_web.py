@@ -135,6 +135,28 @@ def test_detail_preserves_alternate_source_state(server):
     assert alternate["retrieved_at"]
 
 
+def test_api_keeps_raw_status_enums_and_missing_version(server):
+    """DEF-5 is presentation only: the payload must keep the raw values.
+
+    The UI maps these to readable labels; the API contract does not change.
+    """
+    _, detail = get(server, "/api/cve/CVE-2023-0002")
+    candidate = detail["observed"]["cvss"]["candidates"][0]
+    assert candidate["status"] == "MISSING_FROM_SOURCE"
+    assert candidate["version"] is None
+    assert detail["observed"]["epss"]["status"] == "MISSING_FROM_SOURCE"
+    assert detail["observed"]["kev"]["status"] == "NOT_LISTED_IN_CATALOG"
+    statuses = {signal["name"]: signal["status"] for signal in detail["priority"]["signals"]}
+    assert statuses["cvss_severity"] == "MISSING_FROM_SOURCE"
+
+
+def test_api_keeps_observed_status_and_version(server):
+    _, detail = get(server, "/api/cve/CVE-2023-0001")
+    candidate = detail["observed"]["cvss"]["candidates"][0]
+    assert candidate["status"] == "OBSERVED"
+    assert candidate["version"] == "3.1"
+
+
 def test_unknown_cve_returns_404_with_explanation(server):
     with pytest.raises(urllib.error.HTTPError) as excinfo:
         get(server, "/api/cve/CVE-1999-9999")

@@ -82,6 +82,37 @@
     return h("span", { class: "chip " + key, text: band || "—" });
   }
 
+  /* Presentation vocabulary only. The API and the database keep the raw enums
+   * (OBSERVED, MISSING_FROM_SOURCE, ...); these labels are display text and
+   * never feed back into any calculation or comparison. An enum that is not in
+   * the table is shown verbatim rather than given an invented label.
+   */
+  var STATUS_LABELS = {
+    OBSERVED: "Observed",
+    MISSING_FROM_SOURCE: "Missing from source",
+    NOT_STATED_BY_SOURCE: "Not stated by source",
+    NOT_LISTED_IN_CATALOG: "Not listed in catalog",
+    UNAVAILABLE: "Unavailable",
+    LISTED: "Listed"
+  };
+
+  function statusLabel(status) {
+    if (status === null || status === undefined || status === "") return "—";
+    var key = String(status);
+    if (Object.prototype.hasOwnProperty.call(STATUS_LABELS, key)) return STATUS_LABELS[key];
+    return key;
+  }
+
+  /* A CVSS version that the source did not state is labelled, never guessed:
+   * "v?" read like a version, and "v0" would be a claim the source never made.
+   */
+  function cvssVersionLabel(version) {
+    if (version === null || version === undefined || String(version).trim() === "") {
+      return "Version not stated";
+    }
+    return "v" + String(version);
+  }
+
   /* ---------------------------------------------------------------- status */
 
   function renderCoverage(coverage) {
@@ -294,7 +325,7 @@
         h("td", { class: "num", text: signal.points + " / " + signal.max_points }),
         h("td", null, h("span", {
           class: "chip " + (signal.status === "OBSERVED" ? "" : "missing"),
-          text: signal.status
+          text: statusLabel(signal.status)
         })),
         h("td", { class: "detail", text: signal.detail })
       ));
@@ -323,7 +354,7 @@
       tr.appendChild(h("td", null, h("code", { text: cand.source })));
       tr.appendChild(h("td", { text: cand.container }));
       tr.appendChild(h("td", { text: cand.scoring_organization || "—" }));
-      tr.appendChild(h("td", { text: "v" + (cand.version || "?") }));
+      tr.appendChild(h("td", { text: cvssVersionLabel(cand.version) }));
       tr.appendChild(h("td", {
         class: "num",
         text: cand.value === null ? "—" : fixed(cand.value, 1)
@@ -332,7 +363,7 @@
       tr.appendChild(h("td", { class: "detail", text: cand.retrieved_at }));
       tr.appendChild(h("td", null, isSelected
         ? h("span", { class: "chip badge-selected", text: "SELECTED" })
-        : h("span", { class: "chip", text: cand.status })));
+        : h("span", { class: "chip", text: statusLabel(cand.status) })));
       body.appendChild(tr);
     });
     table.appendChild(body);
@@ -514,7 +545,7 @@
 
     root.appendChild(h("h3", { text: "EPSS" }));
     root.appendChild(kv([
-      ["Status", payload.observed.epss.status],
+      ["Status", statusLabel(payload.observed.epss.status)],
       ["Probability", payload.observed.epss.probability === null
         ? "not available" : pct(payload.observed.epss.probability)],
       ["Percentile", payload.observed.epss.percentile === undefined ||
@@ -526,7 +557,7 @@
 
     root.appendChild(h("h3", { text: "KEV" }));
     root.appendChild(kv([
-      ["Status", payload.observed.kev.status],
+      ["Status", statusLabel(payload.observed.kev.status)],
       ["Date added", payload.observed.kev.date_added || "—"],
       ["Vendor / product", payload.observed.kev.vendor
         ? payload.observed.kev.vendor + " / " + (payload.observed.kev.product || "—")

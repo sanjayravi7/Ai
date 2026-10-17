@@ -377,6 +377,28 @@ async function main() {
   check("DEF-3 heading does not claim a source value exists",
     !/\(1 source values\)/.test(weakText), weakText.slice(0, 300));
 
+  // ---- DEF-5: missing CVSS version and human-readable status labels
+  const weakPayload = await (await fetch(`${BASE}/api/cve/${weakId}`)).json();
+  const weakCandidate = weakPayload.observed.cvss.candidates[0];
+  check("DEF-5 missing version is not rendered as v?",
+    !/v\?/.test(weakText), weakText.slice(0, 300));
+  check("DEF-5 missing version is labelled explicitly",
+    /Version not stated/.test(weakText), weakText.slice(0, 400));
+  check("DEF-5 missing version is never rendered as a version number",
+    !/v0(?!\.)/.test(weakText), weakText.slice(0, 400));
+  check("DEF-5 raw status enum is not shown to the user",
+    !/MISSING_FROM_SOURCE/.test(weakText), weakText.slice(0, 400));
+  check("DEF-5 missing status reads 'Missing from source'",
+    /Missing from source/.test(weakText), weakText.slice(0, 400));
+  // four display sites carry MISSING_FROM_SOURCE: the epss_probability and
+  // cvss_severity signal chips, the CVSS candidate chip and the EPSS status
+  check("DEF-5 every missing status uses the same label",
+    (weakText.match(/Missing from source/g) || []).length === 4,
+    (weakText.match(/Missing from source/g) || []).length);
+  check("DEF-5 API still returns the raw enum and the null version",
+    weakCandidate.status === "MISSING_FROM_SOURCE" && weakCandidate.version === null,
+    JSON.stringify({ status: weakCandidate.status, version: weakCandidate.version }));
+
   // ---- DEF-4: state and state_basis come from the source, per source
   await sandbox.window.__vulnova.loadDetail("CVE-2026-41940");
   const statedStateText = textOf(doc.getElementById("detail"));
@@ -401,6 +423,23 @@ async function main() {
   check("DEF-4 alternate source keeps its own state, basis and timestamp",
     /Alternate source legacy_cve_csv: state not stated \(basis not_stated, retrieved 2026-10-17T/.test(dualStateText),
     dualStateText.slice(-600));
+
+  // ---- DEF-5: known versions and observed status keep their real labels
+  await sandbox.window.__vulnova.loadDetail("CVE-2021-23203");
+  const knownVersionText = textOf(doc.getElementById("detail"));
+  check("DEF-5 known versions still render as v3.1",
+    (knownVersionText.match(/v3\.1/g) || []).length >= 2,
+    (knownVersionText.match(/v3\.1/g) || []).length);
+  check("DEF-5 known versions do not fall back to the missing label",
+    !/Version not stated/.test(knownVersionText));
+  check("DEF-5 observed status reads 'Observed'",
+    /Observed/.test(knownVersionText));
+  check("DEF-5 raw OBSERVED enum is not shown to the user",
+    !/\bOBSERVED\b/.test(knownVersionText), knownVersionText.slice(0, 400));
+  check("DEF-5 KEV status reads 'Not listed in catalog'",
+    /Not listed in catalog/.test(knownVersionText));
+  check("DEF-5 raw KEV enum is not shown to the user",
+    !/NOT_LISTED_IN_CATALOG/.test(knownVersionText));
 
   // ---- filters
   const reviewBox = doc.getElementById("review");
