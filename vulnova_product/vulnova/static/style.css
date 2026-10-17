@@ -132,3 +132,12 @@ tr.selected-row td { background: #1d2a24; }
   .list { border-right: none; border-bottom: 1px solid var(--line); }
   .detail { max-height: none; }
 }
+
+/* Comparability metadata missing or unreadable: explicit, never treated as "comparable". */
+.unknown-note {
+  border-left: 3px dashed #8b6f2f;
+  padding-left: 10px;
+  margin: 8px 0;
+  color: #f0d9a8;
+  font-size: 12.5px;
+}

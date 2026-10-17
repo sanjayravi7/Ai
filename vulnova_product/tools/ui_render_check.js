@@ -305,6 +305,8 @@ async function main() {
   check("detail marks the selected value", /SELECTED/.test(detailText));
   check("detail explains non-comparability", /NOT directly comparable/.test(detailText));
   check("detail shows the selection rule", /highest CVSS version wins/.test(detailText));
+  check("DEF-3 heading counts observed values",
+    /CVSS evidence \u2014 2 observed values/.test(detailText), detailText.slice(0, 200));
   check("detail renders the score breakdown", /Score breakdown/.test(detailText));
   check("detail renders provenance timestamps", /2026-10-17T/.test(detailText));
   check("detail names publication_recency in the breakdown", /publication_recency/.test(detailText));
@@ -315,9 +317,40 @@ async function main() {
   check("detail lists what publication_recency does not represent",
     /publication_recency does NOT represent: recent exploitation activity; recent KEV inclusion; an independently verified increase in threat activity\./.test(detailText));
 
+  // ---- DEF-1: equal values, different CVSS versions must still warn
+  const equalCrossId = "CVE-2015-3306";
+  await sandbox.window.__vulnova.loadDetail(equalCrossId);
+  const equalCrossText = textOf(doc.getElementById("detail"));
+  const equalPayload = await (await fetch(`${BASE}/api/cve/${equalCrossId}`)).json();
+  check("DEF-1 precondition: has_conflict is false",
+    equalPayload.observed.cvss.conflict.has_conflict === false,
+    String(equalPayload.observed.cvss.conflict.has_conflict));
+  check("DEF-1 precondition: comparable is false",
+    equalPayload.observed.cvss.conflict.comparable === false,
+    String(equalPayload.observed.cvss.conflict.comparable));
+  check("DEF-1 equal values across versions still warn",
+    /NOT directly comparable/.test(equalCrossText), equalCrossText.slice(0, 300));
+  check("DEF-1 equal values are not called directly comparable",
+    /agree/.test(equalCrossText) && /NOT directly comparable/.test(equalCrossText));
+
+  // ---- equal values, same CVSS version: comparable, no false warning
+  const equalSameId = "CVE-2021-23203";
+  await sandbox.window.__vulnova.loadDetail(equalSameId);
+  const equalSameText = textOf(doc.getElementById("detail"));
+  const equalSamePayload = await (await fetch(`${BASE}/api/cve/${equalSameId}`)).json();
+  check("same-version precondition: comparable is true",
+    equalSamePayload.observed.cvss.conflict.comparable === true,
+    String(equalSamePayload.observed.cvss.conflict.comparable));
+  check("same-version case shows the same-scale rationale",
+    /share a scale/.test(equalSameText), equalSameText.slice(0, 300));
+  check("same-version case raises no false non-comparability warning",
+    !/NOT directly comparable/.test(equalSameText), equalSameText.slice(0, 300));
+  check("same-version heading counts observed values",
+    /CVSS evidence \u2014 2 observed values/.test(equalSameText));
+
   // ---- insufficient-evidence detail
   const weak = await (await fetch(`${BASE}/api/ranking?review=1&limit=1`)).json();
-  const weakId = weak.rows[0].cve_id;
+  const weakId = "CVE-2025-52097";
   await sandbox.window.__vulnova.loadDetail(weakId);
   const weakText = textOf(doc.getElementById("detail"));
   check("insufficient detail shows the warning banner",
@@ -329,6 +362,11 @@ async function main() {
   check("insufficient detail states it is not a low-risk judgement",
     /NOT an assessment that this vulnerability is low risk/.test(weakText));
   check("insufficient detail lists missing signals", /MISSING: cvss_severity/.test(weakText));
+  check("DEF-3 heading reports zero observed values",
+    /CVSS evidence \u2014 0 observed values \u00b7 1 source reports none/.test(weakText),
+    weakText.slice(0, 300));
+  check("DEF-3 heading does not claim a source value exists",
+    !/\(1 source values\)/.test(weakText), weakText.slice(0, 300));
 
   // ---- filters
   const reviewBox = doc.getElementById("review");
@@ -373,6 +411,12 @@ async function main() {
     await sandbox.window.__vulnova.loadDetail(weakId);
     fs.writeFileSync(path.join(DUMP, "03_detail_insufficient.html"), serialize(doc.getElementById("detail")));
     fs.writeFileSync(path.join(DUMP, "04_coverage.txt"), textOf(doc.getElementById("coverage")));
+    await sandbox.window.__vulnova.loadDetail(equalCrossId);
+    fs.writeFileSync(path.join(DUMP, "05_detail_equal_values_cross_version.html"),
+      serialize(doc.getElementById("detail")));
+    await sandbox.window.__vulnova.loadDetail(equalSameId);
+    fs.writeFileSync(path.join(DUMP, "06_detail_equal_values_same_version.html"),
+      serialize(doc.getElementById("detail")));
   }
 
   const failed = results.filter((r) => !r.ok);

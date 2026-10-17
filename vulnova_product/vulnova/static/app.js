@@ -331,6 +331,121 @@
     return dl;
   }
 
+  /* ---- CVSS evidence presentation (DEF-1 / DEF-3) ----------------------
+   *
+   * Two rules live here and both are deliberately independent of has_conflict:
+   *
+   * 1. The heading counts values that were actually OBSERVED. A source that
+   *    reports "no score" contributes a statement, not a value, and must not
+   *    be counted as evidence.
+   * 2. The comparability warning is driven by `comparable` alone. Equal
+   *    numbers from different CVSS versions are still not comparable, and a
+   *    missing `comparable` field is reported as unknown, never as true.
+   */
+
+  function cvssCounts(cvss) {
+    var list = (cvss && cvss.candidates) || [];
+    var counts = { observed: 0, missing: 0, notStated: 0, unavailable: 0, other: 0 };
+    list.forEach(function (cand) {
+      var hasValue = cand && cand.value !== null && cand.value !== undefined;
+      if (!cand) {
+        counts.other += 1;
+      } else if (cand.status === "OBSERVED" && hasValue) {
+        counts.observed += 1;
+      } else if (cand.status === "MISSING_FROM_SOURCE") {
+        counts.missing += 1;
+      } else if (cand.status === "NOT_STATED_BY_SOURCE") {
+        counts.notStated += 1;
+      } else if (cand.status === "UNAVAILABLE") {
+        counts.unavailable += 1;
+      } else {
+        counts.other += 1;
+      }
+    });
+    counts.total = list.length;
+    return counts;
+  }
+
+  function plural(n, one, many) {
+    return n + " " + (n === 1 ? one : many);
+  }
+
+  function cvssHeading(cvss) {
+    var c = cvssCounts(cvss);
+    if (c.total === 0) return "CVSS evidence \u2014 no source rows loaded";
+    var parts = [plural(c.observed, "observed value", "observed values")];
+    if (c.missing) {
+      parts.push(c.missing === 1
+        ? "1 source reports none"
+        : c.missing + " sources report none");
+    }
+    if (c.notStated) {
+      parts.push(c.notStated === 1
+        ? "1 source value not stated"
+        : c.notStated + " source values not stated");
+    }
+    if (c.unavailable) {
+      parts.push(c.unavailable === 1
+        ? "1 source unavailable"
+        : c.unavailable + " sources unavailable");
+    }
+    if (c.other) {
+      parts.push(c.other === 1
+        ? "1 source row unclassified"
+        : c.other + " source rows unclassified");
+    }
+    return "CVSS evidence \u2014 " + parts.join(" \u00b7 ");
+  }
+
+  // 'not_comparable' | 'comparable' | 'unknown' | 'not_applicable'
+  function comparabilityState(cvss) {
+    var conflict = (cvss && cvss.conflict) || null;
+    var observed = cvssCounts(cvss).observed;
+    if (observed < 2) return "not_applicable";
+    if (!conflict) return "unknown";
+    if (conflict.comparable === false) return "not_comparable";
+    if (conflict.comparable === true) return "comparable";
+    return "unknown";
+  }
+
+  var UNKNOWN_COMPARABILITY =
+    "Comparability of these values is not stated by the payload. They must not " +
+    "be treated as directly comparable until it is established.";
+
+  function cvssNotice(cvss) {
+    var conflict = (cvss && cvss.conflict) || {};
+    var state = comparabilityState(cvss);
+    var bits = [];
+
+    if (conflict.has_conflict === true) {
+      var values = (conflict.distinct_values || []).join(" vs ");
+      var spread = (conflict.delta === null || conflict.delta === undefined)
+        ? "" : " \u00b7 spread " + conflict.delta;
+      bits.push("Conflicting values: " + values + spread + ".");
+    }
+
+    if (state === "not_comparable") {
+      bits.push(conflict.comparability_note ||
+        "These values come from different CVSS major versions and are NOT directly comparable.");
+    } else if (state === "unknown") {
+      bits.push(UNKNOWN_COMPARABILITY);
+    } else if (state === "comparable" && conflict.comparability_note) {
+      bits.push(conflict.comparability_note);
+    }
+
+    if (conflict.selected_reason) bits.push(conflict.selected_reason);
+
+    var className = "section-note";
+    if (conflict.has_conflict === true || state === "not_comparable") {
+      className = "conflict-note";
+    } else if (state === "unknown") {
+      className = "unknown-note";
+    } else if (state === "comparable") {
+      className = "ok-note";
+    }
+    return { state: state, text: bits.join(" "), className: className };
+  }
+
   function renderDetail(payload) {
     var root = $("detail");
     clear(root);
@@ -372,20 +487,11 @@
     root.appendChild(h("p", { class: "section-note", text: payload.priority.method }));
 
     var cvss = payload.observed.cvss;
-    root.appendChild(h("h3", { text: "CVSS evidence (" + cvss.candidates.length + " source values)" }));
+    root.appendChild(h("h3", { text: cvssHeading(cvss) }));
     root.appendChild(candidateTable(cvss));
-    if (cvss.conflict.has_conflict) {
-      root.appendChild(h("div", { class: "conflict-note" },
-        h("strong", { text: "Conflicting values: " }),
-        document.createTextNode(
-          cvss.conflict.distinct_values.join(" vs ") +
-          " · spread " + cvss.conflict.delta + ". " +
-          cvss.conflict.comparability_note + " " +
-          cvss.conflict.selected_reason
-        )
-      ));
-    } else {
-      root.appendChild(h("div", { class: "ok-note", text: cvss.conflict.selected_reason }));
+    var notice = cvssNotice(cvss);
+    if (notice.text) {
+      root.appendChild(h("div", { class: notice.className, text: notice.text }));
     }
 
     root.appendChild(h("h3", { text: "EPSS" }));
@@ -518,5 +624,15 @@
     boot();
   }
 
-  window.__vulnova = { state: state, loadDetail: loadDetail, loadRanking: loadRanking };
+  window.__vulnova = {
+    state: state,
+    loadDetail: loadDetail,
+    loadRanking: loadRanking,
+    cvssPresentation: {
+      counts: cvssCounts,
+      heading: cvssHeading,
+      notice: cvssNotice,
+      state: comparabilityState
+    }
+  };
 })();
