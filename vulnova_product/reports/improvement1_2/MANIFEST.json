@@ -1,0 +1,373 @@
+{
+  "combined_digest": "bb156f769a784f25d99110ff31f6398770982a643af43cc3e0be3e66f312d499",
+  "file_count": 63,
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256": "fe0862c2e1eafa4c9daa0b6022e92ebc7256dccc990ceb81d19843c0e7551543"
+    },
+    {
+      "path": "PRESERVATION.md",
+      "sha256": "bca9199a969c537b1e30c8fa8072c69b8e19df087756016060e7c80fa7f53e97"
+    },
+    {
+      "path": "README.md",
+      "sha256": "f216c71862409e39afc171261b697493ddbfd5c89409494c1ead9c629c61e03d"
+    },
+    {
+      "path": "REBUILD.md",
+      "sha256": "7fa0cf9b9eb24b3893a60274c1f67a5d473be25ccca25acdeba304fc44399c32"
+    },
+    {
+      "path": "RUNBOOK.md",
+      "sha256": "d3266a3136706bf2f25e8f944e459f7997dca765f0beb38d7c28c77c20bc3efc"
+    },
+    {
+      "path": "data/snapshots/SOURCES.md",
+      "sha256": "640bf18ded7f098c41cddc347e56060d607ed899ba6cf21a7891e87534f14ac4"
+    },
+    {
+      "path": "data/snapshots/cvelistv5/MANIFEST.json",
+      "sha256": "1f541dc4ef1cc5bc1c5794f6bb58c0aa2aa7cc210b49bca1490d234fcc0be3c7"
+    },
+    {
+      "path": "data/snapshots/epss/epss_scores-2026-10-16.csv.gz",
+      "sha256": "0647405e86c84cc6dc9f0b7b3270589a52e9599d63c15ff53defa34b6f41894f"
+    },
+    {
+      "path": "data/snapshots/kev/known_exploited_vulnerabilities.json",
+      "sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "sha256": "f0f16d7f6ab82343e863fa4c42d16d4256af4fdd5486639d92783f4c2422288e"
+    },
+    {
+      "path": "docs/RANKING_SEMANTICS.md",
+      "sha256": "c9dbf6ea02ce7d49296b2afde397182c6f7bdba54c674aa1280d984def238113"
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256": "517f2cad9aaa422ce27cf39007b29490515ae8be1a6115e998822ce8f9766620"
+    },
+    {
+      "path": "reports/improvement1_2/01_pytest.txt",
+      "sha256": "0530dc06a76dabe0b63c86a6de6c3a474769245267631076eba8d99d52c983cc"
+    },
+    {
+      "path": "reports/improvement1_2/02_product_verification.txt",
+      "sha256": "6125a212ed16ffb2882b08dceb62ceee3875aa03eb51310440c9548de8d7d7bc"
+    },
+    {
+      "path": "reports/improvement1_2/03_ui_render_check.txt",
+      "sha256": "739630c59b18793c2c78295a78f568a428344f4562fd1aa9a7a0fc5350ce7688"
+    },
+    {
+      "path": "reports/improvement1_2/04_verify_all.txt",
+      "sha256": "ccfd6acfc1664b1a37394bd2d7f887aae71aed94a5dbda4c7271f96bebbc55bd"
+    },
+    {
+      "path": "reports/improvement1_2/05_cleanroom_rebuild.txt",
+      "sha256": "a256a9c59aab644ad0e2da7fe43f33a2e19eafd1328b471dc0ff8ca48a60e818"
+    },
+    {
+      "path": "reports/improvement1_2/DIGEST_after.json",
+      "sha256": "4f50aa630b6cda416bb5012ab90dfddedcbd5758b2a7e9b8a3753c7d4e4fd9e5"
+    },
+    {
+      "path": "reports/improvement1_2/DIGEST_before.json",
+      "sha256": "4f50aa630b6cda416bb5012ab90dfddedcbd5758b2a7e9b8a3753c7d4e4fd9e5"
+    },
+    {
+      "path": "reports/improvement1_2/DIGEST_cleanroom.json",
+      "sha256": "a612138aef7ab6b27e809c5be008a0d3491c8c595d78c04b79e9506469508d1d"
+    },
+    {
+      "path": "reports/improvement1_2/IMPROVEMENT_1_2_REPORT.md",
+      "sha256": "a35b217ffa47a4b9cc3b9ae5bd94ebad027069d80ee939ce65ad8278176d8488"
+    },
+    {
+      "path": "reports/improvement1_2/PRESERVATION_HANDOFF.md",
+      "sha256": "6974a9d0bb4f8b98fe499a25d1f6dc571f59efa7eb11b0a7dfd7940ca76c6541"
+    },
+    {
+      "path": "reports/improvement1_2/SOURCE_DIFF.txt",
+      "sha256": "f30f0d10508d3fc47693cdece2a35a33ffd81660e14933ee63f204a38939beb6"
+    },
+    {
+      "path": "reports/improvement1_2/rendered_markup/00_README.txt",
+      "sha256": "b25f450762d1741250ed836c7af757bf63deb010859882377017357783da94fd"
+    },
+    {
+      "path": "reports/improvement1_2/rendered_markup/01_list.html",
+      "sha256": "9725a104011cf22cb1adea40effdf6803f8887f68456095493a63ee79cef472d"
+    },
+    {
+      "path": "reports/improvement1_2/rendered_markup/02_detail_conflict.html",
+      "sha256": "e8a7eee721ec8baabd3a7bce1483e81e303536c5a1751a6a1136e34d99a3efa3"
+    },
+    {
+      "path": "reports/improvement1_2/rendered_markup/03_detail_insufficient.html",
+      "sha256": "c65d29c7eea3cb52e5b91475291cc66a2f112448fb94106d3ea4bc4dcd5b771d"
+    },
+    {
+      "path": "reports/improvement1_2/rendered_markup/04_coverage.txt",
+      "sha256": "b5fab1586bcfb27a23788ee8025d6e101d57f60fb27fb4b2057569125ad7cd07"
+    },
+    {
+      "path": "reports/ingest_receipts/2026-10-17_full.json",
+      "sha256": "c0614f61f8aea8640c80511136602092f397ce191e761274864ad62dc0244f45"
+    },
+    {
+      "path": "requirements.txt",
+      "sha256": "0bcc587093c2f1a2f49cc5e770cd2a901a5f98c7f6c3a8823d442312ec02e8ee"
+    },
+    {
+      "path": "tests/conftest.py",
+      "sha256": "6b410fd63d7d53cf036d547a35835e94fa18011e5311d66a66a37f9a88852c67"
+    },
+    {
+      "path": "tests/test_assessment.py",
+      "sha256": "7f3a590e46b91370f14888b58b16b0742dc4558126728ea4a96440b2915015cc"
+    },
+    {
+      "path": "tests/test_conflicts.py",
+      "sha256": "c66a625d59386e1835a90a0c35e790c63bee29672d5b56edcc51ef057d848fab"
+    },
+    {
+      "path": "tests/test_explain.py",
+      "sha256": "d6ef3744c46bcf9fde225a8aa62246ad128d4fc8da0969166871a7a9ed89783f"
+    },
+    {
+      "path": "tests/test_ingest.py",
+      "sha256": "a765522d93a6500594c64c5268505a4ddcb2492979c7c69428ac51ffdc419a00"
+    },
+    {
+      "path": "tests/test_rank.py",
+      "sha256": "925b5aa38f869baf807a9b3341195d1f1f817f570bf2436769e24a4878a64fc9"
+    },
+    {
+      "path": "tests/test_store.py",
+      "sha256": "6c9b210923d5893f94fa5bff393adb1e381b7dc21e30ae07ec8a119d27b9cfb5"
+    },
+    {
+      "path": "tests/test_terminology.py",
+      "sha256": "1498e45e6021621361e53b9fd3791eef37379164f5690f87467bb78ffbd31cb6"
+    },
+    {
+      "path": "tests/test_web.py",
+      "sha256": "73de42720e8f7a7d4747bd74adb491393b0ff434e1bffd106e8f80187d00f0bd"
+    },
+    {
+      "path": "tools/build_dist.py",
+      "sha256": "bd090c34fb314478cff1750a86e95dd8e2198c28dae47131f975adcfb89f7b2b"
+    },
+    {
+      "path": "tools/fetch_pre2020_kev.py",
+      "sha256": "4c78b64780965571e90e15ef3cc91c9a775a3e8c351e5e19d4e04a025c3009fc"
+    },
+    {
+      "path": "tools/freeze_manifest.py",
+      "sha256": "ea8cc77ab403c044dfe1f6a06016dd0f19392edfd8d5d1fac2dc8359a44bc1ad"
+    },
+    {
+      "path": "tools/make_source_manifest.py",
+      "sha256": "bc2ce177a1b2d7a486712e6b4ba76b8dc12702af014be034dc96fb126c9d4307"
+    },
+    {
+      "path": "tools/score_digest.py",
+      "sha256": "5cefc5e6255fead69e9a0edec1c8e9440beba34ac4abaa937ce509564946e2be"
+    },
+    {
+      "path": "tools/ui_render_check.js",
+      "sha256": "93295fa5b77b0983c38c4fe41c8b4047643a472e1c449239f5f3c64109172d35"
+    },
+    {
+      "path": "tools/verify_product.py",
+      "sha256": "a5e6e31f094339bbce915ef65b3d8bc383b81d5194f19fa81d74e00dcd3899d8"
+    },
+    {
+      "path": "verify_all.sh",
+      "sha256": "dd45d2143d50f4962302b8ad24c68e3045156afddaa683b00af9d65ebdef3d97"
+    },
+    {
+      "path": "vulnova/__init__.py",
+      "sha256": "1313545b9585b8d0607260f977db33abd13e3010e194505da7a193391a9e3917"
+    },
+    {
+      "path": "vulnova/assessment.py",
+      "sha256": "2cf3a72d82e93ac9bfabd8fe6d5a74394d8df5feb2f1389f93884ba40494e0a5"
+    },
+    {
+      "path": "vulnova/explain.py",
+      "sha256": "6f40e135e25a7a9cfa4658d76e1fd78be5dfd7731f149f64fdd7bef6955b68da"
+    },
+    {
+      "path": "vulnova/ingest.py",
+      "sha256": "9aba980c5c5081da157b8215c19ce1db0f663f511449182adf6f81711bf90cb6"
+    },
+    {
+      "path": "vulnova/provenance.py",
+      "sha256": "99f6b54ba787ec9f0dc352ee624b8bd286273a4d7fb0165db4835759174b3c17"
+    },
+    {
+      "path": "vulnova/rank.py",
+      "sha256": "27d3fc93b9aad2f66044d9d54bb57b26a4c14ebef63ae8b42d6b1d237e5d044c"
+    },
+    {
+      "path": "vulnova/sources/__init__.py",
+      "sha256": "2343385d525e5effb3b252023ec58c2441e2bc7990366453f365d161b05b0179"
+    },
+    {
+      "path": "vulnova/sources/cvelistv5.py",
+      "sha256": "ee0311c2906085bd4c3953fd917eaf8bb183b1ddf7f0c21b8353c7b3dda7cdbe"
+    },
+    {
+      "path": "vulnova/sources/epss.py",
+      "sha256": "c9332160167bded72cbbb928a23ca9741da4e30929b6e41b7e1290c9c9ba9759"
+    },
+    {
+      "path": "vulnova/sources/kev.py",
+      "sha256": "f433aa5ca7bb740c61a9d8b1308c3b931aaddd715c0a4e73458e91dff5d62070"
+    },
+    {
+      "path": "vulnova/sources/legacy_csv.py",
+      "sha256": "f740765b15c1a35ae55c6885c6b8aff591a68441019773473a2462400102973d"
+    },
+    {
+      "path": "vulnova/static/app.js",
+      "sha256": "c00cabdb92167ee03a8e309f72249108221b49c8ca34ecee8fc3b1e69c51c67f"
+    },
+    {
+      "path": "vulnova/static/index.html",
+      "sha256": "88c092d63180558d05b80c65e14ade6f45a02cb1841fd8e7936a440d81ff49c2"
+    },
+    {
+      "path": "vulnova/static/style.css",
+      "sha256": "25f23e62e6d265fc44f1043a550452448966dfc51b78cc422f1898779e6e808a"
+    },
+    {
+      "path": "vulnova/store.py",
+      "sha256": "dcae4ee280ca24bb3e2847fae33bf1b5e5a6fb80d3f06bdca11984a37ad572ce"
+    },
+    {
+      "path": "vulnova/web.py",
+      "sha256": "73f45444da645d7ee7b44f011b51b6bde84ebfd92ea2f2333edfbe3ee1c6cb37"
+    }
+  ],
+  "generated_at": "2026-10-17T05:43:04Z",
+  "label": "improvement1_2_final",
+  "product_root": "/home/user/vulnova_product",
+  "research_repo": {
+    "head": "",
+    "path": "/home/user",
+    "working_tree_clean": true
+  },
+  "store": {
+    "counts": {
+      "cve_record": 348670,
+      "cvss_observation": 409736,
+      "distinct_cves": 348227,
+      "epss": 390400,
+      "ingest_run": 5,
+      "kev": 1748,
+      "ranking": 345249,
+      "rejected": 2961
+    },
+    "ingest_runs": [
+      {
+        "content_sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d",
+        "note": null,
+        "records_duplicate": 0,
+        "records_existing": 0,
+        "records_in": 1748,
+        "records_new": 1748,
+        "records_rejected": 0,
+        "records_skipped": 0,
+        "retrieved_at": "2026-10-17T05:20:30Z",
+        "run_id": 1,
+        "source": "kev",
+        "source_revision": "6a392940c663b52271fa4e6aa7b39995b18c9a71",
+        "stage": "catalog",
+        "window_from": null,
+        "window_to": null
+      },
+      {
+        "content_sha256": "0647405e86c84cc6dc9f0b7b3270589a52e9599d63c15ff53defa34b6f41894f",
+        "note": null,
+        "records_duplicate": 0,
+        "records_existing": 0,
+        "records_in": 390400,
+        "records_new": 390400,
+        "records_rejected": 0,
+        "records_skipped": 0,
+        "retrieved_at": "2026-10-17T05:20:30Z",
+        "run_id": 2,
+        "source": "epss",
+        "source_revision": "v2026.06.15",
+        "stage": "daily_scores",
+        "window_from": "2026-10-16",
+        "window_to": "2026-10-16"
+      },
+      {
+        "content_sha256": "908b319d98c1921ddbb9b7fcfb6789cb063c055dff3a388834c834c6e1baf1e7",
+        "note": "Legacy extract; revision/date of the extract is not stated by the source.",
+        "records_duplicate": 0,
+        "records_existing": 0,
+        "records_in": 89660,
+        "records_new": 89660,
+        "records_rejected": 17,
+        "records_skipped": 0,
+        "retrieved_at": "2026-10-17T05:20:31Z",
+        "run_id": 3,
+        "source": "legacy_cve_csv",
+        "source_revision": null,
+        "stage": "full_extract",
+        "window_from": null,
+        "window_to": null
+      },
+      {
+        "content_sha256": null,
+        "note": null,
+        "records_duplicate": 0,
+        "records_existing": 0,
+        "records_in": 263543,
+        "records_new": 258452,
+        "records_rejected": 2961,
+        "records_skipped": 5091,
+        "retrieved_at": "2026-10-17T05:20:33Z",
+        "run_id": 4,
+        "source": "cvelistv5",
+        "source_revision": "c2a4235ef9fbfbe31bad0b8400366b04b461772f",
+        "stage": "window",
+        "window_from": "2020-01-01",
+        "window_to": null
+      },
+      {
+        "content_sha256": null,
+        "note": "KEV-admitted pre-window records",
+        "records_duplicate": 0,
+        "records_existing": 0,
+        "records_in": 558,
+        "records_new": 558,
+        "records_rejected": 0,
+        "records_skipped": 0,
+        "retrieved_at": "2026-10-17T05:21:27Z",
+        "run_id": 5,
+        "source": "cvelistv5",
+        "source_revision": "c2a4235ef9fbfbe31bad0b8400366b04b461772f",
+        "stage": "kev_members_pre2020",
+        "window_from": null,
+        "window_to": null
+      }
+    ],
+    "path": "/home/user/vulnova_product/build/vulnova.db",
+    "ranking_meta": {
+      "built_at": "2026-10-17T05:23:18Z",
+      "fingerprint": "348670:409736:1748:390400:2026-10-16",
+      "reference_date": "2026-10-16"
+    },
+    "reference_date": "2026-10-16",
+    "size_bytes": 425484288
+  }
+}

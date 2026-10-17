@@ -1,0 +1,70 @@
+== store ==
+  [PASS] store has CVE records
+  [PASS] distinct CVE identifiers
+  [PASS] KEV catalog loaded
+  [PASS] EPSS loaded
+  [PASS] ranking materialised
+  [PASS] reference date from EPSS
+  [PASS] ingest runs recorded
+  [PASS] rejected records present but not ranked
+  [PASS] cvelistV5 revision pinned
+  [PASS] legacy extract ingested
+== 2020-2023 coverage ==
+  [PASS] 2020 has non-KEV records
+  [PASS] 2021 has non-KEV records
+  [PASS] 2022 has non-KEV records
+  [PASS] 2023 has non-KEV records
+  [PASS] no coverage gaps remain
+  [PASS] no KEV-only identifiers
+  [PASS] EPSS unmatched fell below 60k
+  [PASS] EPSS covers >99% of stored CVEs
+== evidence ==
+  [PASS] observed CVSS values
+  [PASS] legacy CVSS stored as observations
+  [PASS] missing CVSS is represented as rows
+  [PASS] conflicting CVSS rows retained
+  [PASS] insufficient-evidence rows flagged
+  [PASS] weights sum to fixed denominator
+  [PASS] five priority bands
+  [PASS] bands are (threshold, name) pairs
+== API ==
+  [PASS] GET /api/status
+  [PASS] status counts match store
+  [PASS] status exposes coverage
+  [PASS] status weights sum to 100
+  [PASS] status exposes 5 bands
+  [PASS] status states method limits
+  [PASS] ranking total matches
+  [PASS] ranking sorted by score desc
+  [PASS] ranking page size respected
+  [PASS] KEV filter returns only KEV
+  [PASS] KEV members are distinguishable
+  [PASS] review filter returns insufficient rows
+  [PASS] band filter works
+  [PASS] search by identifier
+  [PASS] detail exposes >=2 CVSS candidates
+  [PASS] detail marks one candidate selected
+  [PASS] detail reports comparability
+  [PASS] detail keeps every value
+  [PASS] detail carries retrieval timestamps
+  [PASS] detail score matches list score
+  [PASS] detail band matches list band
+  [PASS] insufficient detail flagged review_required
+  [PASS] insufficient detail keeps numeric band
+  [PASS] insufficient detail says it is not low risk
+  [PASS] insufficient detail does not rescale denominator
+  [PASS] provenance lists retrieved sources
+  [PASS] KEV detail shows date added
+  [PASS] publication recency context names its basis
+  [PASS] publication recency states what it does not represent
+  [PASS] component is named publication_recency
+  [PASS] status exposes publication_recency_definition
+  [PASS] list API names the points publication_recency_points
+  [PASS] unknown CVE returns 404
+  [PASS] 404 message explains coverage
+  [PASS] malformed identifier returns 404
+  [PASS] malformed message is explicit
+  [PASS] static app.js served
+  [PASS] index carries method caveat
+
+64 PASS, 0 FAIL, 0 SKIP

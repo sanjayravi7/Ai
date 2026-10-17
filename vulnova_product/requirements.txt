@@ -1,0 +1,7 @@
+# VULNOVA runtime dependencies.
+#
+# The application itself uses only the Python standard library (3.11+).
+# pytest is required for the test suite; node is required only for the
+# DOM-shim render check (tools/ui_render_check.js) used by verify_all.sh.
+
+pytest==9.1.1

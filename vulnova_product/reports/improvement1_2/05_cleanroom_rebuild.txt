@@ -1,0 +1,115 @@
+CLEAN-ROOM REBUILD — 2026-10-17T05:41:34Z
+Source: /tmp/vulnova_dist (61 files, no venv, no build/, no database)
+======================================================
+{
+  "generated_at": "2026-10-17T05:40:58Z",
+  "store": "/tmp/cleanroom/Ai/vulnova_product/build/vulnova.db",
+  "receipts": [
+    {
+      "stage": "kev_catalog",
+      "meta": {
+        "source": "kev",
+        "revision": "6a392940c663b52271fa4e6aa7b39995b18c9a71",
+        "retrieved_at": "2026-10-17T05:40:23Z",
+        "content_sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d",
+        "catalog_version": "2026.10.16",
+        "declared_count": 1748,
+        "parsed_count": 1748
+      },
+      "counters": {
+        "records_in": 1748,
+        "records_new": 1748,
+        "records_existing": 0,
+        "records_duplicate": 0,
+        "records_rejected": 0,
+        "records_skipped": 0
+      }
+    },
+    {
+      "stage": "epss_daily",
+      "meta": {
+        "source": "epss",
+        "revision": "v2026.06.15",
+        "retrieved_at": "2026-10-17T05:40:23Z",
+        "content_sha256": "0647405e86c84cc6dc9f0b7b3270589a52e9599d63c15ff53defa34b6f41894f",
+        "score_date": "2026-10-16"
+      },
+      "counters": {
+        "records_in": 390400,
+        "records_new": 390400,
+        "records_existing": 0,
+        "records_duplicate": 0,
+        "records_rejected": 0,
+        "records_skipped": 0
+      }
+    },
+    {
+      "stage": "legacy_extract",
+      "meta": {
+        "source": "legacy_cve_csv",
+        "revision": null,
+        "retrieved_at": "2026-10-17T05:40:24Z",
+        "content_sha256": "908b319d98c1921ddbb9b7fcfb6789cb063c055dff3a388834c834c6e1baf1e7",
+        "note": "Legacy extract; revision/date of the extract is not stated by the source.",
+        "duplicate_identifiers": 0
+      },
+      "counters": {
+        "records_in": 89660,
+        "records_new": 89660,
+        "records_existing": 0,
+        "records_duplicate": 0,
+        "records_rejected": 17,
+        "records_skipped": 0
+      }
+    },
+    {
+      "stage": "cvelistv5_window",
+      "meta": {
+        "source": "cvelistv5",
+        "revision": "c2a4235ef9fbfbe31bad0b8400366b04b461772f",
+        "retrieved_at": "2026-10-17T05:40:27Z",
+        "window_from": "2020-01-01",
+        "window_to": null,
+        "undated_skipped": 0
+      },
+      "counters": {
+        "records_in": 263543,
+        "records_new": 258452,
+        "records_existing": 0,
+        "records_duplicate": 0,
+        "records_rejected": 2961,
+        "records_skipped": 5091
+      }
+    },
+    {
+      "stage": "cvelistv5_kev_members_pre2020",
+      "meta": {
+        "source": "cvelistv5",
+        "revision": "c2a4235ef9fbfbe31bad0b8400366b04b461772f",
+        "retrieved_at": "2026-10-17T05:40:57Z",
+        "window_from": null,
+        "window_to": null,
+        "undated_skipped": 0
+      },
+      "counters": {
+        "records_in": 558,
+        "records_new": 558,
+        "records_existing": 0,
+        "records_duplicate": 0,
+        "records_rejected": 0,
+        "records_skipped": 0
+      }
+    }
+  ],
+  "counts": {
+    "cve_record": 348670,
+    "cvss_observation": 409736,
+    "kev": 1748,
+    "epss": 390400,
+    "ingest_run": 5,
+    "ranking": 0,
+    "distinct_cves": 348227,
+    "rejected": 2961
+  },
+  "reference_date": "2026-10-16"
+}

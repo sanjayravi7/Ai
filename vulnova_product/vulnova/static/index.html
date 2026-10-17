@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VULNOVA — triage console</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <h1>VULNOVA</h1>
+    <span class="sub">vulnerability triage console · provisional rule-based ranking</span>
+  </div>
+  <div id="status-line" class="status-line">loading…</div>
+</header>
+
+<section id="coverage" class="coverage" aria-live="polite"></section>
+
+<section class="controls">
+  <input id="q" type="search" placeholder="Search CVE id, title or description…" aria-label="search">
+  <select id="band" aria-label="band">
+    <option value="">All bands</option>
+    <option value="P1_CRITICAL">P1_CRITICAL</option>
+    <option value="P2_HIGH">P2_HIGH</option>
+    <option value="P3_MODERATE">P3_MODERATE</option>
+    <option value="P4_LOW">P4_LOW</option>
+    <option value="P5_NONE">P5_NONE</option>
+  </select>
+  <label class="check"><input type="checkbox" id="kev"> KEV listed only</label>
+  <label class="check"><input type="checkbox" id="review"> Insufficient evidence only</label>
+  <button id="reset" type="button">Reset</button>
+</section>
+
+<main>
+  <section class="list">
+    <div id="list-meta" class="list-meta"></div>
+    <div class="table-wrap">
+      <table id="ranking">
+        <thead>
+          <tr>
+            <th>CVE</th>
+            <th>Band</th>
+            <th class="num">Score</th>
+            <th>KEV</th>
+            <th class="num">CVSS</th>
+            <th class="num">EPSS</th>
+            <th>Sources</th>
+            <th>Evidence</th>
+            <th class="num">Published</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <button id="prev" type="button">← Prev</button>
+      <span id="page">–</span>
+      <button id="next" type="button">Next →</button>
+    </div>
+  </section>
+
+  <aside id="detail" class="detail">
+    <p class="placeholder">Select a CVE to see its score breakdown, source evidence and provenance.</p>
+  </aside>
+</main>
+
+<footer class="caveat">
+  <strong>Method.</strong> <code>priority_score</code> is a provisional, rule-based sum:
+  KEV 40 · EPSS 30 · CVSS 20 · <code>publication_recency</code> 10 = 100. Missing inputs
+  score zero and are named in <code>missing_signals</code>; the fixed denominator is never
+  rescaled. <code>publication_recency</code> is based on the CVE publication date only: it
+  does <em>not</em> represent recent exploitation activity, recent KEV inclusion, or an
+  independently verified increase in threat activity. It is <em>not</em> a validated predictive model
+  and must not be read as a probability of exploitation. Absence from the KEV catalog is
+  not evidence of no exploitation.
+</footer>
+<script src="/static/app.js"></script>
+</body>
+</html>

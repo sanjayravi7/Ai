@@ -1,0 +1,164 @@
+<aside id="detail" class="detail">
+  <div>
+    <h2>CVE-2026-41940</h2>
+    <span>P1_CRITICAL</span>
+    <span>KEV LISTED</span>
+  </div>
+  <div>score 98 / 100 · band P1_CRITICAL (immediate triage) · as of 2026-10-16</div>
+  <div>
+    <span>Evidence sufficient</span>
+    <span>CVSS and EPSS are both available; the score of 98 reflects all four components.</span>
+  </div>
+  <h3>Score breakdown</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Points</th>
+        <th>Status</th>
+        <th>Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <code>kev_known_exploited</code>
+        </td>
+        <td>40 / 40</td>
+        <td>
+          <span>OBSERVED</span>
+        </td>
+        <td>Listed in the CISA KEV catalog.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>epss_probability</code>
+        </td>
+        <td>30 / 30</td>
+        <td>
+          <span>OBSERVED</span>
+        </td>
+        <td>EPSS probability 0.98527.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>cvss_severity</code>
+        </td>
+        <td>19 / 20</td>
+        <td>
+          <span>OBSERVED</span>
+        </td>
+        <td>CVSS v4.0 base score 9.3 from cvelistv5.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>publication_recency</code>
+        </td>
+        <td>9 / 10</td>
+        <td>
+          <span>OBSERVED</span>
+        </td>
+        <td>CVE published 2026-04-29; publication age only. This component does not represent recent exploitation activity, recent KEV inclusion, or an independently verified increase in threat activity.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>Provisional, rule-based prioritisation: fixed-denominator sum of KEV membership, EPSS probability, CVSS base score and publication recency. Not a validated predictive model.</p>
+  <h3>CVSS evidence (2 source values)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Source</th>
+        <th>Container</th>
+        <th>Scoring org</th>
+        <th>Version</th>
+        <th>Value</th>
+        <th>Severity</th>
+        <th>Retrieved</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <code>cvelistv5</code>
+        </td>
+        <td>cna</td>
+        <td>VulnCheck</td>
+        <td>v4.0</td>
+        <td>9.3</td>
+        <td>CRITICAL</td>
+        <td>2026-10-17T05:20:33Z</td>
+        <td>
+          <span>SELECTED</span>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>cvelistv5</code>
+        </td>
+        <td>cna</td>
+        <td>VulnCheck</td>
+        <td>v3.1</td>
+        <td>9.8</td>
+        <td>CRITICAL</td>
+        <td>2026-10-17T05:20:33Z</td>
+        <td>
+          <span>OBSERVED</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div>
+    <strong>Conflicting values:</strong>
+    9.3 vs 9.8 · spread 0.5. Values span different CVSS major versions (v3, v4); the numbers are NOT directly comparable — v2, v3 and v4 use different formulas and produce different scales for the same underlying severity. Selected cvelistv5 cna v4.0 (9.3) over cvelistv5 cna v3.1 (9.8). Rule: cvelistv5 before the legacy extract; within a source the highest CVSS version wins (v4.0 > v3.1 > v3.0 > v2.0); within a version the CNA container precedes ADP containers. The legacy extract carries CVSS v2.0 scores of unstated revision and is therefore the last resort.
+  </div>
+  <h3>EPSS</h3>
+  <dl>
+    <dt>Status</dt>
+    <dd>OBSERVED</dd>
+    <dt>Probability</dt>
+    <dd>98.53%</dd>
+    <dt>Percentile</dt>
+    <dd>0.9992</dd>
+    <dt>Model version</dt>
+    <dd>v2026.06.15</dd>
+    <dt>Score date</dt>
+    <dd>2026-10-16</dd>
+  </dl>
+  <h3>KEV</h3>
+  <dl>
+    <dt>Status</dt>
+    <dd>LISTED</dd>
+    <dt>Date added</dt>
+    <dd>2026-04-30</dd>
+    <dt>Vendor / product</dt>
+    <dd>WebPros / cPanel &amp; WHM and WP2 (WordPress Squared)</dd>
+  </dl>
+  <h3>Publication recency (not exploitation recency)</h3>
+  <p>publication_recency measures the CVE publication date only: it does not represent recent exploitation activity, recent KEV inclusion, or an independently verified increase in threat activity. This CVE was published 170 days before the reference date. KEV listing evidence: added to the catalog 169 days before the reference date. KEV listing recency does not contribute to the score; KEV contributes the fixed 40-point membership component instead.</p>
+  <p>Publication date: 2026-04-29 · age 170 days · KEV listing date: 2026-04-30 · days since KEV listing: 169</p>
+  <p>publication_recency does NOT represent: recent exploitation activity; recent KEV inclusion; an independently verified increase in threat activity.</p>
+  <h3>Provenance</h3>
+  <div>
+    <dl>
+      <dt>cvelistv5 revision</dt>
+      <dd>c2a4235ef9fbfbe31bad0b8400366b04b461772f</dd>
+      <dt>cvelistv5 retrieved</dt>
+      <dd>2026-10-17T05:20:33Z</dd>
+    </dl>
+    <dl>
+      <dt>epss revision</dt>
+      <dd>v2026.06.15</dd>
+      <dt>epss retrieved</dt>
+      <dd>2026-10-17T05:20:30Z</dd>
+    </dl>
+    <dl>
+      <dt>kev revision</dt>
+      <dd>6a392940c663b52271fa4e6aa7b39995b18c9a71</dd>
+      <dt>kev retrieved</dt>
+      <dd>2026-10-17T05:20:30Z</dd>
+    </dl>
+  </div>
+  <h3>Coverage</h3>
+  <p>This publication year is inside the cvelistV5 window (published 2020-01-01 or later). (COVERED_BY_CVELISTV5)</p>
+</aside>
