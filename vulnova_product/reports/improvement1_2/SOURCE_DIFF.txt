@@ -1,0 +1,409 @@
+VULNOVA Improvement 1.2 — source diff
+
+Baseline: the Validation 1.1 tree, preserved byte-for-byte at /tmp/baseline_1_1
+before any edit in this phase. Regenerated below with `diff -ruN` per file.
+
+Scope: vulnova/, tests/, tools/. Documentation (docs/, README.md) was lost with
+the previous sandbox and is written here directly in its 1.2 state, so it has no
+before-image to diff against.
+
+CHANGED (8): vulnova/explain.py, vulnova/rank.py, vulnova/static/app.js, vulnova/static/index.html, vulnova/web.py, tests/test_explain.py, tests/test_rank.py, tests/test_web.py
+ADDED   (6): tests/test_terminology.py, tools/freeze_manifest.py, tools/make_source_manifest.py, tools/score_digest.py, tools/ui_render_check.js, tools/verify_product.py
+UNCHANGED: 17 files
+==============================================================================
+
+--- a/vulnova/explain.py
++++ b/vulnova/explain.py
+@@ -178,8 +178,12 @@
+     }
+ 
+ 
+-def recency_context(fact: dict, reference_day: str) -> dict:
+-    """Make the meaning of the publication-recency component explicit (item 5)."""
++def publication_recency_context(fact: dict, reference_day: str) -> dict:
++    """Make the meaning of the publication-recency component explicit.
++
++    The component is named ``publication_recency`` in every presentation layer.
++    It is derived from the CVE publication date and nothing else.
++    """
+     published = _parse_day(fact.get("published"))
+     ref = _parse_day(reference_day)
+     kev = fact.get("kev")
+@@ -188,13 +192,18 @@
+     pub_age = (ref - published).days if published and ref else None
+     kev_age = (ref - kev_day).days if kev_day and ref else None
+ 
+-    parts = []
++    parts = [
++        "publication_recency measures the CVE publication date only: it does not "
++        "represent recent exploitation activity, recent KEV inclusion, or an "
++        "independently verified increase in threat activity."
++    ]
+     if pub_age is None:
+-        parts.append("No publication date is available, so the recency component scores zero.")
++        parts.append(
++            "No CVE publication date is available, so publication_recency scores zero."
++        )
+     else:
+         parts.append(
+-            f"The recency component measures publication age only: this CVE was "
+-            f"published {pub_age} days before the reference date."
++            f"This CVE was published {pub_age} days before the reference date."
+         )
+     if kev and kev_age is not None:
+         parts.append(
+@@ -215,7 +224,13 @@
+         )
+ 
+     return {
++        "component": "publication_recency",
+         "component_basis": "publication_date",
++        "does_not_represent": [
++            "recent exploitation activity",
++            "recent KEV inclusion",
++            "an independently verified increase in threat activity",
++        ],
+         "publication_date": fact.get("published"),
+         "publication_age_days": pub_age,
+         "kev_listing_date": kev["date_added"] if kev else None,
+@@ -337,7 +352,7 @@
+         "observed": observed,
+         "priority": {**score.as_dict(), "method": rank.METHOD},
+         "assessment": adequacy,
+-        "recency_context": recency_context(fact, reference_day),
++        "publication_recency_context": publication_recency_context(fact, reference_day),
+         "coverage": _coverage_note(fact),
+         "provenance": provenance,
+     }
+
+--- a/vulnova/rank.py
++++ b/vulnova/rank.py
+@@ -15,10 +15,16 @@
+ score built on missing evidence is unassessed.  The denominator is fixed at
+ 100 and must not be rescaled when evidence is missing.
+ 
+-``publication_recency`` is measured from the CVE *publication date*.  It is not
+-recent exploitation activity, not recent KEV inclusion, and not an
+-independently verified increase in threat activity.  See
+-``docs/RANKING_SEMANTICS.md``.
++``publication_recency`` is measured from the CVE *publication date* alone.
++
++It does **not** represent:
++  * recent exploitation activity;
++  * recent KEV inclusion (the catalog ``dateAdded`` is shown separately and
++    never contributes to this component);
++  * an independently verified increase in threat activity.
++
++It answers "was this vulnerability disclosed recently?", not "is it being
++exploited now?".  See ``docs/RANKING_SEMANTICS.md``.
+ """
+ 
+ from __future__ import annotations
+@@ -32,7 +38,7 @@
+     "kev_known_exploited": 40,
+     "epss_probability": 30,
+     "cvss_severity": 20,
+-    "recency": 10,
++    "publication_recency": 10,
+ }
+ 
+ BANDS = (
+@@ -51,8 +57,12 @@
+     "P5_NONE": "no positive evidence",
+ }
+ 
+-RECENCY_FULL_DAYS = 90
+-RECENCY_ZERO_DAYS = 1825
++PUBLICATION_RECENCY_FULL_DAYS = 90
++PUBLICATION_RECENCY_ZERO_DAYS = 1825
++
++# The component is named ``publication_recency`` everywhere it is presented.
++# Older code and the storage column use the short name ``recency_points``.
++
+ 
+ METHOD = (
+     "Provisional, rule-based prioritisation: fixed-denominator sum of KEV "
+@@ -140,21 +150,28 @@
+     return round(value / 10.0 * WEIGHTS["cvss_severity"])
+ 
+ 
+-def recency_points(published, reference) -> int | None:
+-    """Linear decay: full credit inside 90 days, zero from 1,825 days."""
++def publication_recency_points(published, reference) -> int | None:
++    """Headline publication-age score: full credit inside 90 days, zero at 1,825.
++
++    The arithmetic is unchanged from the component previously presented under the
++    short name ``recency``; only the presented name and its explanation changed.
++    """
+     published_day = _parse_day(published)
+     reference_day = _parse_day(reference)
+     if published_day is None or reference_day is None:
+         return None
+     age = (reference_day - published_day).days
+-    if age <= RECENCY_FULL_DAYS:
+-        return WEIGHTS["recency"]
+-    if age >= RECENCY_ZERO_DAYS:
++    if age <= PUBLICATION_RECENCY_FULL_DAYS:
++        return WEIGHTS["publication_recency"]
++    if age >= PUBLICATION_RECENCY_ZERO_DAYS:
+         return 0
+-    span = RECENCY_ZERO_DAYS - RECENCY_FULL_DAYS
++    span = PUBLICATION_RECENCY_ZERO_DAYS - PUBLICATION_RECENCY_FULL_DAYS
+     # floor, not round: the documented rule is *full* credit inside 90 days,
+     # and rounding would silently extend full credit to ~107 days.
+-    return int(WEIGHTS["recency"] * (RECENCY_ZERO_DAYS - age) / span)
++    return int(
++        WEIGHTS["publication_recency"]
++        * (PUBLICATION_RECENCY_ZERO_DAYS - age) / span
++    )
+ 
+ 
+ def score_cve(
+@@ -209,17 +226,20 @@
+         )
+     )
+ 
+-    recency_pts = recency_points(published, reference_date)
++    recency_pts = publication_recency_points(published, reference_date)
+     signals.append(
+         Signal(
+-            "recency",
++            "publication_recency",
+             0 if recency_pts is None else recency_pts,
+-            WEIGHTS["recency"],
++            WEIGHTS["publication_recency"],
+             "MISSING_FROM_SOURCE" if recency_pts is None else "OBSERVED",
+-            "No publication date is available."
++            "No CVE publication date is available."
+             if recency_pts is None
+-            else f"Published {published}; publication age only "
+-            "(not exploitation recency).",
++            else (
++                f"CVE published {published}; publication age only. This component "
++                "does not represent recent exploitation activity, recent KEV "
++                "inclusion, or an independently verified increase in threat activity."
++            ),
+         )
+     )
+ 
+
+--- a/vulnova/static/app.js
++++ b/vulnova/static/app.js
+@@ -409,8 +409,19 @@
+         : "—"]
+     ]));
+ 
+-    root.appendChild(h("h3", { text: "Recency semantics" }));
+-    root.appendChild(h("p", { class: "section-note", text: payload.recency_context.statement }));
++    var prc = payload.publication_recency_context;
++    root.appendChild(h("h3", { text: "Publication recency (not exploitation recency)" }));
++    root.appendChild(h("p", { class: "section-note", text: prc.statement }));
++    root.appendChild(h("p", { class: "section-note",
++      text: "Publication date: " + (prc.publication_date || "not available") +
++        " · age " + (prc.publication_age_days === null
++          ? "unknown" : prc.publication_age_days + " days") +
++        " · KEV listing date: " + (prc.kev_listing_date || "not listed") +
++        " · days since KEV listing: " + (prc.days_since_kev_listing === null
++          ? "n/a" : prc.days_since_kev_listing) }));
++    root.appendChild(h("p", { class: "section-note",
++      text: "publication_recency does NOT represent: " +
++        (prc.does_not_represent || []).join("; ") + "." }));
+ 
+     root.appendChild(h("h3", { text: "Provenance" }));
+     var prov = h("div");
+
+--- a/vulnova/static/index.html
++++ b/vulnova/static/index.html
+@@ -67,10 +67,13 @@
+ 
+ <footer class="caveat">
+   <strong>Method.</strong> <code>priority_score</code> is a provisional, rule-based sum:
+-  KEV 40 · EPSS 30 · CVSS 20 · publication recency 10 = 100. Missing inputs score zero and
+-  are named in <code>missing_signals</code>; the fixed denominator is never rescaled.
+-  This is <em>not</em> a validated predictive model and must not be read as a probability
+-  of exploitation. Absence from the KEV catalog is not evidence of no exploitation.
++  KEV 40 · EPSS 30 · CVSS 20 · <code>publication_recency</code> 10 = 100. Missing inputs
++  score zero and are named in <code>missing_signals</code>; the fixed denominator is never
++  rescaled. <code>publication_recency</code> is based on the CVE publication date only: it
++  does <em>not</em> represent recent exploitation activity, recent KEV inclusion, or an
++  independently verified increase in threat activity. It is <em>not</em> a validated predictive model
++  and must not be read as a probability of exploitation. Absence from the KEV catalog is
++  not evidence of no exploitation.
+ </footer>
+ <script src="/static/app.js"></script>
+ </body>
+
+--- a/vulnova/web.py
++++ b/vulnova/web.py
+@@ -147,7 +147,10 @@
+                 row["cvss_value"], row["cvss_version"], row["cvss_source"],
+                 row["cvss_container"], row["cvss_candidates"], row["cvss_conflict"],
+                 row["epss_probability"], row["published"],
+-                next(s.points for s in score.signals if s.name == "recency"),
++                next(
++                    s.points for s in score.signals
++                    if s.name == "publication_recency"
++                ),
+                 ",".join(score.missing_signals), adequacy["status"],
+                 int(adequacy["review_required"]), started,
+             )
+@@ -234,7 +237,7 @@
+     rows = conn.execute(
+         "SELECT cve_id, score, band, kev_listed, cvss_value, cvss_version,"
+         " cvss_source, cvss_candidates, cvss_conflict, epss_probability, published,"
+-        " recency_points, missing_signals,"
++        " recency_points AS publication_recency_points, missing_signals,"
+         " evidence_status, review_required FROM ranking" + clause +
+         " ORDER BY score DESC, cve_id ASC LIMIT ? OFFSET ?",
+         params + [limit, offset],
+@@ -320,12 +323,19 @@
+             for threshold, name in rank.BANDS
+         ]
+         status["method"] = rank.METHOD
+-        status["recency_definition"] = {
++        status["publication_recency_definition"] = {
++            "component": "publication_recency",
+             "basis": "publication_date",
+-            "full_credit_days": rank.RECENCY_FULL_DAYS,
+-            "zero_credit_days": rank.RECENCY_ZERO_DAYS,
+-            "note": "Publication recency only; KEV listing dates are shown "
+-                    "separately and do not contribute to the score.",
++            "full_credit_days": rank.PUBLICATION_RECENCY_FULL_DAYS,
++            "zero_credit_days": rank.PUBLICATION_RECENCY_ZERO_DAYS,
++            "does_not_represent": [
++                "recent exploitation activity",
++                "recent KEV inclusion",
++                "an independently verified increase in threat activity",
++            ],
++            "note": "Derived from the CVE publication date only. KEV listing "
++                    "dates are displayed separately and do not contribute to "
++                    "this component.",
+         }
+         status["ranking"] = {
+             key: conn.execute(
+
+--- a/tests/test_explain.py
++++ b/tests/test_explain.py
+@@ -15,7 +15,7 @@
+     payload = explain.explain_one(conn, "CVE-2023-0001")
+     assert set(payload) >= {
+         "as_of", "cve_id", "record", "observed", "priority", "assessment",
+-        "recency_context", "coverage", "provenance",
++        "publication_recency_context", "coverage", "provenance",
+     }
+     assert payload["as_of"] == "2026-10-16"
+     assert payload["priority"]["method"].startswith("Provisional, rule-based")
+@@ -60,18 +60,33 @@
+     assert "kev" not in payload["provenance"]["retrieved"]
+ 
+ 
+-def test_recency_context_distinguishes_publication_from_kev_listing(conn):
++def test_publication_recency_context_distinguishes_dates(conn):
+     payload = explain.explain_one(conn, "CVE-2019-0005")
+-    context = payload["recency_context"]
++    context = payload["publication_recency_context"]
++    assert context["component"] == "publication_recency"
+     assert context["component_basis"] == "publication_date"
+     assert context["kev_listing_date"] == "2026-10-08"
+     assert context["days_since_kev_listing"] == 8
+     assert "must not be described as having no recent activity" in context["statement"]
+ 
+ 
++def test_publication_recency_states_what_it_does_not_represent(conn):
++    context = explain.explain_one(conn, "CVE-2019-0005")["publication_recency_context"]
++    assert context["does_not_represent"] == [
++        "recent exploitation activity",
++        "recent KEV inclusion",
++        "an independently verified increase in threat activity",
++    ]
++    statement = context["statement"]
++    assert "does not represent recent exploitation activity" in statement
++    assert "recent KEV inclusion" in statement
++    assert "independently verified increase in threat activity" in statement
++    assert "CVE publication date only" in statement
++
++
+ def test_non_kev_record_states_absence_is_not_evidence(conn):
+     payload = explain.explain_one(conn, "CVE-2023-0003")
+-    statement = payload["recency_context"]["statement"]
++    statement = payload["publication_recency_context"]["statement"]
+     assert "No KEV listing date is available" in statement
+     assert "not evidence of no exploitation" in statement
+     assert "no recent activity" not in statement.lower()
+
+--- a/tests/test_rank.py
++++ b/tests/test_rank.py
+@@ -14,7 +14,7 @@
+         "kev_known_exploited": 40,
+         "epss_probability": 30,
+         "cvss_severity": 20,
+-        "recency": 10,
++        "publication_recency": 10,
+     }
+ 
+ 
+@@ -60,23 +60,23 @@
+     assert rank.cvss_points(value) == points
+ 
+ 
+-def test_recency_boundaries():
+-    assert rank.recency_points("2026-07-18", "2026-10-16") == 10   # 90 days
+-    assert rank.recency_points("2026-07-17", "2026-10-16") == 9    # 91 days
+-    assert rank.recency_points("2021-10-17", "2026-10-16") == 0    # exactly 1825 days
+-    assert rank.recency_points("2021-10-18", "2026-10-16") == 0    # 1824 days, rounds to 0
+-    assert rank.recency_points(None, "2026-10-16") is None
++def test_publication_recency_boundaries():
++    assert rank.publication_recency_points("2026-07-18", "2026-10-16") == 10   # 90 days
++    assert rank.publication_recency_points("2026-07-17", "2026-10-16") == 9    # 91 days
++    assert rank.publication_recency_points("2021-10-17", "2026-10-16") == 0    # 1825 days
++    assert rank.publication_recency_points("2021-10-18", "2026-10-16") == 0    # 1824 days
++    assert rank.publication_recency_points(None, "2026-10-16") is None
+ 
+ 
+-def test_recency_is_monotonically_non_increasing():
++def test_publication_recency_is_monotonically_non_increasing():
+     days = ["2026-10-16", "2026-07-18", "2026-01-01", "2024-01-01",
+             "2022-01-01", "2021-10-17"]
+-    points = [rank.recency_points(day, "2026-10-16") for day in days]
++    points = [rank.publication_recency_points(day, "2026-10-16") for day in days]
+     assert points == sorted(points, reverse=True)
+ 
+ 
+-def test_recency_never_negative_for_future_publication():
+-    assert rank.recency_points("2027-01-01", "2026-10-16") == 10
++def test_publication_recency_never_negative_for_future_publication():
++    assert rank.publication_recency_points("2027-01-01", "2026-10-16") == 10
+ 
+ 
+ def test_score_is_sum_of_components():
+
+--- a/tests/test_web.py
++++ b/tests/test_web.py
+@@ -36,6 +36,26 @@
+     assert payload["coverage"]["epss"]["total"] == 4
+     assert payload["reference_date"] == "2026-10-16"
+     assert payload["method"].endswith("Not a validated predictive model.")
++    definition = payload["publication_recency_definition"]
++    assert definition["component"] == "publication_recency"
++    assert definition["basis"] == "publication_date"
++    assert "recency_definition" not in payload
++
++
++def test_ranking_exposes_publication_recency_points(server):
++    _, payload = get(server, "/api/ranking?limit=5")
++    row = payload["rows"][0]
++    assert "publication_recency_points" in row
++    assert "recency_points" not in row
++
++
++def test_detail_names_the_component_publication_recency(server):
++    _, detail = get(server, "/api/cve/CVE-2023-0001")
++    names = [s["name"] for s in detail["priority"]["signals"]]
++    assert names == [
++        "kev_known_exploited", "epss_probability", "cvss_severity",
++        "publication_recency",
++    ]
+ 
+ 
+ def test_ranking_excludes_rejected(server):
+

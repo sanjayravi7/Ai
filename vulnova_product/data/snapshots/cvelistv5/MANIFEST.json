@@ -1,0 +1,44 @@
+{
+  "committed_at": "2026-10-17T04:33:59+00:00",
+  "pre2020_kev_subset": {
+    "files": 558,
+    "note": "Only KEV members published before 2020 were materialised; this is not the full 1999-2019 archive.",
+    "tree_digest": "9ff15caefd0ef8655daa39641f43170911fce5650a548a651300d2dd0fce5fba"
+  },
+  "repository": "https://github.com/CVEProject/cvelistV5",
+  "retrieval_method": "git clone --filter=blob:none --no-checkout --depth 1 + git sparse-checkout set /cves/<year>/ (2020-2026); pre-2020 KEV members fetched individually with git cat-file --batch",
+  "retrieved_at": "2026-10-17T05:39:46Z",
+  "revision": "c2a4235ef9fbfbe31bad0b8400366b04b461772f",
+  "scope_note": "The full historical archive was deliberately not downloaded. Identifiers published before 2020 are ingested from the legacy extract, except KEV members, whose cvelistV5 records are fetched individually so dual-source conflicts remain visible.",
+  "source": "cvelistv5",
+  "years": {
+    "2020": {
+      "files": 21081,
+      "tree_digest": "177ba1da659bdfa5c46f2291115f37c24b635a9ce80ca5fda3d94809ec96b129"
+    },
+    "2021": {
+      "files": 23473,
+      "tree_digest": "3a780fb5216fb692b9ebd2e7d0dae89c1a051da6b23097b88c00cd04dfb2ef12"
+    },
+    "2022": {
+      "files": 27557,
+      "tree_digest": "61a1b1c0fb77f9f72d51bf680066a23d20bed6483b42b30888c9b0d7cbbe60be"
+    },
+    "2023": {
+      "files": 31460,
+      "tree_digest": "810020df116a4967ab2d4007097f79ceec9031b031432e183e42b02630b12a21"
+    },
+    "2024": {
+      "files": 39269,
+      "tree_digest": "36dbe832137565f7a38806ba23190210ae77e754655ae7f97b3322e84193671e"
+    },
+    "2025": {
+      "files": 45377,
+      "tree_digest": "6f67836b7a6ccccb67d0708245974e45c198b1035f67e982810955d7363593c7"
+    },
+    "2026": {
+      "files": 75326,
+      "tree_digest": "6323a312126007ccb97e64af146e0858fb461d4d12775896dc060e14b50688ab"
+    }
+  }
+}
