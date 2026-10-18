@@ -14,8 +14,13 @@
  *   1. normal search renders its result
  *   2. search A pending, search B issued, B resolved first, then A —
  *      A must not overwrite B's rows, count or pagination
- *   3. pagination still works (next page request renders page 2)
- *   4. review-filter request pending, Reset clicked, reset response
+ *   3. reverse completion order: A resolves first while B is
+ *      already pending — A is superseded and ignored, B renders
+ *   4. a newer empty result set must not be overwritten by an
+ *      older response that carries rows
+ *   5. an older request failure must not disturb newer results
+ *   6. pagination still works (next page request renders page 2)
+ *   7. review-filter request pending, Reset clicked, reset response
  *      resolved first, then the stale filtered response — it must not
  *      overwrite the reset view or resurrect the legend
  */
@@ -292,10 +297,15 @@ async function main() {
       if (u.indexOf("/api/status") === 0) return Promise.resolve(jsonResponse(STATUS));
       if (u.indexOf("/api/ranking") === 0) {
         let release;
-        const pending = new Promise((resolve) => { release = resolve; });
+        let reject;
+        const pending = new Promise((resolve, rejectFn) => {
+          release = resolve;
+          reject = rejectFn;
+        });
         rankingRequests.push({
           url: u,
-          release: (body) => release(jsonResponse(body))
+          release: (body) => release(jsonResponse(body)),
+          releaseError: (error) => reject(error)
         });
         return pending;
       }
@@ -309,6 +319,15 @@ async function main() {
   vm.runInContext(appJs, sandbox, { filename: "app.js" });
 
   console.log("ranking request-order regression check (DEF-7) — mocked fetch, no network");
+
+  // The app deliberately renders no error surface for ranking
+  // requests (pre-existing behaviour, unchanged by DEF-7), so a
+  // failed request surfaces as an unhandled rejection. Record
+  // them so the failure scenario can be asserted deterministically.
+  const rejections = [];
+  process.on("unhandledRejection", (reason) => {
+    rejections.push(String((reason && reason.message) || reason));
+  });
 
   const rows = () => [...doc.getElementById("rows").children];
   const rowIds = () => rows().map((r) => r.getAttribute("data-cve"));
@@ -377,17 +396,111 @@ async function main() {
   check("stale search A does not resurrect a legend",
     legend().className.includes("is-empty") && legend().textContent === "", legend().textContent.slice(0, 80));
 
+  /* ---- reverse completion order: the older response resolves
+   * first, while the newer request is already pending ---- */
+  const beforeC = rankingRequests.length;
+  q.value = "CVE-2021-23203";
+  q.listeners.input[0]({ target: q });
+  await waitFor(() => rankingRequests.length === beforeC + 1, 10000, "search C request");
+  const requestC = rankingRequests[beforeC];
+  check("search C requested the typed query", requestC.url.includes("q=CVE-2021-23203"), requestC.url);
+
+  q.value = "CVE-2025-52097";
+  q.listeners.input[0]({ target: q });
+  await waitFor(() => rankingRequests.length === beforeC + 2, 10000, "search D request");
+  const requestD = rankingRequests[beforeC + 1];
+  check("search D requested the typed query", requestD.url.includes("q=CVE-2025-52097"), requestD.url);
+
+  // C resolves first but D already superseded it: C must be
+  // ignored and the view must remain exactly as it was
+  // (search B's single result) until D arrives
+  requestC.release(payload([row("CVE-2021-23203", { score: 18, band: "P4_LOW" })], 1));
+  await drain();
+  check("in-order older response is ignored while a newer request is pending",
+    rowIds().length === 1 && rowIds()[0] === "CVE-2026-41940" &&
+    /1 matching CVEs/.test(meta()), rowIds()[0] + " / " + meta());
+
+  // D resolves afterwards and must render
+  requestD.release(payload([row("CVE-2025-52097", { score: 10, band: "P4_LOW", review_required: true })], 1));
+  await waitFor(() => rowIds().length === 1 && rowIds()[0] === "CVE-2025-52097", 10000, "D renders");
+  check("newer search D renders after the older response",
+    rowIds()[0] === "CVE-2025-52097", rowIds().join(","));
+  check("legend corresponds to D",
+    !legend().className.includes("is-empty") && /\* 1 row on this page has/.test(legend().textContent),
+    legend().textContent.slice(0, 60));
+
+  /* ---- a newer empty result set must not be overwritten by an
+   * older response that carries rows ---- */
+  const beforeE = rankingRequests.length;
+  q.value = "no-such-cve-xyz";
+  q.listeners.input[0]({ target: q });
+  await waitFor(() => rankingRequests.length === beforeE + 1, 10000, "search E request");
+  const requestE = rankingRequests[beforeE];
+
+  q.value = "CVE-2026-41940";
+  q.listeners.input[0]({ target: q });
+  await waitFor(() => rankingRequests.length === beforeE + 2, 10000, "search F request");
+  const requestF = rankingRequests[beforeE + 1];
+
+  // F (newer) resolves first with an empty result set
+  requestF.release(payload([], 0));
+  await waitFor(() => rows().length === 1 &&
+    /No CVE matches the current filters/.test(textOf(doc.getElementById("rows"))),
+    10000, "empty state renders");
+  check("newer empty search renders the empty state",
+    /No CVE matches the current filters/.test(textOf(doc.getElementById("rows"))),
+    textOf(doc.getElementById("rows")).slice(0, 80));
+  check("empty state keeps the zero count", /0 matching CVEs/.test(meta()), meta());
+  check("empty state hides the legend", legend().className.includes("is-empty"), legend().className);
+
+  // E (older, carrying rows) resolves afterwards: must not resurrect rows
+  requestE.release(payload([row("CVE-2026-41940", { score: 98, band: "P1_CRITICAL" })], 1));
+  await drain();
+  check("stale response does not resurrect rows over the newer empty state",
+    rows().length === 1 && /No CVE matches the current filters/.test(textOf(doc.getElementById("rows"))),
+    textOf(doc.getElementById("rows")).slice(0, 80));
+
+  /* ---- an older request failure must not disturb newer results ---- */
+  const beforeG = rankingRequests.length;
+  q.value = "CVE-2026-41940";
+  q.listeners.input[0]({ target: q });
+  await waitFor(() => rankingRequests.length === beforeG + 1, 10000, "search G request");
+  const requestG = rankingRequests[beforeG];
+
+  q.value = "CVE-2015-3306";
+  q.listeners.input[0]({ target: q });
+  await waitFor(() => rankingRequests.length === beforeG + 2, 10000, "search H request");
+  const requestH = rankingRequests[beforeG + 1];
+
+  requestH.release(payload(
+    [row("CVE-2015-3306", { score: 90, band: "P1_CRITICAL" }),
+     row("CVE-2015-3307", { score: 89, band: "P1_CRITICAL" })], 2));
+  await waitFor(() => rowIds().length === 2 && rowIds()[0] === "CVE-2015-3306", 10000, "H renders");
+  check("newer search H renders its rows", rowIds()[0] === "CVE-2015-3306", rowIds().join(","));
+
+  // the older G request fails: the app renders no ranking-error
+  // surface, so the failure must leave the newer results intact
+  // (the rejection itself is pre-existing, unhandled behaviour)
+  requestG.releaseError(new Error("simulated network failure"));
+  await drain();
+  check("stale failed request does not alter the newer results",
+    rowIds().length === 2 && rowIds()[0] === "CVE-2015-3306", rowIds().join(","));
+  check("stale failure was delivered to the app (recorded, not rendered)",
+    rejections.length === 1 && /simulated network failure/.test(rejections[0]),
+    rejections.join(" | "));
+
   /* ---- DEF-7 reproduction from the live browser: filter, then Reset ---- */
+  const beforeR = rankingRequests.length;
   const reviewBox = doc.getElementById("review");
   reviewBox.checked = true;
   reviewBox.listeners.change[0]({ target: reviewBox });
-  await waitFor(() => rankingRequests.length === 6, 10000, "review-filter request");
-  const requestReview = rankingRequests[5];
+  await waitFor(() => rankingRequests.length === beforeR + 1, 10000, "review-filter request");
+  const requestReview = rankingRequests[beforeR];
   check("review filter requested the filtered view", requestReview.url.includes("review=1"), requestReview.url);
 
   doc.getElementById("reset").listeners.click[0]({ target: doc.getElementById("reset") });
-  await waitFor(() => rankingRequests.length === 7, 10000, "reset request");
-  const requestReset = rankingRequests[6];
+  await waitFor(() => rankingRequests.length === beforeR + 2, 10000, "reset request");
+  const requestReset = rankingRequests[beforeR + 1];
   check("reset requested the unfiltered view", !requestReset.url.includes("review="), requestReset.url);
 
   // reset's response arrives first and renders
