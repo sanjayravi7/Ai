@@ -296,7 +296,17 @@
     $("next").disabled = to >= payload.total;
   }
 
+  /* Ranking requests can overlap: the search box debounces, and a
+   * filter or pagination click can fire while an earlier request is
+   * still in flight. Responses may therefore arrive out of order.
+   * Each request takes a monotonically increasing sequence number
+   * and only the latest request may render, so a stale response can
+   * never overwrite newer rows, counts, pagination or empty states.
+   */
+  var rankingSequence = 0;
+
   function loadRanking() {
+    var sequence = ++rankingSequence;
     var params = new URLSearchParams();
     if (state.q) params.set("q", state.q);
     if (state.band) params.set("band", state.band);
@@ -304,7 +314,11 @@
     if (state.review) params.set("review", "1");
     params.set("limit", String(state.limit));
     params.set("offset", String(state.offset));
-    return getJSON("/api/ranking?" + params.toString()).then(renderRows);
+    return getJSON("/api/ranking?" + params.toString()).then(function (payload) {
+      if (sequence !== rankingSequence) return null;
+      renderRows(payload);
+      return payload;
+    });
   }
 
   /* ---------------------------------------------------------------- detail */

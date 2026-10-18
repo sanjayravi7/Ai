@@ -11,15 +11,15 @@ PY=.venv/bin/python
 PORT="${VULNOVA_PORT:-8123}"
 FAILED=0
 
-echo "== 1/4 pytest =="
+echo "== 1/5 pytest =="
 "$PY" -m pytest tests -q || FAILED=1
 
 echo
-echo "== 2/4 product verification =="
+echo "== 2/5 product verification =="
 "$PY" tools/verify_product.py --db build/vulnova.db || FAILED=1
 
 echo
-echo "== 3/4 UI render check (DOM shim — NOT a screenshot) =="
+echo "== 3/5 UI render check (DOM shim — NOT a screenshot) =="
 "$PY" -m vulnova.web --db build/vulnova.db --host 127.0.0.1 --port "$PORT" \
     > /tmp/vulnova_verify_server.log 2>&1 &
 SERVER_PID=$!
@@ -38,8 +38,12 @@ if [ "$READY" -eq 1 ]; then
     node tools/ui_render_check.js --base "http://127.0.0.1:$PORT" || FAILED=1
 
     echo
-    echo "== 4/4 CVSS presentation regression (DEF-1 / DEF-3, rendering logic) =="
+    echo "== 4/5 CVSS presentation regression (DEF-1 / DEF-3, rendering logic) =="
     node tools/cvss_presentation_check.js --base "http://127.0.0.1:$PORT" || FAILED=1
+
+    echo
+    echo "== 5/5 ranking request-order regression (DEF-7, mocked fetch) =="
+    node tools/ui_race_check.js || FAILED=1
 else
     echo "  [FAIL] server did not start; see /tmp/vulnova_verify_server.log"
     FAILED=1
