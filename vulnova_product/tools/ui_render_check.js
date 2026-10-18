@@ -317,7 +317,12 @@ async function main() {
   check("DEF-3 heading counts observed values",
     /CVSS evidence \u2014 2 observed values/.test(detailText), detailText.slice(0, 200));
   check("detail renders the score breakdown", /Score breakdown/.test(detailText));
-  check("detail renders provenance timestamps", /2026-10-17T/.test(detailText));
+  // Date-independent: every ingest records the retrieval time of its
+  // own run, so the assertion checks that a full ISO-8601 UTC timestamp
+  // is rendered (missing or malformed dates fail this pattern), rather
+  // than the literal date of one particular reference build.
+  check("detail renders provenance timestamps",
+    /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/.test(detailText));
   check("detail names publication_recency in the breakdown", /publication_recency/.test(detailText));
   check("detail headings distinguish publication from exploitation recency",
     /Publication recency \(not exploitation recency\)/.test(detailText));
@@ -421,7 +426,7 @@ async function main() {
   await sandbox.window.__vulnova.loadDetail("CVE-2007-3010");
   const dualStateText = textOf(doc.getElementById("detail"));
   check("DEF-4 alternate source keeps its own state, basis and timestamp",
-    /Alternate source legacy_cve_csv: state not stated \(basis not_stated, retrieved 2026-10-17T/.test(dualStateText),
+    /Alternate source legacy_cve_csv: state not stated \(basis not_stated, retrieved 20\d{2}-\d{2}-\d{2}T/.test(dualStateText),
     dualStateText.slice(-600));
 
   // ---- DEF-5: known versions and observed status keep their real labels
