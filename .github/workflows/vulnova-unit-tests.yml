@@ -48,3 +48,12 @@ jobs:
       - name: Run unit tests
         working-directory: vulnova_product
         run: python -m pytest -q
+
+      # Offline integrity check of the committed 1.7 acquisition archive: it
+      # re-hashes the stored bytes and re-derives access provenance. It does not
+      # use the network. Do NOT add --require-verified here: the committed run
+      # truthfully reports the EPSS source as UNAVAILABLE, and that is a finding,
+      # not a build failure.
+      - name: Verify the committed acquisition archive offline
+        working-directory: vulnova_product
+        run: python -m vulnova.acquisition verify

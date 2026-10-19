@@ -70,6 +70,31 @@ design matures 2026-10-28, after the reference date, and the supplied KEV timeli
 ends 2026-10-15. See `docs/EVALUATION_READINESS.md` for the check catalog, report
 schema and status semantics.
 
+## Historical data acquisition (1.7)
+
+VULNOVA 1.7 adds offline-verifiable acquisition of the historical evidence a
+temporal evaluation would need. For each frozen cutoff it resolves the exact
+cvelistV5 revision, preserves the CISA KEV catalog as published, and records the
+**actual** UTC retrieval time, response URL, byte size and SHA-256 of every
+artifact it stores:
+
+```bash
+cd vulnova_product
+python -m vulnova.acquisition acquire    # the only command that uses a network
+python -m vulnova.acquisition verify     # offline: re-hash the archive
+python -m vulnova.acquisition check      # offline: required sources and cutoffs
+python -m vulnova.acquisition report     # readable missing-evidence report
+```
+
+The committed run reproduces all three cvelistV5 and all three KEV revision pins
+from Phase 2.3K, and re-downloads the current KEV catalog byte-for-byte. It also
+records what it could **not** get: `epss.cyentia.com` and the direct
+`www.cisa.gov` feed were unreachable from the acquisition environment, and no
+acquisition run today can be contemporaneous with a 2025 cutoff. Those
+requirements are `UNAVAILABLE`/`BLOCKED`, never quietly satisfied. The 2026-04-01
+block matures 2026-10-28 and maturity is not claimed. Overall evidence status:
+`BLOCKED`. See `docs/DATA_ACQUISITION_1_7.md`.
+
 ## CI
 
 GitHub Actions runs the unit tests and the Chromium smoke test on changes under
@@ -95,6 +120,7 @@ vulnova/
   explain.py      per-CVE payload, conflicts, coverage
   web.py          HTTP API + static UI
   evaluation/     readiness checks, temporal validation, report writer
+  acquisition/    historical acquisition, provenance manifest, offline verify
   static/         index.html, style.css, app.js
 protocol/
   EVALUATION_PROTOCOL_1.6.md      draft protocol (NOT_APPROVED)
@@ -105,14 +131,16 @@ docs/
   CI.md
   EVALUATION_READINESS.md
   RANKING_SEMANTICS.md
-tests/            test suite (204 tests, including synthetic readiness fixtures)
+tests/            test suite (343 tests, including synthetic readiness and acquisition fixtures)
 tools/            verifiers, digest, manifest, pre-2020 fetch
 reports/
   validation1_1/  previous phase (historical, unchanged)
   improvement1_2/ earlier product report, diffs and evidence
   improvement1_5/ CI hardening report
   evaluation_readiness_1_6/ committed readiness report (JSON + Markdown)
+  acquisition_1_7/ committed acquisition manifest and missing-evidence report
 data/snapshots/   KEV, EPSS, cvelistV5 manifest
+data/acquisition_store/ historical artifacts acquired in 1.7, with hashes
 build/vulnova.db  derived store (not snapshotted)
 ```
 

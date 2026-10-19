@@ -6,6 +6,10 @@ feasibility, reference date 2026-10-15.
 Read [`VULNOVA_Phase2.3K_Risk_Set_and_Feasibility_Report.md`](VULNOVA_Phase2.3K_Risk_Set_and_Feasibility_Report.md)
 directly in the browser, or take the bundle.
 
+The companion [`ADDENDUM_1_7_ACQUISITION.md`](ADDENDUM_1_7_ACQUISITION.md) records
+what VULNOVA 1.7 re-derived from the live official sources against these pins. It
+is a separate document: the report above is sealed and unedited.
+
 ## Files
 
 | File | Bytes | SHA-256 |

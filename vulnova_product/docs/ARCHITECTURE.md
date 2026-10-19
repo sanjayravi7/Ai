@@ -54,6 +54,33 @@ a fabricated failure. The only human decision in the pipeline — protocol appro
 and design adoption — is read from `protocol/evaluation_protocol.json`; the tool
 cannot write it. See `docs/EVALUATION_READINESS.md`.
 
+## Historical-acquisition subsystem (1.7)
+
+Acquisition is a separate, write-only-to-its-own-store pipeline. It reads the
+Phase 2.3K pins for cross-checking and never writes to `data/snapshots/`, the
+database or the protocol:
+
+```
+Phase 2.3K revisions ─────► workflow.ReferencePins (cross-check only)
+                                  │
+cvelistV5 ──┐                     ▼
+KEV ────────┼──► transport.py ─► sources/*.py ─► records.py (two axes)
+EPSS ───────┘     (host policy,      │              │
+                   retrieval clock)  │              ▼
+                                     ▼        manifest.py (canonical digest)
+                             store.py (exact bytes)   │
+                                     │                ▼
+                                     └──────► verify.py (offline) ─► report.py
+```
+
+`transport.py` is the only module that can reach the network, and it stamps the
+retrieval time *after* the body is read. `records.py` derives
+`CONTEMPORANEOUS` / `LATE_RETRIEVAL` / `NOT_RETRIEVED` from those timestamps, so
+no caller can declare historical access that the data does not support.
+`verify.py` re-derives the same classification from the manifest alone and
+rejects disagreement, which is what makes the archive auditable by a third party
+with no network access.
+
 ## Design decisions
 
 **One row per `(cve_id, source)`.** cvelistV5 and the legacy extract never overwrite
