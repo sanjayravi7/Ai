@@ -1,0 +1,2 @@
+# Optional dependency for the real-browser UI smoke check; not needed by normal tests.
+playwright==1.64.0

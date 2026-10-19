@@ -102,4 +102,6 @@ inputs score zero and are named; bands P1 ≥ 70, P2 ≥ 40, P3 ≥ 20, P4 ≥ 1
 3. Text search is a `LIKE` scan; there is no FTS index.
 4. `/api/status` pre-computes coverage at startup because the store is read-only while
    serving.
-5. No browser-based UI test exists; see the render-check disclaimer.
+5. `tools/ui_render_check.js` is a DOM shim, not a real browser. The separate
+   `tools/ui_browser_check.py` Chromium smoke test covers loading/error/retry and
+   stale-response behaviour; it does not replace cross-browser or screen-reader tests.
