@@ -6,9 +6,9 @@
  * minimal DOM, executes the real static/app.js, and replaces fetch
  * with a mock whose /api/ranking responses stay pending until the
  * test releases them. That makes the overlapping-request race
- * deterministic: no real network and no timing-dependent sleeps are
- * involved in producing the race (the only timer is the app's own
- * 180 ms search debounce, which is awaited by condition polling).
+ * deterministic: no real network. Search debounce timers are explicitly
+ * advanced; request promises are manually released. Also checks the 1.3
+ * loading, failure, payload-validation and Retry states.
  *
  * Scenarios:
  *   1. normal search renders its result
@@ -235,8 +235,7 @@ async function waitFor(fn, timeout = 15000, label = "condition") {
 
 /* Flush all pending promise microtasks deterministically. */
 async function drain() {
-  await sleep(0);
-  await sleep(0);
+  await new Promise((resolve) => setImmediate(resolve));
 }
 
 /* ------------------------------------------------------------------ main */
@@ -289,6 +288,14 @@ async function main() {
   const pageA = Array.from({ length: 25 }, (_, i) => row("CVE-2026-" + (10000 + i)));
   const pageB = Array.from({ length: 25 }, (_, i) => row("CVE-2025-" + (10000 + i)));
 
+  const searchTimers = new Map();
+  let timerId = 0;
+  function flushSearchTimers() {
+    const timers = [...searchTimers.values()];
+    searchTimers.clear();
+    timers.forEach((fn) => fn());
+  }
+
   const sandbox = {
     document: doc,
     window: {},
@@ -305,13 +312,21 @@ async function main() {
         rankingRequests.push({
           url: u,
           release: (body) => release(jsonResponse(body)),
-          releaseError: (error) => reject(error)
+          releaseError: (error) => reject(error),
+          releaseHTTP: (status, body) => release({ ok: false, status, json: () => Promise.resolve(body) }),
+          releaseInvalidJSON: () => release({ ok: true, status: 200,
+            json: () => Promise.reject(new SyntaxError("private parse details")) })
         });
         return pending;
       }
       return Promise.resolve(jsonResponse({}));
     },
-    URLSearchParams, setTimeout, clearTimeout, encodeURIComponent, console,
+    URLSearchParams, encodeURIComponent, console,
+    setTimeout: (fn, ms) => {
+      if (ms !== 180) throw new Error("Unexpected application timer: " + ms);
+      const id = ++timerId; searchTimers.set(id, fn); return id;
+    },
+    clearTimeout: (id) => searchTimers.delete(id),
   };
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
@@ -320,10 +335,7 @@ async function main() {
 
   console.log("ranking request-order regression check (DEF-7) — mocked fetch, no network");
 
-  // The app deliberately renders no error surface for ranking
-  // requests (pre-existing behaviour, unchanged by DEF-7), so a
-  // failed request surfaces as an unhandled rejection. Record
-  // them so the failure scenario can be asserted deterministically.
+  // Normal and stale failures must never leak an unhandled rejection.
   const rejections = [];
   process.on("unhandledRejection", (reason) => {
     rejections.push(String((reason && reason.message) || reason));
@@ -339,8 +351,14 @@ async function main() {
   /* ---- boot: the initial request renders the default first page ---- */
   await waitFor(() => rankingRequests.length >= 1, 10000, "boot ranking request");
   check("boot issues exactly one ranking request", rankingRequests.length === 1, rankingRequests.length);
+  check("initial loading is visible while request is pending", !doc.getElementById("ranking-loading").hidden);
+  check("loading has a polite live status", doc.getElementById("ranking-loading").getAttribute("role") === "status" &&
+    doc.getElementById("ranking-loading").getAttribute("aria-live") === "polite");
+  check("ranking table is busy during loading", doc.getElementById("ranking").getAttribute("aria-busy") === "true");
   rankingRequests[0].release(payload(pageA, 345249));
   await waitFor(() => rows().length === 25, 10000, "default page renders");
+  check("success clears loading and busy state", doc.getElementById("ranking-loading").hidden &&
+    doc.getElementById("ranking").getAttribute("aria-busy") === "false");
   check("default page renders 25 rows", rows().length === 25, rows().length);
   check("default meta shows the full total", /345,249 matching CVEs/.test(meta()), meta());
   check("default pagination shows page 1", pageIndicator() === "1 / 13810", pageIndicator());
@@ -357,6 +375,7 @@ async function main() {
   /* ---- normal successful search ---- */
   q.value = "CVE-2021-23203";
   q.listeners.input[0]({ target: q });
+  flushSearchTimers();
   await waitFor(() => rankingRequests.length === 3, 10000, "search request after debounce");
   check("search requests the typed query", rankingRequests[2].url.includes("q=CVE-2021-23203"), rankingRequests[2].url);
   rankingRequests[2].release(payload([row("CVE-2021-23203", { score: 18, band: "P4_LOW" })], 1));
@@ -367,12 +386,14 @@ async function main() {
   /* ---- DEF-7 core: overlapping searches, B resolved before A ---- */
   q.value = "CVE-2025-52097";
   q.listeners.input[0]({ target: q });
+  flushSearchTimers();
   await waitFor(() => rankingRequests.length === 4, 10000, "search A request");
   const requestA = rankingRequests[3];
   check("search A requested the typed query", requestA.url.includes("q=CVE-2025-52097"), requestA.url);
 
   q.value = "CVE-2026-41940";
   q.listeners.input[0]({ target: q });
+  flushSearchTimers();
   await waitFor(() => rankingRequests.length === 5, 10000, "search B request");
   const requestB = rankingRequests[4];
   check("search B requested the typed query", requestB.url.includes("q=CVE-2026-41940"), requestB.url);
@@ -401,12 +422,14 @@ async function main() {
   const beforeC = rankingRequests.length;
   q.value = "CVE-2021-23203";
   q.listeners.input[0]({ target: q });
+  flushSearchTimers();
   await waitFor(() => rankingRequests.length === beforeC + 1, 10000, "search C request");
   const requestC = rankingRequests[beforeC];
   check("search C requested the typed query", requestC.url.includes("q=CVE-2021-23203"), requestC.url);
 
   q.value = "CVE-2025-52097";
   q.listeners.input[0]({ target: q });
+  flushSearchTimers();
   await waitFor(() => rankingRequests.length === beforeC + 2, 10000, "search D request");
   const requestD = rankingRequests[beforeC + 1];
   check("search D requested the typed query", requestD.url.includes("q=CVE-2025-52097"), requestD.url);
@@ -419,6 +442,8 @@ async function main() {
   check("in-order older response is ignored while a newer request is pending",
     rowIds().length === 1 && rowIds()[0] === "CVE-2026-41940" &&
     /1 matching CVEs/.test(meta()), rowIds()[0] + " / " + meta());
+
+  check("older success cannot clear newer loading", !doc.getElementById("ranking-loading").hidden);
 
   // D resolves afterwards and must render
   requestD.release(payload([row("CVE-2025-52097", { score: 10, band: "P4_LOW", review_required: true })], 1));
@@ -434,11 +459,13 @@ async function main() {
   const beforeE = rankingRequests.length;
   q.value = "no-such-cve-xyz";
   q.listeners.input[0]({ target: q });
+  flushSearchTimers();
   await waitFor(() => rankingRequests.length === beforeE + 1, 10000, "search E request");
   const requestE = rankingRequests[beforeE];
 
   q.value = "CVE-2026-41940";
   q.listeners.input[0]({ target: q });
+  flushSearchTimers();
   await waitFor(() => rankingRequests.length === beforeE + 2, 10000, "search F request");
   const requestF = rankingRequests[beforeE + 1];
 
@@ -464,11 +491,13 @@ async function main() {
   const beforeG = rankingRequests.length;
   q.value = "CVE-2026-41940";
   q.listeners.input[0]({ target: q });
+  flushSearchTimers();
   await waitFor(() => rankingRequests.length === beforeG + 1, 10000, "search G request");
   const requestG = rankingRequests[beforeG];
 
   q.value = "CVE-2015-3306";
   q.listeners.input[0]({ target: q });
+  flushSearchTimers();
   await waitFor(() => rankingRequests.length === beforeG + 2, 10000, "search H request");
   const requestH = rankingRequests[beforeG + 1];
 
@@ -478,15 +507,13 @@ async function main() {
   await waitFor(() => rowIds().length === 2 && rowIds()[0] === "CVE-2015-3306", 10000, "H renders");
   check("newer search H renders its rows", rowIds()[0] === "CVE-2015-3306", rowIds().join(","));
 
-  // the older G request fails: the app renders no ranking-error
-  // surface, so the failure must leave the newer results intact
-  // (the rejection itself is pre-existing, unhandled behaviour)
+  // The older G failure must neither alter rows nor surface an error.
   requestG.releaseError(new Error("simulated network failure"));
   await drain();
   check("stale failed request does not alter the newer results",
     rowIds().length === 2 && rowIds()[0] === "CVE-2015-3306", rowIds().join(","));
-  check("stale failure was delivered to the app (recorded, not rendered)",
-    rejections.length === 1 && /simulated network failure/.test(rejections[0]),
+  check("stale failure is handled without an unhandled rejection or error UI",
+    rejections.length === 0 && doc.getElementById("ranking-error").hidden,
     rejections.join(" | "));
 
   /* ---- DEF-7 reproduction from the live browser: filter, then Reset ---- */
@@ -517,6 +544,225 @@ async function main() {
   check("stale filtered response keeps the default count", /345,249 matching CVEs/.test(meta()), meta());
   check("stale filtered response does not resurrect the legend",
     legend().className.includes("is-empty") && legend().textContent === "", legend().textContent.slice(0, 80));
+
+  /* ---- VULNOVA 1.3 request-state and Retry regression coverage ---- */
+  const loading = () => doc.getElementById("ranking-loading");
+  const errorBox = () => doc.getElementById("ranking-error");
+  const retry = doc.getElementById("retry-ranking");
+  const band = doc.getElementById("band");
+  const kev = doc.getElementById("kev");
+  const click = (node) => node.listeners.click[0]({ target: node });
+  const change = (node) => node.listeners.change[0]({ target: node });
+  const begin = () => {
+    const before = rankingRequests.length;
+    sandbox.__vulnova.loadRanking();
+    if (rankingRequests.length !== before + 1) throw new Error("request not issued");
+    return rankingRequests[before];
+  };
+  const isError = () => !errorBox().hidden && loading().hidden;
+  const noEmpty = () => !/No CVE matches/.test(textOf(doc.getElementById("rows")));
+
+  // A failed refresh removes old results/counts/legend and is not an empty success.
+  const failedRefresh = begin();
+  check("refresh labels retained results as previous", /Previous results shown/.test(loading().textContent));
+  check("pending refresh disables paging", doc.getElementById("prev").disabled && doc.getElementById("next").disabled);
+  failedRefresh.releaseError(new Error("private network stack trace"));
+  await drain();
+  check("network failure displays actionable error and Retry", isError() && /Check your connection and try again/.test(textOf(errorBox())) && textOf(retry) === "Retry");
+  check("error message has alert semantics", [...errorBox().descendants()].some((n) => n.getAttribute && n.getAttribute("role") === "alert"));
+  check("network failure is not an empty success", noEmpty() && rows().length === 0 && meta() === "Results unavailable");
+  check("failure clears old rows, page and legend", rowIds().length === 0 && pageIndicator() === "–" && legend().textContent === "" && legend().className.includes("is-empty"));
+  check("failure clears cached rows", sandbox.__vulnova.state.lastRows.length === 0);
+  check("failure never exposes internal exception", !/private|stack trace/.test(textOf(errorBox())));
+
+  // Set all controls, leaving a search debounce pending: Retry must use current
+  // state and cancel that timer without resetting any control or adding a request.
+  band.value = "P4_LOW"; change(band);
+  const pendingBand = rankingRequests[rankingRequests.length - 1];
+  kev.checked = true; change(kev);
+  const pendingKev = rankingRequests[rankingRequests.length - 1];
+  reviewBox.checked = true; change(reviewBox);
+  rankingRequests[rankingRequests.length - 1].releaseError(new Error("filtered failure"));
+  await drain();
+  q.value = "CVE-2025-52097";
+  q.listeners.input[0]({ target: q });
+  const beforeRetry = rankingRequests.length;
+  check("search remains debounced before Retry", searchTimers.size === 1 && rankingRequests.length === beforeRetry);
+  click(retry);
+  const retryRequest = rankingRequests[beforeRetry];
+  check("Retry issues one new request and cancels pending debounce", rankingRequests.length === beforeRetry + 1 && searchTimers.size === 0);
+  const retryParams = new URL(retryRequest.url, "http://test").searchParams;
+  check("Retry preserves current query and every filter", retryParams.get("q") === q.value && retryParams.get("band") === band.value && retryParams.get("kev") === "1" && retryParams.get("review") === "1");
+  check("Retry leaves search and filter controls unchanged", q.value === "CVE-2025-52097" && band.value === "P4_LOW" && kev.checked && reviewBox.checked);
+  check("Retry transitions error to loading", errorBox().hidden && !loading().hidden);
+  retryRequest.release(payload([row("CVE-2025-52097", { review_required: true })], 1));
+  await drain();
+  check("successful Retry clears error and renders latest rows", errorBox().hidden && loading().hidden && rowIds()[0] === "CVE-2025-52097");
+  check("successful Retry restores evidence legend", !legend().className.includes("is-empty") && /INSUFFICIENT EVIDENCE/.test(legend().textContent));
+  pendingBand.releaseError(new Error("stale band failure"));
+  pendingKev.release(payload(pageA, 345249));
+  await drain();
+  check("rapid filter responses cannot replace retry result or legend", errorBox().hidden && rowIds()[0] === "CVE-2025-52097" && !legend().className.includes("is-empty"));
+
+  // An empty page is only consistent when there are no remaining matches at
+  // this offset. Exercise the UI, including recovery and stale-response guards.
+  const inconsistentEmpty = begin();
+  inconsistentEmpty.release(payload([], 1, 0));
+  await drain();
+  check("empty first page with positive total shows error, not empty success",
+    isError() && noEmpty() && rows().length === 0 && meta() === "Results unavailable");
+  check("inconsistent empty response clears pagination and evidence legend",
+    pageIndicator() === "–" && legend().textContent === "" && legend().className.includes("is-empty"));
+
+  const beforeEmptyRetry = rankingRequests.length;
+  click(retry);
+  check("Retry after inconsistent empty response issues a new request",
+    rankingRequests.length === beforeEmptyRetry + 1 && errorBox().hidden && !loading().hidden);
+  rankingRequests[beforeEmptyRetry].release(payload([row("CVE-2025-52097", { review_required: true })], 1));
+  await drain();
+  check("Retry after inconsistent empty response clears error and renders results",
+    errorBox().hidden && loading().hidden && rowIds()[0] === "CVE-2025-52097" &&
+    /1 matching CVEs/.test(meta()) && !legend().className.includes("is-empty"));
+
+  const validEmpty = begin();
+  validEmpty.release(payload([], 0, 0));
+  await drain();
+  check("zero total and zero offset remain a valid empty success",
+    errorBox().hidden && loading().hidden && /No CVE matches/.test(textOf(doc.getElementById("rows"))) &&
+    /0 matching CVEs/.test(meta()));
+
+  for (const offset of [1, 25]) {
+    const outOfRange = begin();
+    outOfRange.release(payload([], 1, offset));
+    await drain();
+    check("empty page at offset " + offset + " with total 1 remains valid",
+      errorBox().hidden && loading().hidden && /No CVE matches/.test(textOf(doc.getElementById("rows"))) &&
+      /1 matching CVEs/.test(meta()) && legend().textContent === "");
+  }
+
+  const staleInvalidEmpty = begin();
+  const latestNonempty = begin();
+  latestNonempty.release(payload([row("CVE-2025-52097", { review_required: true })], 1));
+  await drain();
+  const latestView = [rowIds().join(","), meta(), pageIndicator(), legend().textContent,
+    legend().className, loading().hidden, errorBox().hidden, doc.getElementById("ranking").getAttribute("aria-busy")];
+  staleInvalidEmpty.release(payload([], 1, 0));
+  await drain();
+  check("stale inconsistent empty response cannot overwrite newer result or show error",
+    JSON.stringify([rowIds().join(","), meta(), pageIndicator(), legend().textContent,
+      legend().className, loading().hidden, errorBox().hidden, doc.getElementById("ranking").getAttribute("aria-busy")]) ===
+    JSON.stringify(latestView) && errorBox().hidden && rowIds()[0] === "CVE-2025-52097");
+
+  // HTTP, JSON syntax, envelope and row corruption are handled through the same
+  // safe surface; none can be mistaken for zero successful matches.
+  const failureCases = [
+    ["HTTP 503", (r) => r.releaseHTTP(503, { message: "private server internals" })],
+    ["invalid JSON", (r) => r.releaseInvalidJSON()],
+    ["null payload", (r) => r.release(null)],
+    ["missing rows", (r) => r.release({ total: 0, limit: 25, offset: 0 })],
+    ["non-array rows", (r) => r.release({ total: 1, limit: 25, offset: 0, rows: {} })],
+    ["invalid count", (r) => r.release({ ...payload([], 0), total: "0" })],
+    ["invalid limit", (r) => r.release({ ...payload([], 0), limit: 0 })],
+    ["invalid offset", (r) => r.release({ ...payload([], 0), offset: -1 })],
+    ["inconsistent offset", (r) => r.release(payload([row("CVE-2025-52097")], 1, 25))],
+    ["inconsistent count", (r) => r.release(payload([row("CVE-2025-52097")], 0))],
+    ["null row", (r) => r.release(payload([null], 1))],
+    ["missing row fields", (r) => r.release(payload([{ cve_id: "CVE-2025-52097" }], 1))]
+  ];
+  for (const [name, deliver] of failureCases) {
+    const request = begin();
+    deliver(request);
+    await drain();
+    check(name + " shows safe error, not empty success", isError() && noEmpty() && rows().length === 0 && !/private/.test(textOf(errorBox())));
+  }
+  const beforeFailedRetry = rankingRequests.length;
+  click(retry);
+  rankingRequests[beforeFailedRetry].releaseError(new Error("retry also failed"));
+  await drain();
+  check("failed Retry leaves understandable error with another Retry available", isError() && /Unable to load vulnerability results/.test(textOf(errorBox())));
+
+  // Old success after new error must not replace any error-state presentation.
+  const oldSuccess = begin();
+  const newFailure = begin();
+  newFailure.releaseError(new Error("newest fails"));
+  await drain();
+  oldSuccess.release(payload([row("CVE-2025-52097", { review_required: true })], 1));
+  await drain();
+  check("stale success cannot overwrite newer error", isError() && rows().length === 0 && meta() === "Results unavailable" && pageIndicator() === "–" && legend().textContent === "");
+
+  const oldFailure = begin();
+  const currentPending = begin();
+  oldFailure.releaseError(new Error("old request fails while latest pending"));
+  await drain();
+  check("stale failure cannot clear latest loading or show error", !loading().hidden && errorBox().hidden && doc.getElementById("ranking").getAttribute("aria-busy") === "true");
+  currentPending.release(payload([], 0));
+  await drain();
+  check("successful empty is distinct from loading and error", loading().hidden && errorBox().hidden && /No CVE matches/.test(textOf(doc.getElementById("rows"))) && /0 matching CVEs/.test(meta()));
+  const fromEmpty = begin();
+  check("loading removes prior empty message", !loading().hidden && noEmpty());
+  fromEmpty.releaseError(new Error("empty refresh failed"));
+  await drain();
+  check("error after empty success does not retain empty message", isError() && noEmpty());
+
+  // Reset clears every control and cancels a pending search debounce. A stale
+  // response completing before Reset resolves cannot hide Reset's loading.
+  q.value = "pending-reset"; q.listeners.input[0]({ target: q });
+  const oldReset = begin();
+  const beforeReset = rankingRequests.length;
+  click(doc.getElementById("reset"));
+  const resetRequest = rankingRequests[beforeReset];
+  check("Reset clears all controls and debounce", q.value === "" && band.value === "" && !kev.checked && !reviewBox.checked && searchTimers.size === 0);
+  check("Reset request restores default query, filters and offset", resetRequest.url === "/api/ranking?limit=25&offset=0");
+  oldReset.release(payload([row("CVE-2025-52097", { review_required: true })], 1));
+  await drain();
+  check("stale success cannot clear Reset loading or resurrect legend", !loading().hidden && errorBox().hidden && legend().textContent === "");
+  resetRequest.release(payload(pageA, 345249));
+  await drain();
+  check("Reset success restores defaults and clears loading/error", loading().hidden && errorBox().hidden && rows().length === 25 && /345,249 matching CVEs/.test(meta()) && pageIndicator() === "1 / 13810");
+  const beforeDebounce = rankingRequests.length;
+  q.value = "first query"; q.listeners.input[0]({ target: q });
+  q.value = "latest query"; q.listeners.input[0]({ target: q });
+  check("rapid typing coalesces to one pending debounce without issuing requests",
+    searchTimers.size === 1 && rankingRequests.length === beforeDebounce);
+  flushSearchTimers();
+  check("debounce issues only the latest search", rankingRequests.length === beforeDebounce + 1 &&
+    new URL(rankingRequests[beforeDebounce].url, "http://test").searchParams.get("q") === "latest query");
+  rankingRequests[beforeDebounce].release(payload([], 0));
+  await drain();
+
+  // Initial ranking and Retry remain usable even when coverage status fails.
+  const initialDoc = makeDocument(indexHtml);
+  let failInitial;
+  let recoverInitial;
+  let initialCount = 0;
+  const initialSandbox = {
+    ...sandbox, document: initialDoc, window: null,
+    fetch: (url) => {
+      if (String(url).startsWith("/api/status")) return Promise.reject(new Error("private status failure"));
+      initialCount += 1;
+      return initialCount === 1
+        ? new Promise((resolve, reject) => { failInitial = reject; })
+        : new Promise((resolve) => { recoverInitial = (body) => resolve(jsonResponse(body)); });
+    }
+  };
+  initialSandbox.window = initialSandbox;
+  initialSandbox.globalThis = initialSandbox;
+  vm.createContext(initialSandbox);
+  vm.runInContext(appJs, initialSandbox, { filename: "initial-failure-app.js" });
+  check("initial ranking starts independently of status", initialCount === 1 && !initialDoc.getElementById("ranking-loading").hidden);
+  failInitial(new Error("private initial network failure"));
+  await drain();
+  check("initial ranking failure shows error without empty result", !initialDoc.getElementById("ranking-error").hidden &&
+    initialDoc.getElementById("ranking-loading").hidden && !/No CVE matches/.test(textOf(initialDoc.getElementById("rows"))));
+  check("status failure is handled separately without raw exception", /Coverage status unavailable/.test(textOf(initialDoc.getElementById("status-line"))) &&
+    !/private/.test(textOf(initialDoc.body)));
+  click(initialDoc.getElementById("retry-ranking"));
+  recoverInitial(payload(pageA, 345249));
+  await drain();
+  check("Retry recovers an initial failure despite failed status", initialCount === 2 && initialDoc.getElementById("ranking-error").hidden &&
+    initialDoc.getElementById("ranking-loading").hidden && initialDoc.getElementById("rows").children.length === 25);
+
+  check("all failure scenarios produce zero unhandled rejections", rejections.length === 0, rejections.join(" | "));
 
   const failed = results.filter((r) => !r.ok);
   console.log(`\n${results.length - failed.length} PASS, ${failed.length} FAIL`);
