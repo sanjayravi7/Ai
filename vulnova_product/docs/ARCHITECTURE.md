@@ -24,6 +24,36 @@
                           web.py  +  static/
 ```
 
+## Evaluation-readiness subsystem (1.6)
+
+The readiness command is a separate, read-only pipeline. It never writes to the
+store, the source snapshots or the ranking:
+
+```
+phase2.3k-export/*.tar.gz ─► integrity.py (sidecars, manifests, safe extraction)
+                              │
+                              ▼
+                        datasets.py (Phase 2.3K readers + 21-partition scan)
+                              │
+       protocol/evaluation_protocol.json ─► protocol.py
+                              │
+                              ▼
+        temporal.py + evidence.py (maturity, designs, three-state KEV rule)
+                              │
+                              ▼
+                    checks_*.py (44 checks, PASS/FAIL/BLOCKED/N/A)
+                              │
+                              ▼
+             report.py (canonical digest) ─► JSON + Markdown
+```
+
+`checks.py` fixes the report order and rejects duplicate check IDs. Each check
+receives an immutable-by-convention `CheckContext` and returns a status with
+explicit reasons. Unavailable evidence produces `BLOCKED`, never a pass and never
+a fabricated failure. The only human decision in the pipeline — protocol approval
+and design adoption — is read from `protocol/evaluation_protocol.json`; the tool
+cannot write it. See `docs/EVALUATION_READINESS.md`.
+
 ## Design decisions
 
 **One row per `(cve_id, source)`.** cvelistV5 and the legacy extract never overwrite

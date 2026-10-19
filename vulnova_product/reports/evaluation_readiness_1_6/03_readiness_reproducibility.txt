@@ -1,0 +1,8 @@
+VULNOVA 1.6 — evaluation readiness
+as of 2026-10-15 · reference 2026-10-15 · protocol vulnova-evaluation-protocol-1.6 · approval NOT_APPROVED
+checks: PASS 42 · FAIL 0 · BLOCKED 1 · NOT_APPLICABLE 1 (total 44)
+READINESS: BLOCKED_PROTOCOL_NOT_APPROVED
+primary blocker: PROTOCOL_NOT_APPROVED — approval_state=NOT_APPROVED; adoption requires the project owner's documented approval, which this command cannot grant.
+double-run digest match: yes
+report: reports/evaluation_readiness_1_6/readiness_report.json
+digest: 1d51544af41a8421522e566ffb051e2835b27d7cccc0bbd1cc42a25497322010
