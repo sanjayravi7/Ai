@@ -19,6 +19,9 @@ filters, Reset clearing controls, and stale-response protection. It runs the mai
 flow at a desktop viewport and the failure/Retry path at a narrow viewport.
 
 GitHub Actions runs it on pull requests and pushes that touch `vulnova_product/`.
-The script mocks `/api/status` and `/api/ranking`; it is a frontend integration
-smoke test, not a test of the production database, source ingestion, non-Chromium
-engines, or assistive-technology announcements.
+A passing run prints `14 browser checks passed (Chromium; desktop + narrow
+viewport).` The script mocks `/api/status` and `/api/ranking`; it is a frontend
+integration smoke test, not a test of the production database, source ingestion,
+non-Chromium engines, or assistive-technology announcements.
+
+See `CI.md` for the workflow definition, path scoping and the unit-test commands.

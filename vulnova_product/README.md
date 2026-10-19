@@ -44,7 +44,14 @@ Once `build/vulnova.db` exists:
 ```
 
 Runs `pytest`, `tools/verify_product.py` and `tools/ui_render_check.js`
-(30 checks — a DOM shim, **not** a screenshot).
+(30 checks — a DOM shim, **not** a screenshot). This full check needs the built
+store and is not run in lightweight CI.
+
+## CI
+
+GitHub Actions runs the unit tests and the Chromium smoke test on changes under
+`vulnova_product/`, both on Python 3.11. Neither job needs `build/vulnova.db`.
+See `docs/CI.md` for commands, path scoping and expected results.
 
 ## Layout
 
@@ -65,6 +72,8 @@ vulnova/
   static/         index.html, style.css, app.js
 docs/
   ARCHITECTURE.md
+  BROWSER_TESTING.md
+  CI.md
   RANKING_SEMANTICS.md
 tests/            test suite
 tools/            verifiers, digest, manifest, pre-2020 fetch

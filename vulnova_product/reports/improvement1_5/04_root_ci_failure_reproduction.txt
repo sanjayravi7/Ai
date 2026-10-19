@@ -1,0 +1,142 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.2, pytest-9.1.1, pluggy-1.7.0
+rootdir: /home/user/Ai
+plugins: platformdirs-4.13.5, anyio-4.15.1
+collected 122 items / 12 errors
+
+==================================== ERRORS ====================================
+______________ ERROR collecting tests/test_audit_disputed_cves.py ______________
+ImportError while importing test module '/home/user/Ai/tests/test_audit_disputed_cves.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_audit_disputed_cves.py:19: in <module>
+    from src.audit_disputed_cves import (
+E   ModuleNotFoundError: No module named 'src'
+______________ ERROR collecting tests/test_audit_rejected_cves.py ______________
+ImportError while importing test module '/home/user/Ai/tests/test_audit_rejected_cves.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_audit_rejected_cves.py:17: in <module>
+    from src.audit_rejected_cves import build_audit_frames, main, run_audit
+E   ModuleNotFoundError: No module named 'src'
+___________________ ERROR collecting tests/test_baseline.py ____________________
+ImportError while importing test module '/home/user/Ai/tests/test_baseline.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_baseline.py:10: in <module>
+    from src.baseline import create_baseline, run_baseline
+E   ModuleNotFoundError: No module named 'src'
+______________ ERROR collecting tests/test_cve_status_sources.py _______________
+ImportError while importing test module '/home/user/Ai/tests/test_cve_status_sources.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_cve_status_sources.py:6: in <module>
+    from src.cve_status_sources import (
+E   ModuleNotFoundError: No module named 'src'
+_______________ ERROR collecting tests/test_disputed_evidence.py _______________
+ImportError while importing test module '/home/user/Ai/tests/test_disputed_evidence.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_disputed_evidence.py:10: in <module>
+    from src.cve_status_sources import CveStatusSchemaError, CveStatusValidationError
+E   ModuleNotFoundError: No module named 'src'
+____________ ERROR collecting tests/test_enrich_vulnerabilities.py _____________
+ImportError while importing test module '/home/user/Ai/tests/test_enrich_vulnerabilities.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_enrich_vulnerabilities.py:17: in <module>
+    from src.enrich_vulnerabilities import (
+E   ModuleNotFoundError: No module named 'src'
+_______________ ERROR collecting tests/test_fetch_cve_status.py ________________
+ImportError while importing test module '/home/user/Ai/tests/test_fetch_cve_status.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_fetch_cve_status.py:14: in <module>
+    from src.cve_status_sources import CveStatusValidationError
+E   ModuleNotFoundError: No module named 'src'
+_____________ ERROR collecting tests/test_fetch_disputed_status.py _____________
+ImportError while importing test module '/home/user/Ai/tests/test_fetch_disputed_status.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_fetch_disputed_status.py:20: in <module>
+    from src.cve_status_sources import CveStatusValidationError
+E   ModuleNotFoundError: No module named 'src'
+___________ ERROR collecting tests/test_fetch_threat_intelligence.py ___________
+ImportError while importing test module '/home/user/Ai/tests/test_fetch_threat_intelligence.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_fetch_threat_intelligence.py:13: in <module>
+    from src.fetch_threat_intelligence import (
+E   ModuleNotFoundError: No module named 'src'
+________________ ERROR collecting tests/test_preprocess_data.py ________________
+ImportError while importing test module '/home/user/Ai/tests/test_preprocess_data.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_preprocess_data.py:9: in <module>
+    from src.preprocess_data import preprocess_dataframe, preprocess_file
+E   ModuleNotFoundError: No module named 'src'
+_____________ ERROR collecting tests/test_threat_intel_sources.py ______________
+ImportError while importing test module '/home/user/Ai/tests/test_threat_intel_sources.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_threat_intel_sources.py:13: in <module>
+    from tests.threat_intel_fixtures import (
+E   ModuleNotFoundError: No module named 'tests'
+_________________ ERROR collecting tests/test_validate_data.py _________________
+ImportError while importing test module '/home/user/Ai/tests/test_validate_data.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_validate_data.py:8: in <module>
+    from src.validate_data import validate_dataframe, validate_csv
+E   ModuleNotFoundError: No module named 'src'
+=========================== short test summary info ============================
+ERROR tests/test_audit_disputed_cves.py
+ERROR tests/test_audit_rejected_cves.py
+ERROR tests/test_baseline.py
+ERROR tests/test_cve_status_sources.py
+ERROR tests/test_disputed_evidence.py
+ERROR tests/test_enrich_vulnerabilities.py
+ERROR tests/test_fetch_cve_status.py
+ERROR tests/test_fetch_disputed_status.py
+ERROR tests/test_fetch_threat_intelligence.py
+ERROR tests/test_preprocess_data.py
+ERROR tests/test_threat_intel_sources.py
+ERROR tests/test_validate_data.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 12 errors during collection !!!!!!!!!!!!!!!!!!!
+============================== 12 errors in 0.45s ==============================
