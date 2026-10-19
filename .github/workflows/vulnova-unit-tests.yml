@@ -2,20 +2,23 @@ name: VULNOVA unit tests
 
 # Lightweight VULNOVA test job: Python 3.11, pytest only.
 #
-# The suite uses temporary SQLite stores created by tests/conftest.py; it does
-# not read or require build/vulnova.db, the pinned source snapshots, or network
-# access. Do not add a database build to this workflow unless it is made
-# reproducible from committed inputs.
+# The suite uses temporary SQLite stores created by tests/conftest.py and a
+# synthetic Phase 2.3K fixture; it does not read build/vulnova.db or use the
+# network. One readiness test re-runs the committed phase2.3k-export archive and
+# compares the report digest. Do not add a database build to this workflow unless
+# it is made reproducible from committed inputs.
 
 on:
   pull_request:
     paths:
       - 'vulnova_product/**'
+      - 'phase2.3k-export/**'
       - '.github/workflows/vulnova-unit-tests.yml'
   push:
     branches: [main]
     paths:
       - 'vulnova_product/**'
+      - 'phase2.3k-export/**'
       - '.github/workflows/vulnova-unit-tests.yml'
   workflow_dispatch:
 

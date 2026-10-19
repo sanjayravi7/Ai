@@ -1,0 +1,216 @@
+{
+  "protocol_id": "vulnova-evaluation-protocol-1.6",
+  "version": "1.6",
+  "title": "VULNOVA evaluation protocol — temporal validation and readiness",
+  "status": "DRAFT_AWAITING_APPROVAL",
+  "reference_date": "2026-10-15",
+  "approval": {
+    "state": "NOT_APPROVED",
+    "required_from": "project_owner",
+    "approved_by": null,
+    "approved_on": null,
+    "approval_reference": null,
+    "note": "This draft does not approve itself and does not adopt a design. Approval requires a written owner decision recorded in a dedicated commit.",
+    "approval_method": "A signed written decision from the project owner, recorded here with approved_by, approved_on, approval_reference and adopted_design, plus a commit message that cites the decision."
+  },
+  "adopted_design": null,
+  "constants": {
+    "horizon_days": 180,
+    "maturity_lag_days": 30,
+    "maturity_span_days": 210,
+    "required_distinct_test_events": 30,
+    "required_sequential_blocks": 3
+  },
+  "required_sequential_blocks": 3,
+  "required_distinct_test_events": 30,
+  "definitions": {
+    "cutoff_T": "A decision point at 00:00:00Z on the cutoff date. Only information observable at or before T may be used as a feature.",
+    "risk_set": "Records present in the verified inventory at the pinned revision, well-formed, not rejected, published at or before T, and not in the KEV catalog as observed at T.",
+    "event": "A distinct CVE that was in the risk set at T and first entered the KEV catalog within the forward window (T, T+180d]. The observation is the first catalog inclusion, not dateAdded.",
+    "label_maturity": "T + 180 days (horizon) + 30 days (maturation lag) = T + 210 days. A block may not be used for a later decision before this date, and its labels are only observable if the served source timeline covers it.",
+    "future_information_leakage": "Any value, membership fact, label or revision that was not observable at the decision point but is used to describe it."
+  },
+  "admission_rules": [
+    "Three sequential blocks are required: training, validation and test.",
+    "Every block must decide only after all earlier blocks' labels matured (cutoff spacing at least 210 days for single-cutoff blocks).",
+    "Every block's label maturity must be covered by the served source timeline before the block is used.",
+    "Every block must contain at least 30 distinct test events; rows reused across cutoffs are counted once.",
+    "Blocks used as evidence must not share events with each other; reuse is reported and never treated as independent evidence.",
+    "No censored cutoff count may be used as a gate result; censored counts are lower bounds.",
+    "Absence from KEV is not proof of non-exploitation and may not create a negative label.",
+    "Missing historical evidence may not be imputed as absence, and no substitute value may be invented.",
+    "An unapproved design may not be used, even if technically feasible.",
+    "No gate value may be lowered, and no horizon or maturation lag may be shortened."
+  ],
+  "candidate_designs": [
+    {
+      "id": "A_180D_SPACED_3SEG",
+      "title": "Three segments 180 days apart",
+      "kind": "sequential",
+      "adoption_status": "CANDIDATE_NOT_ADOPTED",
+      "phase2_3k_verdict": "INFEASIBLE_LABELS_NOT_MATURED_BEFORE_NEXT_BLOCK",
+      "blocks": [
+        {"role": "TRAIN", "cutoffs": ["2025-02-01"]},
+        {"role": "VALIDATION", "cutoffs": ["2025-08-01"]},
+        {"role": "TEST", "cutoffs": ["2026-02-01"]}
+      ]
+    },
+    {
+      "id": "A2_EARLIEST_3BLOCK",
+      "title": "Earliest three-block design on the monthly grid",
+      "kind": "sequential",
+      "adoption_status": "CANDIDATE_NOT_ADOPTED",
+      "phase2_3k_verdict": "INFEASIBLE_BLOCK_NOT_MATURED",
+      "blocks": [
+        {"role": "BLOCK1", "cutoffs": ["2025-02-01"]},
+        {"role": "BLOCK2", "cutoffs": ["2025-09-01"]},
+        {"role": "BLOCK3", "cutoffs": ["2026-04-01"]}
+      ],
+      "note": "Final block labels mature 2026-10-28. Adopting this design requires the project owner's documented protocol approval; it is not adopted here."
+    },
+    {
+      "id": "B_CONTIGUOUS_THIRDS",
+      "title": "Naive contiguous thirds",
+      "kind": "sequential",
+      "adoption_status": "CANDIDATE_NOT_ADOPTED",
+      "phase2_3k_verdict": "INFEASIBLE_SHARED_EVENTS_AND_LABELS_NOT_MATURED_BEFORE_NEXT_BLOCK",
+      "blocks": [
+        {"role": "TRAIN", "cutoffs": ["2025-02-01", "2025-03-01", "2025-04-01", "2025-05-01"]},
+        {"role": "VALIDATION", "cutoffs": ["2025-06-01", "2025-07-01", "2025-08-01", "2025-09-01"]},
+        {"role": "TEST", "cutoffs": ["2025-10-01", "2025-11-01", "2025-12-01", "2026-01-01", "2026-02-01", "2026-03-01"]}
+      ]
+    },
+    {
+      "id": "E_LABEL_MATURED_2BLOCK",
+      "title": "Largest label-matured sequential design (two blocks)",
+      "kind": "sequential",
+      "adoption_status": "CANDIDATE_NOT_ADOPTED",
+      "phase2_3k_verdict": "FEASIBLE",
+      "blocks": [
+        {"role": "BLOCK1", "cutoffs": ["2025-02-01"]},
+        {"role": "BLOCK2", "cutoffs": ["2025-09-01"]}
+      ],
+      "note": "Technically feasible and label-matured, but it provides training and test only. It is not a protocol-compliant three-block substitute and is not adopted."
+    },
+    {
+      "id": "C_SINGLE_FINAL_CUTOFF",
+      "title": "Single final cutoff",
+      "kind": "single_cutoff",
+      "adoption_status": "CANDIDATE_NOT_ADOPTED",
+      "phase2_3k_verdict": "FEASIBLE",
+      "blocks": [
+        {"role": "TEST", "cutoffs": ["2026-03-01"]}
+      ],
+      "note": "A single matured test block; it is not a train/validation/test design."
+    },
+    {
+      "id": "D_ROLLING_ORIGIN",
+      "title": "Rolling origin, one cutoff at a time",
+      "kind": "rolling_origin",
+      "adoption_status": "CANDIDATE_NOT_ADOPTED",
+      "phase2_3k_verdict": "FEASIBLE",
+      "blocks": [
+        {"role": "TEST1", "cutoffs": ["2025-02-01"]},
+        {"role": "TEST2", "cutoffs": ["2025-03-01"]},
+        {"role": "TEST3", "cutoffs": ["2025-04-01"]},
+        {"role": "TEST4", "cutoffs": ["2025-05-01"]},
+        {"role": "TEST5", "cutoffs": ["2025-06-01"]},
+        {"role": "TEST6", "cutoffs": ["2025-07-01"]},
+        {"role": "TEST7", "cutoffs": ["2025-08-01"]},
+        {"role": "TEST8", "cutoffs": ["2025-09-01"]},
+        {"role": "TEST9", "cutoffs": ["2025-10-01"]},
+        {"role": "TEST10", "cutoffs": ["2025-11-01"]},
+        {"role": "TEST11", "cutoffs": ["2025-12-01"]},
+        {"role": "TEST12", "cutoffs": ["2026-01-01"]},
+        {"role": "TEST13", "cutoffs": ["2026-02-01"]},
+        {"role": "TEST14", "cutoffs": ["2026-03-01"]}
+      ],
+      "note": "Each cutoff is an independent evaluation point, not a sequential design."
+    }
+  ],
+  "evidence_states": {
+    "CONFIRMED_KEV_INCLUSION": "Observed in a readable, removal-aware KEV catalog revision at the observation point.",
+    "ABSENT_FROM_KEV": "A readable catalog revision did not list the CVE. This is not proof of non-exploitation and may not create a negative label.",
+    "MISSING_HISTORICAL_EVIDENCE": "No readable catalog revision is available at the observation point. The question is unanswered; this may not be treated as absence."
+  },
+  "prohibited_actions": [
+    "model_training",
+    "model_tuning",
+    "predictive_performance_claims",
+    "ranking_weight_changes",
+    "source_data_changes",
+    "event_gate_relaxation",
+    "automatic_protocol_approval",
+    "absence_as_non_exploitation"
+  ],
+  "requirement_traceability": {
+    "dataset_integrity": [
+      "INT-01_archive_digests",
+      "INT-02_core_bundle_manifest",
+      "INT-03_full_export_integrity_manifest",
+      "INT-04_export_member_manifest",
+      "INT-05_membership_partition_checksums",
+      "INT-06_membership_row_accounting",
+      "INT-07_inventory_census_consistency",
+      "INT-08_denominator_reconciliation"
+    ],
+    "source_provenance": [
+      "PRV-01_source_revision_pins",
+      "PRV-02_cutoff_grid",
+      "PRV-03_kev_revision_pins",
+      "PRV-04_epss_retrieval_provenance",
+      "PRV-05_reference_and_generation_times",
+      "PRV-06_retrieval_timestamp_provenance",
+      "PRV-07_unavailable_sources_declared"
+    ],
+    "cutoff_and_maturity": [
+      "TMP-01_frozen_constants",
+      "TMP-02_maturity_dates_recomputed",
+      "TMP-04_earliest_three_block_design",
+      "TMP-05_two_block_design_not_adopted",
+      "TMP-07_label_window_observability"
+    ],
+    "event_gate": [
+      "TMP-06_event_gate_not_relaxed",
+      "EVT-01_distinct_event_gate",
+      "EVT-06_censored_cutoffs_not_gated"
+    ],
+    "point_in_time_features": [
+      "LKG-01_cvss_point_in_time",
+      "LKG-02_epss_point_in_time",
+      "LKG-05_missingness_preserved"
+    ],
+    "future_information_leakage": [
+      "EVT-04_event_membership_at_cutoff",
+      "LKG-03_publication_rule",
+      "LKG-04_already_in_kev_exclusion",
+      "LKG-06_no_future_information"
+    ],
+    "evidence_classification": [
+      "EVT-02_event_row_uniqueness",
+      "EVT-07_kev_removal_awareness",
+      "LKG-07_evidence_classification_preserved"
+    ],
+    "protocol_approval": [
+      "PRO-01_protocol_document",
+      "PRO-02_approval_state_explicit",
+      "PRO-03_no_silent_design_adoption",
+      "PRO-04_protocol_binding_constants",
+      "PRO-05_requirement_traceability"
+    ],
+    "reproducibility": [
+      "INT-01_archive_digests",
+      "REP-01_input_digests",
+      "REP-02_previous_report_digest",
+      "REP-03_prohibitions_respected"
+    ]
+  },
+  "approval_record_template": {
+    "state": "APPROVED",
+    "approved_by": "<project owner name>",
+    "approved_on": "<YYYY-MM-DD>",
+    "approval_reference": "<written decision identifier or URL>",
+    "adopted_design": "<candidate design id>",
+    "approval_scope": "explicitly state which design, which constants and whether the confirmatory NO-GO is lifted"
+  }
+}

@@ -47,11 +47,36 @@ Runs `pytest`, `tools/verify_product.py` and `tools/ui_render_check.js`
 (30 checks — a DOM shim, **not** a screenshot). This full check needs the built
 store and is not run in lightweight CI.
 
+## Evaluation readiness (1.6)
+
+VULNOVA 1.6 adds a reproducible readiness command for a future temporal
+evaluation. It verifies the Phase 2.3K artifacts, source revisions and retrieval
+provenance, cutoff/maturity dates, the 30-distinct-event gate, point-in-time
+feature availability and future-information leakage, then writes a
+machine-readable report:
+
+```bash
+cd vulnova_product
+python -m vulnova.evaluation readiness --check-reproducible \
+  --markdown reports/evaluation_readiness_1_6/readiness_report.md
+```
+
+The command **trains nothing and scores nothing**. It cannot approve the protocol,
+adopt a design or relax the event gate. The protocol in
+`protocol/EVALUATION_PROTOCOL_1.6.md` remains `NOT_APPROVED`, and the committed
+report is `BLOCKED_PROTOCOL_NOT_APPROVED`: 42 PASS, 0 FAIL, 1 BLOCKED (retrieval
+timestamps) and 1 NOT_APPLICABLE (no previous report). The earliest three-block
+design matures 2026-10-28, after the reference date, and the supplied KEV timeline
+ends 2026-10-15. See `docs/EVALUATION_READINESS.md` for the check catalog, report
+schema and status semantics.
+
 ## CI
 
 GitHub Actions runs the unit tests and the Chromium smoke test on changes under
 `vulnova_product/`, both on Python 3.11. Neither job needs `build/vulnova.db`.
-See `docs/CI.md` for commands, path scoping and expected results.
+The unit suite includes the readiness tests and one archive-backed reproduction
+of the committed report. See `docs/CI.md` for commands, path scoping and expected
+results.
 
 ## Layout
 
@@ -69,17 +94,24 @@ vulnova/
   assessment.py   evidence-adequacy interpretation only
   explain.py      per-CVE payload, conflicts, coverage
   web.py          HTTP API + static UI
+  evaluation/     readiness checks, temporal validation, report writer
   static/         index.html, style.css, app.js
+protocol/
+  EVALUATION_PROTOCOL_1.6.md      draft protocol (NOT_APPROVED)
+  evaluation_protocol.json        machine-readable protocol and approval state
 docs/
   ARCHITECTURE.md
   BROWSER_TESTING.md
   CI.md
+  EVALUATION_READINESS.md
   RANKING_SEMANTICS.md
-tests/            test suite
+tests/            test suite (204 tests, including synthetic readiness fixtures)
 tools/            verifiers, digest, manifest, pre-2020 fetch
 reports/
   validation1_1/  previous phase (historical, unchanged)
-  improvement1_2/ this phase's report, diffs and evidence
+  improvement1_2/ earlier product report, diffs and evidence
+  improvement1_5/ CI hardening report
+  evaluation_readiness_1_6/ committed readiness report (JSON + Markdown)
 data/snapshots/   KEV, EPSS, cvelistV5 manifest
 build/vulnova.db  derived store (not snapshotted)
 ```

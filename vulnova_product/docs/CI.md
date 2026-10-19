@@ -9,7 +9,7 @@ change to `src/` or `tests/` does not run VULNOVA's tests.
 
 | Workflow | Project | What it runs | Python |
 | --- | --- | --- | --- |
-| `.github/workflows/vulnova-unit-tests.yml` | VULNOVA | `vulnova_product/tests` (122 tests) | 3.11 |
+| `.github/workflows/vulnova-unit-tests.yml` | VULNOVA | `vulnova_product/tests` (204 tests) | 3.11 |
 | `.github/workflows/vulnova-browser.yml` | VULNOVA | `vulnova_product/tools/ui_browser_check.py` (14 Chromium checks) | 3.11 |
 | `.github/workflows/python-package.yml` | Root data pipeline | `tests/` (192 tests + 6 subtests) and flake8 | 3.9, 3.10, 3.11 |
 
@@ -22,8 +22,8 @@ of either project; see "Failure investigation" below.
 ## VULNOVA unit tests
 
 Triggered by a pull request or a push to `main` that changes any path under
-`vulnova_product/` or the workflow file itself. It can also be run manually
-(`workflow_dispatch`).
+`vulnova_product/` or `phase2.3k-export/`, or the workflow file itself. It can
+also be run manually (`workflow_dispatch`).
 
 From a checkout:
 
@@ -36,12 +36,17 @@ python -m pytest -q
 Expected on Python 3.11 with `pytest==9.1.1`:
 
 ```text
-122 passed
+204 passed
 ```
 
 The suite creates its own temporary SQLite stores through
-`tests/conftest.py`. It does **not** read `build/vulnova.db`, the pinned source
-snapshots, or the network, and the workflow does not build a database.
+`tests/conftest.py`. It does **not** read `build/vulnova.db` or use the network,
+and the workflow does not build a database. The evaluation-readiness tests use a
+synthetic Phase 2.3K-shaped fixture; one additional test re-runs the committed
+`phase2.3k-export/` archive and compares the report digest, skipping itself if the
+archive is absent. That test unpacks into `vulnova_product/build/` (not committed)
+and takes roughly 12 seconds on a cold cache, so the suite takes about 25 seconds
+instead of 12.
 
 ## VULNOVA Chromium smoke test
 
@@ -71,6 +76,33 @@ non-Chromium engines or assistive-technology announcements.
 > binary (`VULNOVA_CHROMIUM_PATH`) rather than Playwright 1.64's bundled
 > Chromium 156. It exited 0 and printed all 14 passes. The CI job installs the
 > pinned Playwright browser and does not use this override.
+
+## Evaluation-readiness reproduction
+
+The readiness command itself is not a CI gate: its current result is
+intentionally `BLOCKED_PROTOCOL_NOT_APPROVED`, and treating a blocked report as a
+failing job would obscure the reason. Reproducibility is tested instead:
+
+```bash
+cd vulnova_product
+python -m pytest -q tests/test_evaluation_repository_report.py
+```
+
+That test rebuilds the report from the committed archives and asserts that the
+canonical digest equals the digest in
+`reports/evaluation_readiness_1_6/readiness_report.json`. A separate fixture-based
+test (`test_report_digest_is_canonical_and_reproducible`) verifies that two
+independent runs agree. Any change to a check, a reason string or an input digest
+therefore requires regenerating the committed report; the test fails until it is
+regenerated, which is the intended review signal.
+
+To regenerate:
+
+```bash
+cd vulnova_product
+python -m vulnova.evaluation readiness --check-reproducible \
+  --markdown reports/evaluation_readiness_1_6/readiness_report.md
+```
 
 ## Root project tests
 
