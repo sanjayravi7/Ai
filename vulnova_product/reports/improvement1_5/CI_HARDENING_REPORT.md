@@ -183,11 +183,18 @@ All workflows were run on the pull request from `arena/5d8fad69-ai`:
 | Python package | 39288436929 | **success** | `build (3.9)`, `build (3.10)` and `build (3.11)` all passed lint and pytest |
 
 The two VULNOVA workflows were triggered by the product changes; the root
-workflow was triggered only because `python-package.yml` itself changed. A later
-follow-up commit touching only `vulnova_product/reports/` triggered the two
-VULNOVA workflows and did **not** trigger the root workflow, confirming the path
-scoping in the live repository.
+workflow was triggered because this PR also edits `python-package.yml` and
+removes `django.yml`. GitHub evaluates pull-request path filters against the
+**complete PR diff**, not the latest commit, so a follow-up commit confined to
+`vulnova_product/` still ran all three workflows while the PR remained open.
+For a PR whose diff touches only `vulnova_product/**`, the root workflow's
+`paths-ignore` skips it; for a PR touching only root files, the two VULNOVA
+workflows' `paths` filters skip them.
 
 The only annotations on the runs were GitHub's own Node.js 20 deprecation notice
 for `actions/checkout@v4` / `actions/setup-python@v5` and the `ubuntu-latest`
 migration notice. Neither affects job results.
+
+A second set of runs after the first documentation follow-up also passed:
+VULNOVA unit tests 39288674479, VULNOVA browser 39288674746 and Python package
+39288674662. All subsequent pushes to the PR produced the same results.

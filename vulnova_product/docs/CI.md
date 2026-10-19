@@ -104,6 +104,11 @@ repository root on `sys.path`, while the bare console script does not.
 
 Both VULNOVA workflows also run on pushes to `main` and via manual dispatch.
 
+For `pull_request` events, GitHub evaluates these filters against the complete
+diff between the pull request and its base branch, not just the latest commit.
+A pull request that changes both VULNOVA and root-project files therefore runs
+both sets of workflows; that is expected.
+
 ## Failure investigation (2026-10-19)
 
 Recorded from the GitHub Actions API; the log archive endpoint is not reachable
