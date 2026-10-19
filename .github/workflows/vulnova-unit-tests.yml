@@ -1,0 +1,47 @@
+name: VULNOVA unit tests
+
+# Lightweight VULNOVA test job: Python 3.11, pytest only.
+#
+# The suite uses temporary SQLite stores created by tests/conftest.py; it does
+# not read or require build/vulnova.db, the pinned source snapshots, or network
+# access. Do not add a database build to this workflow unless it is made
+# reproducible from committed inputs.
+
+on:
+  pull_request:
+    paths:
+      - 'vulnova_product/**'
+      - '.github/workflows/vulnova-unit-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'vulnova_product/**'
+      - '.github/workflows/vulnova-unit-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vulnova-unit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: Unit tests (Python 3.11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: vulnova_product/requirements.txt
+      - name: Install test dependencies
+        run: python -m pip install -r vulnova_product/requirements.txt
+      - name: Run unit tests
+        working-directory: vulnova_product
+        run: python -m pytest -q

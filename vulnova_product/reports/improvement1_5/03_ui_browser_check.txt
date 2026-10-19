@@ -1,0 +1,22 @@
+Task exception was never retrieved
+future: <Task finished name='Task-32' coro=<Response.finished.<locals>.on_finished() done, defined at /tmp/venv-browser/lib/python3.11/site-packages/playwright/_impl/_network.py:906> exception=Error('Target closed')>
+Traceback (most recent call last):
+  File "/tmp/venv-browser/lib/python3.11/site-packages/playwright/_impl/_network.py", line 908, in on_finished
+    raise Error("Target closed")
+playwright._impl._errors.Error: Target closed
+  PASS  initial ranking shows loading state
+  PASS  loading has status role
+  PASS  loading status is polite
+  PASS  table is marked busy while request is pending
+  PASS  successful response clears busy state
+  PASS  failed search exposes an alert
+  PASS  server internals are not shown
+  PASS  failed request is not presented as an empty success
+  PASS  failed refresh clears stale rows
+  PASS  Retry preserves the active query and priority filter
+  PASS  successful Retry restores the results view
+  PASS  Reset clears query and filters in the request
+  PASS  late stale response cannot overwrite Reset results
+  PASS  Reset clears the visible controls
+
+14 browser checks passed (Chromium; desktop + narrow viewport).
