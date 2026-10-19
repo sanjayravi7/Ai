@@ -276,6 +276,10 @@ async function main() {
   await waitFor(() => (doc.getElementById("rows") || { children: [] }).children.length > 0,
     20000, "initial ranking render");
 
+  // Coverage and ranking now load independently; wait for each before asserting.
+  await waitFor(() => /reference 2026-10-16/.test(textOf(doc.getElementById("status-line"))),
+    20000, "coverage status render");
+
   const bodyText = textOf(doc.body);
   const rows = doc.getElementById("rows").children;
 
@@ -286,6 +290,10 @@ async function main() {
   check("coverage states no 2020-2023 gap", /No 2020–2023 non-KEV coverage gap/.test(bodyText));
   check("coverage shows EPSS coverage", /EPSS: 390,400 scores/.test(bodyText));
   check("ranking rendered 25 rows", rows.length === 25, rows.length);
+  check("successful live ranking hides loading and error",
+    doc.getElementById("ranking-loading").hidden && doc.getElementById("ranking-error").hidden);
+  check("successful live ranking clears busy state",
+    doc.getElementById("ranking").getAttribute("aria-busy") === "false");
   check("header has nine columns",
     doc.getElementById("ranking").children[0].children[0].children.length === 9);
   check("first row shows a P1 band chip", /P1_CRITICAL/.test(textOf(rows[0])));
@@ -450,7 +458,11 @@ async function main() {
   const reviewBox = doc.getElementById("review");
   reviewBox.checked = true;
   reviewBox.listeners.change[0]({ target: reviewBox });
-  await sleep(600);
+  await waitFor(() => {
+    const currentRows = doc.getElementById("rows").children;
+    return currentRows.length > 0 &&
+      currentRows.every((r) => /INSUFFICIENT EVIDENCE/.test(textOf(r)));
+  }, 15000, "review-filter rows");
   const reviewRows = doc.getElementById("rows").children;
   check("review filter renders only insufficient rows",
     reviewRows.length > 0 && reviewRows.every((r) => /INSUFFICIENT EVIDENCE/.test(textOf(r))),
@@ -470,7 +482,11 @@ async function main() {
   const kevBox = doc.getElementById("kev");
   kevBox.checked = true;
   kevBox.listeners.change[0]({ target: kevBox });
-  await sleep(600);
+  await waitFor(() => {
+    const currentRows = doc.getElementById("rows").children;
+    return currentRows.length > 0 &&
+      currentRows.every((r) => /KEV/.test(textOf(r)));
+  }, 15000, "KEV-filter rows");
   const kevRows = doc.getElementById("rows").children;
   check("KEV filter renders only KEV rows",
     kevRows.length > 0 && kevRows.every((r) => /KEV/.test(textOf(r))), kevRows.length);

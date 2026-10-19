@@ -34,6 +34,11 @@
 
 <main>
   <section class="list">
+    <div id="ranking-loading" class="ranking-notice" role="status" aria-live="polite" hidden>Loading vulnerabilities…</div>
+    <div id="ranking-error" class="ranking-notice ranking-error" hidden>
+      <p role="alert">Unable to load vulnerability results. Check your connection and try again.</p>
+      <button id="retry-ranking" type="button">Retry</button>
+    </div>
     <div id="list-meta" class="list-meta"></div>
     <div class="table-wrap">
       <table id="ranking">

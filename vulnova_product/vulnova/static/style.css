@@ -145,3 +145,19 @@ tr.selected-row td { background: #1d2a24; }
   color: #f0d9a8;
   font-size: 12.5px;
 }
+
+/* Ranking request states. No animation; retained rows are explicitly labelled. */
+[hidden] { display: none !important; }
+.ranking-notice {
+  margin: 10px 20px 0; padding: 10px 12px; border: 1px solid var(--line);
+  border-radius: 6px; background: var(--panel-2); color: var(--text);
+  font-size: 13px; overflow-wrap: anywhere;
+}
+.ranking-error { border-color: #6b4a1d; color: #ffe3ae; }
+.ranking-error p { margin: 0 0 8px; }
+.ranking-error button {
+  background: var(--panel); color: var(--text); border: 1px solid var(--muted);
+  border-radius: 6px; padding: 6px 14px; font: inherit; cursor: pointer;
+}
+.ranking-error button:focus-visible { outline: 2px solid var(--warn); outline-offset: 3px; }
+button:disabled { opacity: 0.5; cursor: default; }

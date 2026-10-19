@@ -305,6 +305,33 @@
    */
   var rankingSequence = 0;
 
+  // Validate the presentation contract before touching rows/counts. This does
+  // not interpret evidence or recalculate any ranking value.
+  function validRanking(payload) {
+    return payload && Array.isArray(payload.rows) &&
+      Number.isSafeInteger(payload.total) && payload.total >= 0 &&
+      Number.isSafeInteger(payload.limit) && payload.limit > 0 &&
+      Number.isSafeInteger(payload.offset) && payload.offset >= 0 &&
+      payload.rows.length <= payload.limit && payload.rows.length <= payload.total &&
+      (payload.rows.length > 0 || payload.offset >= payload.total) &&
+      (!payload.rows.length || payload.offset + payload.rows.length <= payload.total) &&
+      payload.rows.every(function (row) {
+        return row && typeof row.cve_id === "string" && row.cve_id.length > 0 &&
+          typeof row.band === "string" && Number.isFinite(row.score) &&
+          typeof row.kev_listed === "boolean" && typeof row.review_required === "boolean" &&
+          typeof row.evidence_status === "string" && typeof row.cvss_conflict === "boolean" &&
+          Number.isSafeInteger(row.cvss_candidates) && row.cvss_candidates >= 0 &&
+          (row.cvss_value === null || Number.isFinite(row.cvss_value)) &&
+          (row.epss_probability === null || Number.isFinite(row.epss_probability)) &&
+          (row.published === null || typeof row.published === "string");
+      });
+  }
+
+  function rankingLoading(loading) {
+    $("ranking-loading").hidden = !loading;
+    $("ranking").setAttribute("aria-busy", String(loading));
+  }
+
   function loadRanking() {
     var sequence = ++rankingSequence;
     var params = new URLSearchParams();
@@ -314,10 +341,35 @@
     if (state.review) params.set("review", "1");
     params.set("limit", String(state.limit));
     params.set("offset", String(state.offset));
+
+    // Keep previous rows during refresh, explicitly labelled as previous results.
+    // Their legend stays with them. On failure remove them, never imply freshness.
+    $("ranking-error").hidden = true;
+    $("ranking-loading").textContent = "Loading vulnerabilities…" +
+      (state.lastRows.length ? " Previous results shown while refreshing." : "");
+    if (!state.lastRows.length) clear($("rows")); // remove a prior empty message
+    rankingLoading(true);
+    $("prev").disabled = true;
+    $("next").disabled = true;
+
     return getJSON("/api/ranking?" + params.toString()).then(function (payload) {
       if (sequence !== rankingSequence) return null;
+      if (!validRanking(payload)) throw new Error("Invalid ranking response");
       renderRows(payload);
+      rankingLoading(false);
       return payload;
+    }).catch(function () {
+      if (sequence !== rankingSequence) return null;
+      state.lastRows = [];
+      clear($("rows"));
+      renderLegend([]);
+      $("list-meta").textContent = "Results unavailable";
+      $("page").textContent = "–";
+      $("prev").disabled = true;
+      $("next").disabled = true;
+      rankingLoading(false);
+      $("ranking-error").hidden = false;
+      return null; // failures are handled, including event-handler requests
     });
   }
 
@@ -679,7 +731,12 @@
       state.offset += state.limit;
       loadRanking();
     });
+    $("retry-ranking").addEventListener("click", function () {
+      if (searchTimer) clearTimeout(searchTimer);
+      loadRanking();
+    });
     $("reset").addEventListener("click", function () {
+      if (searchTimer) clearTimeout(searchTimer);
       state.q = "";
       state.band = "";
       state.kev = false;
@@ -695,11 +752,11 @@
 
   function boot() {
     bind();
-    loadStatus()
-      .then(loadRanking)
-      .catch(function (error) {
-        $("status-line").textContent = "startup error: " + error.message;
-      });
+    // Ranking availability is independent of the coverage/status request.
+    loadRanking();
+    loadStatus().catch(function () {
+      $("status-line").textContent = "Coverage status unavailable. Reload to try again.";
+    });
   }
 
   if (document.readyState === "loading") {
