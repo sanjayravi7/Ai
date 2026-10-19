@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
@@ -48,6 +49,24 @@ REQUIRED_TRACEABILITY = (
     "protocol_approval",
     "reproducibility",
 )
+
+#: Design kinds the readiness engine can evaluate.  Anything else is a protocol
+#: error, including on the design named by ``adopted_design``.
+ALLOWED_DESIGN_KINDS = ("sequential", "rolling_origin", "single_cutoff")
+
+#: ``approved_on`` must be a calendar date in this exact form; Python's
+#: ``date.fromisoformat`` alone also accepts 20261015 and 2026-W01-1.
+_APPROVAL_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def valid_approval_date(value: Any) -> bool:
+    """True only for a real calendar date written as ``YYYY-MM-DD``."""
+    if not isinstance(value, str) or not _APPROVAL_DATE_PATTERN.match(value):
+        return False
+    try:
+        return parse_date(value).isoformat() == value
+    except ValueError:
+        return False
 
 
 class ProtocolError(ValueError):
@@ -201,6 +220,14 @@ def validate_protocol(protocol: Protocol) -> list[dict]:
                 "APPROVED_WITHOUT_ADOPTED_DESIGN",
                 "state is APPROVED but no adopted_design is recorded",
             )
+        else:
+            registered = [design.id for design in protocol.candidate_designs]
+            if protocol.adopted_design not in registered:
+                add(
+                    "ADOPTED_DESIGN_NOT_REGISTERED",
+                    f"state is APPROVED but adopted_design="
+                    f"{protocol.adopted_design!r} is not a registered candidate design",
+                )
     else:
         if protocol.adopted_design:
             add(
@@ -215,13 +242,21 @@ def validate_protocol(protocol: Protocol) -> list[dict]:
                     f"approval.{field} is set while state is {protocol.approval_state!r}",
                 )
 
+    approved_on = approval.get("approved_on")
+    if approved_on and not valid_approval_date(approved_on):
+        add(
+            "APPROVAL_DATE_INVALID",
+            f"approval.approved_on={approved_on!r} is not a valid ISO date in "
+            "YYYY-MM-DD format",
+        )
+
     ids = [design.id for design in protocol.candidate_designs]
     if len(ids) != len(set(ids)):
         add("DUPLICATE_DESIGN_ID", "candidate_designs contains duplicate ids")
     for design in protocol.candidate_designs:
-        if design.id == protocol.adopted_design:
-            continue
-        if design.kind not in ("sequential", "rolling_origin", "single_cutoff"):
+        # The adopted design is validated exactly like every other candidate:
+        # selecting a design must never exempt it from structural checks.
+        if design.kind not in ALLOWED_DESIGN_KINDS:
             add("DESIGN_KIND_UNKNOWN", f"{design.id}: unknown kind {design.kind!r}")
         if not design.blocks:
             add("DESIGN_WITHOUT_BLOCKS", f"{design.id}: no blocks declared")

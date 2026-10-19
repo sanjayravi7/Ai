@@ -415,3 +415,27 @@ def test_relaxing_the_event_gate_in_the_protocol_is_rejected(tmp_path):
     assert checks["PRO-04_protocol_binding_constants"]["status"] == "FAIL"
     assert report["readiness"]["status"] == READINESS_NOT_READY_VALIDATION_FAILED
     assert report["readiness"]["event_gate_relaxed"] is False
+
+
+def test_protocol_with_unknown_adopted_design_kind_fails_the_protocol_check(tmp_path):
+    def approve_and_break_kind(payload):
+        payload["approval"].update(
+            {
+                "state": "APPROVED",
+                "approved_by": "Project Owner",
+                "approved_on": "2026-10-14",
+                "approval_reference": "DECISION-2026-01",
+            }
+        )
+        payload["adopted_design"] = "A2_EARLIEST_3BLOCK"
+        for design in payload["candidate_designs"]:
+            if design["id"] == "A2_EARLIEST_3BLOCK":
+                design["kind"] = "not_a_real_kind"
+
+    fixture = build_fixture(tmp_path / "fixture")
+    _mutate_protocol(fixture, approve_and_break_kind)
+    report = build_report(fixture.options)
+    check = _checks(report)["PRO-01_protocol_document"]
+    assert check["status"] == "FAIL"
+    assert "DESIGN_KIND_UNKNOWN" in " ".join(check["reasons"])
+    assert report["readiness"]["protocol_execution_authorized"] is False

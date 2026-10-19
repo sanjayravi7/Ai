@@ -87,6 +87,25 @@ report always records `model_training_authorized: false`,
 `confirmatory_no_go: RETAINED` and
 `approval_granted_by_this_command: false`.
 
+### Protocol validation rules
+
+`validate_protocol` rejects a protocol file, and `PRO-01` then fails, when:
+
+| Code | Condition |
+|---|---|
+| `PROTOCOL_ID_MISMATCH`, `PROTOCOL_VERSION_MISMATCH` | Wrong protocol ID or version. |
+| `APPROVAL_STATE_INVALID` | An approval state outside the documented vocabulary. |
+| `PROTOCOL_CONSTANT_MISSING`, `PROTOCOL_CONSTANT_MISMATCH` | A frozen constant is missing or altered. |
+| `PROTOCOL_BLOCK_COUNT_MISMATCH`, `EVENT_GATE_RELAXED` | The block requirement or event gate is weakened. |
+| `APPROVAL_EVIDENCE_MISSING` | `APPROVED` without `approved_by`, `approved_on` or `approval_reference`. |
+| `APPROVAL_DATE_INVALID` | `approved_on` is not a real calendar date written exactly `YYYY-MM-DD`. |
+| `APPROVED_WITHOUT_ADOPTED_DESIGN` | `APPROVED` but no `adopted_design`. |
+| `ADOPTED_DESIGN_NOT_REGISTERED` | `APPROVED` but `adopted_design` names no registered candidate. |
+| `UNAPPROVED_DESIGN_ADOPTED`, `APPROVAL_EVIDENCE_INCONSISTENT` | Adoption or signatory evidence while the state is not `APPROVED`. |
+| `DESIGN_KIND_UNKNOWN`, `DESIGN_WITHOUT_BLOCKS`, `DUPLICATE_DESIGN_ID` | A candidate design is malformed. **Every** candidate is checked, including the adopted one; selecting a design never exempts it from validation. |
+| `EARLIEST_THREE_BLOCK_NOT_REGISTERED`, `EARLIEST_THREE_BLOCK_CUTOFFS_CHANGED` | The Phase 2.3K three-block reference design is missing or altered. |
+| `PROHIBITION_MISSING`, `TRACEABILITY_MISSING`, `TRACEABILITY_EMPTY` | A required prohibition or requirement trace is absent. |
+
 ## 4. Frozen temporal contract
 
 | Constant | Value | Consequence |

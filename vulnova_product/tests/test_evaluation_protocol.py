@@ -170,3 +170,100 @@ def test_protocol_markdown_states_the_approval_and_the_rules():
     assert "Absence is not proof of non-exploitation" in flat
     assert "Missing is not absence" in flat
     assert "Never relaxed" in flat
+
+
+def _approve(payload, *, design="A2_EARLIEST_3BLOCK", approved_on="2026-10-14"):
+    """Turn a payload into a valid approval of a registered design."""
+    payload["approval"]["state"] = "APPROVED"
+    payload["approval"]["approved_by"] = "Project Owner"
+    payload["approval"]["approved_on"] = approved_on
+    payload["approval"]["approval_reference"] = "DECISION-2026-01"
+    payload["adopted_design"] = design
+
+
+def _candidate(payload, design_id):
+    return next(
+        design for design in payload["candidate_designs"] if design["id"] == design_id
+    )
+
+
+def test_adopted_design_with_unknown_kind_is_rejected(tmp_path):
+    def mutate(payload):
+        _approve(payload)
+        _candidate(payload, "A2_EARLIEST_3BLOCK")["kind"] = "sneaky_kind"
+
+    problems = validate_protocol(load_protocol(_write_variant(tmp_path, mutate)))
+    assert "DESIGN_KIND_UNKNOWN" in _codes(problems)
+    detail = next(
+        problem["detail"] for problem in problems if problem["code"] == "DESIGN_KIND_UNKNOWN"
+    )
+    assert "A2_EARLIEST_3BLOCK" in detail
+    assert "sneaky_kind" in detail
+
+
+def test_adopted_design_without_blocks_is_rejected(tmp_path):
+    def mutate(payload):
+        _approve(payload)
+        _candidate(payload, "A2_EARLIEST_3BLOCK")["blocks"] = []
+
+    problems = validate_protocol(load_protocol(_write_variant(tmp_path, mutate)))
+    assert "DESIGN_WITHOUT_BLOCKS" in _codes(problems)
+
+
+def test_approved_protocol_referencing_nonexistent_design_is_rejected(tmp_path):
+    def mutate(payload):
+        _approve(payload, design="Z_DOES_NOT_EXIST")
+
+    problems = validate_protocol(load_protocol(_write_variant(tmp_path, mutate)))
+    assert _codes(problems) == {"ADOPTED_DESIGN_NOT_REGISTERED"}
+    assert "Z_DOES_NOT_EXIST" in problems[0]["detail"]
+
+
+@pytest.mark.parametrize(
+    "approved_on",
+    [
+        "15-10-2026",
+        "2026-13-01",
+        "2026-1-5",
+        "20261015",
+        "2026-W42-1",
+        "2026-10-32",
+        "not-a-date",
+        " 2026-10-14",
+        "2026-10-14T00:00:00+00:00",
+    ],
+)
+def test_invalid_approval_date_is_rejected(tmp_path, approved_on):
+    def mutate(payload):
+        _approve(payload, approved_on=approved_on)
+
+    problems = validate_protocol(load_protocol(_write_variant(tmp_path, mutate)))
+    assert _codes(problems) == {"APPROVAL_DATE_INVALID"}
+    assert repr(approved_on) in problems[0]["detail"]
+
+
+@pytest.mark.parametrize("approved_on", ["2026-10-14", "2024-02-29"])
+def test_valid_approved_protocol_with_registered_design_is_valid(tmp_path, approved_on):
+    def mutate(payload):
+        _approve(payload, approved_on=approved_on)
+
+    protocol = load_protocol(_write_variant(tmp_path, mutate))
+    assert protocol.approved is True
+    assert protocol.adopted_design == "A2_EARLIEST_3BLOCK"
+    assert validate_protocol(protocol) == []
+
+
+def test_adopted_design_is_validated_even_when_another_design_is_broken(tmp_path):
+    def mutate(payload):
+        _approve(payload)
+        _candidate(payload, "A2_EARLIEST_3BLOCK")["kind"] = "made_up"
+        _candidate(payload, "E_LABEL_MATURED_2BLOCK")["kind"] = "also_made_up"
+
+    problems = validate_protocol(load_protocol(_write_variant(tmp_path, mutate)))
+    details = [
+        problem["detail"]
+        for problem in problems
+        if problem["code"] == "DESIGN_KIND_UNKNOWN"
+    ]
+    assert any("A2_EARLIEST_3BLOCK" in detail for detail in details)
+    assert any("E_LABEL_MATURED_2BLOCK" in detail for detail in details)

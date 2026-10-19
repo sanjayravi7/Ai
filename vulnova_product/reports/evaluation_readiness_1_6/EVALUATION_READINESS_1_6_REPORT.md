@@ -94,12 +94,12 @@ pandas; it was run in a separate temporary venv with pandas 3.0.6.
 
 | Suite | Command | Result | Log |
 |---|---|---|---|
-| VULNOVA product | `cd vulnova_product && python -m pytest -q` | **188 passed in 25.10 s** | `01_vulnova_pytest.txt` |
-| Repository root | `python -m pytest tests -q` | **192 passed, 6 subtests passed in 9.40 s** | `02_root_pytest.txt` |
+| VULNOVA product | `cd vulnova_product && python -m pytest -q` | **204 passed in 21.41 s** | `01_vulnova_pytest.txt` |
+| Repository root | `python -m pytest tests -q` | **192 passed, 6 subtests passed in 6.95 s** | `02_root_pytest.txt` |
 | Readiness, double run | `python -m vulnova.evaluation readiness --check-reproducible` | **PASS 42 · FAIL 0 · BLOCKED 1 · N/A 1**, `double_run_match: yes`, digest `1d51544a…` | `03_readiness_reproducibility.txt` |
 | Lint (new files) | `flake8 … --select=E9,F63,F7,F82` and 127-column warnings | **0 errors, 0 warnings** | `04_flake8.txt` |
 
-The product baseline was 122 tests; this phase adds 66 readiness tests. The root
+The product baseline was 122 tests; this phase adds 82 tests (66 readiness tests plus 16 protocol-validation regressions and integration assertions). The root
 suite is unchanged at 192 tests plus 6 subtests. The Chromium smoke test was not
 run because no UI file changed; its workflow is unchanged.
 
@@ -116,8 +116,29 @@ New tests cover:
   fabricated absence failure;
 * duplicate event rows and event-level future-information leakage;
 * adoption without approval, approval without evidence and event-gate relaxation;
+* protocol validation of the adopted design itself: an unknown design kind, a
+  design with no blocks, an unregistered adopted design, and `approved_on`
+  values that are not exact `YYYY-MM-DD` calendar dates;
 * digest canonicalization, CLI exit codes and reproduction of the committed
   report from the committed archives.
+
+### Protocol-validation follow-up
+
+Review found three gaps in `vulnova/evaluation/protocol.py`; all three are fixed
+and covered by regression tests:
+
+1. the design loop skipped the design named by `adopted_design`, so a selected
+   design escaped kind and structural validation;
+2. an approved protocol could name an `adopted_design` that was not a registered
+   candidate;
+3. `approved_on` was checked for presence but not for being a real date in
+   `YYYY-MM-DD` form (`date.fromisoformat` alone also accepts `20261015` and
+   `2026-W42-1`).
+
+The 180-day horizon, 30-day maturation lag, 210-day spacing and 30-distinct-event
+gate are unchanged. The readiness report is unchanged: the committed digest
+`1d51544a…` recomputes identically, because the validator's problem list for the
+current protocol is still empty.
 
 ## 6. Reproducing
 
