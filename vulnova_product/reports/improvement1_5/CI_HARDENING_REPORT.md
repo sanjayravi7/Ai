@@ -83,8 +83,8 @@ python -m pytest tests -q
 Result on Python 3.11: `192 passed, 6 subtests passed`, exit 0. Raw output:
 `02_root_pytest.txt`. The pre-fix command (bare `pytest`) still reproduces the
 12 collection errors: `04_root_ci_failure_reproduction.txt`. Python 3.9 and 3.10
-were not available in this sandbox; their matrix entries were not executed here
-and are not claimed as locally verified.
+were not available in this sandbox, so they were not run locally; the GitHub
+Actions matrix did run both and both jobs passed (§8).
 
 ### 3.4 Lint
 
@@ -171,3 +171,23 @@ store, it must build it reproducibly from committed inputs in the same job.
 | `vulnova_product/docs/BROWSER_TESTING.md` | Expected browser count and CI link |
 | `vulnova_product/README.md` | CI section and docs index |
 | `vulnova_product/reports/improvement1_5/*` | This report and raw evidence |
+
+## 8. GitHub Actions verification (PR #9)
+
+All workflows were run on the pull request from `arena/5d8fad69-ai`:
+
+| Workflow | Run | Result | Notes |
+| --- | --- | --- | --- |
+| VULNOVA unit tests | 39288436970 | **success** | `Unit tests (Python 3.11)` passed in 26 s |
+| VULNOVA browser smoke test | 39288436845 | **success** | Playwright 1.64 Chromium installed in CI; all checks passed |
+| Python package | 39288436929 | **success** | `build (3.9)`, `build (3.10)` and `build (3.11)` all passed lint and pytest |
+
+The two VULNOVA workflows were triggered by the product changes; the root
+workflow was triggered only because `python-package.yml` itself changed. A later
+follow-up commit touching only `vulnova_product/reports/` triggered the two
+VULNOVA workflows and did **not** trigger the root workflow, confirming the path
+scoping in the live repository.
+
+The only annotations on the runs were GitHub's own Node.js 20 deprecation notice
+for `actions/checkout@v4` / `actions/setup-python@v5` and the `ubuntu-latest`
+migration notice. Neither affects job results.
