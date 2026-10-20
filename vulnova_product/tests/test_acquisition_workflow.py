@@ -23,8 +23,11 @@ from tests.acquisition_fixtures import (
     build_scenario,
     commit_payload,
     cve_url,
+    blob_payload,
     epss_url,
+    kev_blob_url,
     kev_catalog_bytes,
+    sha40,
 )
 
 
@@ -362,3 +365,54 @@ def test_a_refused_redirect_blocks_the_requirement_without_claiming_an_outage(tm
     for record in manifest["records"]:
         if record["source"] == "epss" and record["channel"] == C.CHANNEL_OFFICIAL:
             assert record["reason_code"] == C.REDIRECT_BLOCKED
+
+
+def test_no_record_carries_a_final_url_equal_to_its_request_url(tmp_path):
+    """A non-redirected response must not gain a redundant final_url field."""
+    manifest = _run(build_scenario(tmp_path))
+    for record in manifest["records"]:
+        if "final_url" in record:
+            assert record["final_url"] != record["request_url"], record["key"]
+
+
+def test_kev_github_records_request_the_blob_that_served_the_bytes(tmp_path):
+    manifest = _run(build_scenario(tmp_path))
+    kev_github = [
+        record
+        for record in manifest["records"]
+        if record["source"] == "kev"
+        and record["channel"] == C.CHANNEL_OFFICIAL_GITHUB
+    ]
+    assert kev_github
+    for record in kev_github:
+        assert record["request_url"].startswith(
+            "https://api.github.com/repos/cisagov/kev-data/git/blobs/"
+        ), record["key"]
+        assert "request_url" not in record.get("details", {})
+
+
+def test_a_redirected_kev_catalog_keeps_both_urls_in_the_manifest(tmp_path):
+    scenario = build_scenario(tmp_path)
+    for day in CUTOFFS:
+        table = KEV_HISTORY[day.isoformat()]
+        blob_sha = sha40(f"blob-{day.isoformat()}")
+        body = kev_catalog_bytes(table[2], table[3], count=min(table[4], 5))
+        scenario.transport.add_json(
+            kev_blob_url(blob_sha),
+            blob_payload(body, blob_sha),
+            retrieved_at="2026-10-20T10:01:00Z",
+            final_url=f"https://api.github.com/repositories/{blob_sha[:8]}/blob",
+        )
+    manifest = _run(scenario)
+    redirected = [
+        record
+        for record in manifest["records"]
+        if record["source"] == "kev" and "final_url" in record
+    ]
+    assert len(redirected) == len(CUTOFFS)
+    for record in redirected:
+        assert record["final_url"].startswith("https://api.github.com/repositories/")
+        assert record["request_url"].startswith(
+            "https://api.github.com/repos/cisagov/kev-data/git/blobs/"
+        )
+        assert record["final_url"] != record["request_url"]

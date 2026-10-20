@@ -110,3 +110,24 @@ def test_committed_report_exists_and_states_the_same_digest():
     text = REPORT_PATH.read_text(encoding="utf-8")
     assert _manifest()["manifest_digest"] in text
     assert "Missing or blocked evidence" in text
+
+
+def test_committed_kev_github_records_name_the_blob_that_served_the_bytes():
+    """The request URL must be the request for the catalog bytes themselves."""
+    records = [
+        record
+        for record in _manifest()["records"]
+        if record["source"] == "kev" and record["channel"] == C.CHANNEL_OFFICIAL_GITHUB
+    ]
+    assert records
+    for record in records:
+        assert record["request_url"].startswith(
+            "https://api.github.com/repos/cisagov/kev-data/git/blobs/"
+        ), record["key"]
+        assert "request_url" not in record.get("details", {})
+
+
+def test_committed_manifest_records_no_redundant_final_url():
+    for record in _manifest()["records"]:
+        if "final_url" in record:
+            assert record["final_url"] != record["request_url"], record["key"]

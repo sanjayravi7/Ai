@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 
 from vulnova.acquisition import constants as C
@@ -91,7 +92,7 @@ def test_duplicate_identifiers_are_rejected():
         raise AssertionError("expected a rejection")
 
 
-def _historical_api(tmp_path, *, declared=None, committed=None):
+def _historical_api(tmp_path, *, declared=None, committed=None, blob_final_url=None):
     sha, source_time, version, released, count = KEV_HISTORY[DAY.isoformat()]
     body = kev_catalog_bytes(version, released, count=3, declared=declared)
     tree_sha = "1" * 40
@@ -105,7 +106,10 @@ def _historical_api(tmp_path, *, declared=None, committed=None):
         kev_tree_url(tree_sha), tree_payload(blob_sha, len(body)), retrieved_at="2026-10-20T10:00:01Z"
     )
     transport.add_json(
-        kev_blob_url(blob_sha), blob_payload(body, blob_sha), retrieved_at="2026-10-20T10:00:02Z"
+        kev_blob_url(blob_sha),
+        blob_payload(body, blob_sha),
+        retrieved_at="2026-10-20T10:00:02Z",
+        final_url=blob_final_url,
     )
     return GitHubApi(transport), body, blob_sha
 
@@ -264,3 +268,88 @@ def test_a_refused_redirect_on_the_direct_feed_is_blocked_not_unreachable(tmp_pa
     assert records[0].channel == C.CHANNEL_OFFICIAL
     assert records[0].content_status == C.BLOCKED
     assert records[0].reason_code == C.REDIRECT_BLOCKED
+
+
+# ---------------------------------------------------------------------------
+# Which URL did the catalog bytes actually come from?  The commit listing only
+# *locates* the blob; the blob endpoint is what serves the bytes.
+# ---------------------------------------------------------------------------
+def test_catalog_request_url_is_the_blob_that_served_the_bytes(tmp_path):
+    api, _, blob_sha = _historical_api(tmp_path)
+    payload = kev.acquire_at_cutoff(api, DAY).as_dict()
+    assert payload["request_url"] == kev_blob_url(blob_sha)
+    # The commit listing that located the blob is a different request and stays
+    # separately recorded rather than overwriting request_url.
+    assert payload["details"]["commit_query_url"] == kev_until_url(DAY)
+    assert payload["details"]["blob_url"] == kev_blob_url(blob_sha)
+
+
+def test_catalog_does_not_duplicate_the_request_url_inside_details(tmp_path):
+    api, _, _ = _historical_api(tmp_path)
+    payload = kev.acquire_at_cutoff(api, DAY).as_dict()
+    assert "request_url" not in payload["details"]
+
+
+def test_non_redirected_catalog_gains_no_redundant_final_url(tmp_path):
+    api, _, _ = _historical_api(tmp_path)
+    payload = kev.acquire_at_cutoff(api, DAY).as_dict()
+    assert "final_url" not in payload
+    # ... and the record still knows where its bytes came from.
+    assert payload["request_url"].startswith(
+        "https://api.github.com/repos/cisagov/kev-data/git/blobs/"
+    )
+
+
+def test_redirected_catalog_preserves_both_urls(tmp_path):
+    destination = "https://api.github.com/repositories/42/blob"
+    api, _, blob_sha = _historical_api(tmp_path, blob_final_url=destination)
+    payload = kev.acquire_at_cutoff(api, DAY).as_dict()
+    assert payload["request_url"] == kev_blob_url(blob_sha)
+    assert payload["final_url"] == destination
+    assert payload["request_url"] != payload["final_url"]
+
+
+def test_redirected_catalog_still_verifies_and_keeps_the_same_bytes(tmp_path):
+    api, body, _ = _historical_api(
+        tmp_path, blob_final_url="https://api.github.com/repositories/42/blob"
+    )
+    record = kev.acquire_at_cutoff(api, DAY, store=ArtifactStore(tmp_path / "store"))
+    assert record.content_status == C.VERIFIED
+    assert record.sha256 == hashlib.sha256(body).hexdigest()
+
+
+def test_current_catalog_from_github_requests_the_blob_url():
+    transport = FakeTransport()
+    body = kev_catalog_bytes("2026.10.16", "2026-10-16T17:15:48Z", count=3)
+    tree_sha, blob_sha = "1" * 40, "2" * 40
+    transport.add_json(
+        kev_latest_url(),
+        [commit_payload(KEV_CURRENT_COMMIT, KEV_CURRENT_COMMITTED, tree_sha)],
+        retrieved_at="2026-10-20T10:00:00Z",
+    )
+    transport.add_json(
+        kev_tree_url(tree_sha), tree_payload(blob_sha, len(body)), retrieved_at="2026-10-20T10:00:01Z"
+    )
+    transport.add_json(
+        kev_blob_url(blob_sha), blob_payload(body, blob_sha), retrieved_at="2026-10-20T10:00:02Z"
+    )
+    payload = kev.acquire_current_github(GitHubApi(transport)).as_dict()
+    assert payload["request_url"] == kev_blob_url(blob_sha)
+    assert "final_url" not in payload
+
+
+def test_redirected_direct_feed_preserves_both_urls(tmp_path):
+    body = kev_catalog_bytes("2026.10.16", "2026-10-16T17:15:48Z", count=4)
+    destination = "https://www.cisa.gov/redirected/known_exploited_vulnerabilities.json"
+    transport = FakeTransport().add_bytes(
+        kev.CISA_FEED_URL,
+        body,
+        content_type="application/json",
+        retrieved_at="2026-10-20T10:00:00Z",
+        final_url=destination,
+    )
+    records, facts = kev.acquire_current(transport, store=ArtifactStore(tmp_path / "store"))
+    payload = records[0].as_dict()
+    assert facts is not None
+    assert payload["request_url"] == kev.CISA_FEED_URL
+    assert payload["final_url"] == destination

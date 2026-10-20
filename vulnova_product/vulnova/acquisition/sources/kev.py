@@ -331,8 +331,18 @@ def _finish_catalog(
     relative: str,
     maturity: Optional[date],
 ) -> ArtifactRecord:
-    record.retrieved_at = blob_meta.retrieved_at
+    """Attach the catalog bytes and the two URLs that describe them.
+
+    ``request_url`` is the URL that was asked for the catalog bytes — the blob
+    endpoint — not the commit listing that merely located them; that one is kept
+    separately in ``details``.  ``final_url`` is the URL that actually served
+    those bytes.  When nothing redirected the two are equal, and
+    :meth:`ArtifactRecord.as_dict` then omits ``final_url`` rather than recording
+    a redundant copy of ``request_url``.
+    """
+    record.request_url = blob_meta.url
     record.final_url = blob_meta.final_url or blob_meta.url
+    record.retrieved_at = blob_meta.retrieved_at
     record.details["blob_url"] = blob_meta.url
     record.bytes = len(body)
     record.sha256 = _sha(body)
@@ -348,7 +358,6 @@ def _finish_catalog(
     record.sha256 = digest
     record.content_status = C.VERIFIED
     record.reason_code = C.OK_VERIFIED
-    record.details["request_url"] = record.request_url or blob_meta.url
     _observe(record, facts, maturity=maturity)
     return record.finalize()
 

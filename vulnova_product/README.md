@@ -131,7 +131,7 @@ docs/
   CI.md
   EVALUATION_READINESS.md
   RANKING_SEMANTICS.md
-tests/            test suite (374 tests, including synthetic readiness and acquisition fixtures)
+tests/            test suite (386 tests, including synthetic readiness and acquisition fixtures)
 tools/            verifiers, digest, manifest, pre-2020 fetch
 reports/
   validation1_1/  previous phase (historical, unchanged)

@@ -3,11 +3,11 @@
 This report is generated from the acquisition manifest. It records what was actually retrieved, when, and from which publisher. It trains no model, scores nothing, and does not approve the evaluation protocol.
 
 - manifest schema: `vulnova.acquisition/1.7`
-- generated at (UTC): `2026-10-19T18:56:54Z`
-- as of: `2026-10-19`
+- generated at (UTC): `2026-10-20T02:59:38Z`
+- as of: `2026-10-20`
 - final candidate maturity: `2026-10-28`
 - evidence status: **BLOCKED**
-- manifest digest: `6441cbc34164a873873c2efcb1218dbbbee218360dc701ee1a67b00b1f7abc0f`
+- manifest digest: `5993ce8ce98a0051bd2accec5e5f6259a799d6f05e8cbc9784c2f3b65a40b8c8`
 - artifact store: `data/acquisition_store`
 
 ## Artifact status
@@ -30,7 +30,7 @@ Access provenance: CONTEMPORANEOUS 1, LATE_RETRIEVAL 6, NOT_RETRIEVED 7.
 | `KEV-05_HISTORICAL_RETRIEVAL_PROVENANCE` | BLOCKED | `RETRIEVAL_NOT_CONTEMPORANEOUS` | 2025-02-01: RETRIEVAL_NOT_CONTEMPORANEOUS; 2025-09-01: RETRIEVAL_NOT_CONTEMPORANEOUS; 2026-04-01: RETRIEVAL_NOT_CONTEMPORANEOUS |
 | `EPSS-01_EXACT_DAILY_FILE` | UNAVAILABLE | `OFFICIAL_SOURCE_UNREACHABLE` | 2025-02-01: OFFICIAL_SOURCE_UNREACHABLE; 2025-09-01: OFFICIAL_SOURCE_UNREACHABLE; 2026-04-01: OFFICIAL_SOURCE_UNREACHABLE |
 | `EPSS-02_HISTORICAL_RETRIEVAL_PROVENANCE` | UNAVAILABLE | `OFFICIAL_SOURCE_UNREACHABLE` | 2025-02-01: OFFICIAL_SOURCE_UNREACHABLE; 2025-09-01: OFFICIAL_SOURCE_UNREACHABLE; 2026-04-01: OFFICIAL_SOURCE_UNREACHABLE |
-| `PROV-01_FINAL_BLOCK_MATURITY_NOT_CLAIMED` | VERIFIED | `OK_VERIFIED` | Final candidate cutoff 2026-04-01 matures 2026-10-28; this run is as of 2026-10-19 (9 days remaining). Maturity is not claimed and fresh evidence is still required afterwards. |
+| `PROV-01_FINAL_BLOCK_MATURITY_NOT_CLAIMED` | VERIFIED | `OK_VERIFIED` | Final candidate cutoff 2026-04-01 matures 2026-10-28; this run is as of 2026-10-20 (8 days remaining). Maturity is not claimed and fresh evidence is still required afterwards. |
 
 ## Missing or blocked evidence
 
@@ -80,20 +80,20 @@ Access provenance: CONTEMPORANEOUS 1, LATE_RETRIEVAL 6, NOT_RETRIEVED 7.
 
 | Source | Key | Channel | Content | Access | Retrieved (UTC) | Source time | SHA-256 |
 |---|---|---|---|---|---|---|---|
-| cvelistv5 | 2025-02-01 | OFFICIAL_GITHUB | VERIFIED | LATE_RETRIEVAL | 2026-10-19T18:56:49Z | 2025-01-31T23:08:06Z | bc59fc810c0f |
-| cvelistv5 | 2025-09-01 | OFFICIAL_GITHUB | VERIFIED | LATE_RETRIEVAL | 2026-10-19T18:56:49Z | 2025-08-31T23:33:54Z | eec42dd7c31a |
-| cvelistv5 | 2026-04-01 | OFFICIAL_GITHUB | VERIFIED | LATE_RETRIEVAL | 2026-10-19T18:56:49Z | 2026-03-31T23:51:08Z | a7dc381c70a6 |
-| epss | 2025-02-01 | OFFICIAL | UNAVAILABLE | NOT_RETRIEVED | 2026-10-19T18:56:54Z | — | — |
+| cvelistv5 | 2025-02-01 | OFFICIAL_GITHUB | VERIFIED | LATE_RETRIEVAL | 2026-10-20T02:59:32Z | 2025-01-31T23:08:06Z | bc59fc810c0f |
+| cvelistv5 | 2025-09-01 | OFFICIAL_GITHUB | VERIFIED | LATE_RETRIEVAL | 2026-10-20T02:59:33Z | 2025-08-31T23:33:54Z | eec42dd7c31a |
+| cvelistv5 | 2026-04-01 | OFFICIAL_GITHUB | VERIFIED | LATE_RETRIEVAL | 2026-10-20T02:59:33Z | 2026-03-31T23:51:08Z | a7dc381c70a6 |
+| epss | 2025-02-01 | OFFICIAL | UNAVAILABLE | NOT_RETRIEVED | 2026-10-20T02:59:38Z | — | — |
 | epss | 2025-02-01#mirror | THIRD_PARTY_MIRROR | UNAVAILABLE | NOT_RETRIEVED | — | — | — |
-| epss | 2025-09-01 | OFFICIAL | UNAVAILABLE | NOT_RETRIEVED | 2026-10-19T18:56:54Z | — | — |
+| epss | 2025-09-01 | OFFICIAL | UNAVAILABLE | NOT_RETRIEVED | 2026-10-20T02:59:38Z | — | — |
 | epss | 2025-09-01#mirror | THIRD_PARTY_MIRROR | UNAVAILABLE | NOT_RETRIEVED | — | — | — |
-| epss | 2026-04-01 | OFFICIAL | UNAVAILABLE | NOT_RETRIEVED | 2026-10-19T18:56:54Z | — | — |
+| epss | 2026-04-01 | OFFICIAL | UNAVAILABLE | NOT_RETRIEVED | 2026-10-20T02:59:38Z | — | — |
 | epss | 2026-04-01#mirror | THIRD_PARTY_MIRROR | UNAVAILABLE | NOT_RETRIEVED | — | — | — |
-| kev | 2025-02-01 | OFFICIAL_GITHUB | VERIFIED | LATE_RETRIEVAL | 2026-10-19T18:56:52Z | 2025-01-29T17:02:51.9769Z | e040ac917f18 |
-| kev | 2025-09-01 | OFFICIAL_GITHUB | VERIFIED | LATE_RETRIEVAL | 2026-10-19T18:56:53Z | 2025-08-29T17:00:23.7015Z | d4e88aa93681 |
-| kev | 2026-04-01 | OFFICIAL_GITHUB | VERIFIED | LATE_RETRIEVAL | 2026-10-19T18:56:54Z | 2026-03-30T18:55:21.8585Z | a925400c147a |
-| kev | current | OFFICIAL | UNAVAILABLE | NOT_RETRIEVED | 2026-10-19T18:56:49Z | — | — |
-| kev | current#github | OFFICIAL_GITHUB | VERIFIED | CONTEMPORANEOUS | 2026-10-19T18:56:50Z | 2026-10-16T17:15:48.8752Z | b6e27975f663 |
+| kev | 2025-02-01 | OFFICIAL_GITHUB | VERIFIED | LATE_RETRIEVAL | 2026-10-20T02:59:35Z | 2025-01-29T17:02:51.9769Z | e040ac917f18 |
+| kev | 2025-09-01 | OFFICIAL_GITHUB | VERIFIED | LATE_RETRIEVAL | 2026-10-20T02:59:36Z | 2025-08-29T17:00:23.7015Z | d4e88aa93681 |
+| kev | 2026-04-01 | OFFICIAL_GITHUB | VERIFIED | LATE_RETRIEVAL | 2026-10-20T02:59:38Z | 2026-03-30T18:55:21.8585Z | a925400c147a |
+| kev | current | OFFICIAL | UNAVAILABLE | NOT_RETRIEVED | 2026-10-20T02:59:33Z | — | — |
+| kev | current#github | OFFICIAL_GITHUB | VERIFIED | CONTEMPORANEOUS | 2026-10-20T02:59:34Z | 2026-10-16T17:15:48.8752Z | b6e27975f663 |
 
 ## Label-maturity window per block
 
@@ -113,7 +113,7 @@ A catalog released before a block's maturity date is right-censored for that blo
 | Check | Status | Detail |
 |---|---|---|
 | `SCHEMA` | VERIFIED | structure and digest are valid |
-| `MANIFEST_DIGEST` | VERIFIED | recorded 6441cbc34164a873873c2efcb1218dbbbee218360dc701ee1a67b00b1f7abc0f, recomputed 6441cbc34164a873873c2efcb1218dbbbee218360dc701ee1a67b00b1f7abc0f |
+| `MANIFEST_DIGEST` | VERIFIED | recorded 5993ce8ce98a0051bd2accec5e5f6259a799d6f05e8cbc9784c2f3b65a40b8c8, recomputed 5993ce8ce98a0051bd2accec5e5f6259a799d6f05e8cbc9784c2f3b65a40b8c8 |
 | `ARTIFACT_PRESENT` | VERIFIED | 7 artifact(s) present |
 | `ARTIFACT_SIZE` | VERIFIED | all sizes match |
 | `ARTIFACT_SHA256` | VERIFIED | all 7 artifact digest(s) match |
@@ -123,7 +123,7 @@ A catalog released before a block's maturity date is right-censored for that blo
 | `ACCESS_PROVENANCE_RECONSISTENT` | VERIFIED | access provenance matches the recorded timestamps |
 | `HISTORICAL_RETRIEVAL_NOT_OVERSTATED` | VERIFIED | no late retrieval is reported as contemporaneous |
 | `CUTOFFS_IN_GRID` | VERIFIED | all cutoffs belong to the 21-date grid |
-| `FINAL_BLOCK_MATURITY_NOT_CLAIMED` | VERIFIED | maturity 2026-10-28 is not claimed as of 2026-10-19 |
+| `FINAL_BLOCK_MATURITY_NOT_CLAIMED` | VERIFIED | maturity 2026-10-28 is not claimed as of 2026-10-20 |
 
 ## Standing policies
 

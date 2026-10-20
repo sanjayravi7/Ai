@@ -72,6 +72,12 @@ the host allowlist is enforced.
   URL that actually served the bytes; `HttpResponse.url` stays the URL that was
   requested. In a record, `final_url` is serialised **only when a redirect moved
   the request**, so an unchanged URL is not duplicated.
+- **`request_url` names the request for the artifact itself.** For a KEV catalog
+  that is the blob endpoint that served the JSON
+  (`…/git/blobs/<sha>`), not the commit listing that merely located it; the
+  listing is recorded separately in `details.commit_url` /
+  `details.commit_query_url`. Recording the lookup instead of the fetch would
+  describe a request that never produced the stored bytes.
 
 The committed manifest contains no `final_url` field: every request resolved on
 its original URL, so separating the two adds nothing. That is a fact about this
