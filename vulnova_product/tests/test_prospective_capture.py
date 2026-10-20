@@ -6,6 +6,7 @@ opens a socket, reads the system clock, or depends on a source being reachable.
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 
 import pytest
@@ -15,7 +16,7 @@ from vulnova.prospective import constants as C
 from vulnova.prospective.capture import CaptureError, run_capture
 from vulnova.prospective.store import ProspectiveStore
 
-from tests.acquisition_fixtures import kev_catalog_bytes
+from tests.acquisition_fixtures import epss_url, kev_catalog_bytes
 from tests.prospective_fixtures import (
     CVE_LATEST_URL,
     CVE_REVISION,
@@ -491,3 +492,68 @@ def test_an_offset_clock_is_normalised_to_the_utc_observation_date(tmp_path):
     assert run["observation_date"] == "2026-10-21"
     assert run["capture_started_at"] == "2026-10-20T23:30:00-05:00"
     assert any("epss_scores-2026-10-21" in call for call in scenario.transport.calls)
+
+
+def test_a_rate_limited_epss_failure_keeps_a_bounded_detail_in_the_run_record(tmp_path):
+    """The detail must survive the whole path: transport → source → run record.
+
+    Before this patch the stored run kept ``403`` and ``RATE_LIMITED`` and lost
+    the response text, which is exactly the evidence that would say whether the
+    publisher rate-limited us or a WAF refused the request.
+    """
+    scenario = build_scenario(tmp_path)
+    observation = dt.date.fromisoformat(DEFAULT_AS_OF[:10])
+    scenario.transport.add_error(
+        epss_url(observation),
+        reason="RATE_LIMITED",
+        status=403,
+        detail="<html>\n  <title>Access Denied</title>\n  Reference: 18.abc\n</html>",
+    )
+
+    run = run_capture(scenario.options())["run"]
+    record = _records(run, "epss")[0]
+
+    assert record["http_status"] == 403
+    assert record["reason_code"] == A.RATE_LIMITED
+    assert record["content_status"] == A.UNAVAILABLE
+    assert record["sha256"] is None
+    assert record["artifact_path"] is None
+    assert record["details"]["error"] == "RATE_LIMITED"
+    assert record["details"]["error_detail"] == (
+        "<html> <title>Access Denied</title> Reference: 18.abc </html>"
+    )
+    # The run remains a partial capture, never a success and never an absence.
+    assert run["summary"]["capture_status"] == A.UNAVAILABLE
+    assert "not_exploited" not in json.dumps(run).lower()
+
+
+def test_a_rate_limit_without_a_body_stores_no_detail_field(tmp_path):
+    scenario = build_scenario(tmp_path)
+    observation = dt.date.fromisoformat(DEFAULT_AS_OF[:10])
+    scenario.transport.add_error(
+        epss_url(observation), reason="RATE_LIMITED", status=429
+    )
+
+    run = run_capture(scenario.options())["run"]
+    record = _records(run, "epss")[0]
+
+    assert record["http_status"] == 429
+    assert record["reason_code"] == A.RATE_LIMITED
+    assert "error_detail" not in record["details"]
+
+
+def test_the_stored_run_verifies_after_a_failed_capture_with_a_detail(tmp_path):
+    """A diagnostic field must not disturb the append-only store or its verifier."""
+    from vulnova.prospective.verify import verify_failure_reasons, verify_store
+
+    scenario = build_scenario(tmp_path)
+    observation = dt.date.fromisoformat(DEFAULT_AS_OF[:10])
+    scenario.transport.add_error(
+        epss_url(observation), reason="RATE_LIMITED", status=403, detail="blocked"
+    )
+
+    run_capture(scenario.options())
+
+    result = verify_store(scenario.store_root)
+    assert result["status"] == A.VERIFIED
+    assert verify_failure_reasons(result) == []

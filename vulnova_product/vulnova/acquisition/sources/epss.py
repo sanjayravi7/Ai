@@ -55,6 +55,18 @@ runs — unavoidable without a streaming API — so the guarantee is about what 
 If the date-specific endpoint does redirect to an infrastructure host, capture
 will fail closed with ``BLOCKED`` until an evidence-backed allowance is added.
 That is the intended trade: an unverified redirect is not silently trusted.
+
+**Diagnostics on a failed request.**  A failed capture keeps the stable reason
+code and the HTTP status, and also a bounded, whitespace-normalised excerpt of the
+transport's ``detail`` in ``details["error_detail"]``.  For an HTTP error that
+detail is the beginning of the response body; for an unreachable host or a
+transport-level refusal it is the transport's own explanation.  The field is
+omitted when there is nothing to record, and never exceeds
+:data:`ERROR_DETAIL_LIMIT` characters.  It is diagnostic material, not a verdict:
+``RATE_LIMITED`` is the transport's classification of *both* 403 and 429, so a
+403 status on its own does not establish that rate limiting was the cause — the
+excerpt is what later distinguishes a rate-limit page from a bot block, a WAF
+challenge or a rejected request.
 """
 
 from __future__ import annotations
@@ -94,6 +106,11 @@ APPROVED_RESPONSE_HOSTS = (OFFICIAL_HOST,)
 #: documented daily-CSV endpoint cannot satisfy the requirement.  The channel and
 #: reason labels are unchanged from 1.7, whose sealed manifest carries them.
 MIRROR_NOTE = "github.com/empiricalsec/epss_scores (third party, not used)"
+
+#: Upper bound, in characters, on ``details["error_detail"]``.  It matches the
+#: 400 bytes the transport keeps of an HTTP error body, so a stored record never
+#: carries more error text than the transport was willing to hold in memory.
+ERROR_DETAIL_LIMIT = 400
 
 HEADER_RE = re.compile(r"(model_version|score_date):([^,\s]+)")
 ROW_RE = re.compile(r"^CVE-\d{4}-\d{4,},[0-9.eE+-]+,[0-9.eE+-]+\s*$")
@@ -150,6 +167,27 @@ def response_url_problem(url: object) -> Optional[str]:
     return None
 
 
+def bounded_error_detail(detail: object) -> str:
+    """One bounded line of a transport error's detail, or ``""``.
+
+    The detail can come from an HTTP response body, so it is treated as
+    untrusted publisher text:
+
+    * a non-string is not response text and yields ``""`` rather than a
+      ``repr`` of an arbitrary object;
+    * all whitespace runs collapse to one space, so a multi-line HTML error page
+      cannot make the stored record's shape depend on the publisher's formatting;
+    * the result is capped at :data:`ERROR_DETAIL_LIMIT` characters, ellipsis
+      included, so the field can never exceed the limit it advertises.
+    """
+    if not isinstance(detail, str):
+        return ""
+    text = " ".join(detail.split())
+    if len(text) <= ERROR_DETAIL_LIMIT:
+        return text
+    return text[: ERROR_DETAIL_LIMIT - 1] + "…"
+
+
 def _decompress(body: bytes) -> str:
     if body[:2] == b"\x1f\x8b":
         return gzip.decompress(body).decode("utf-8", "strict")
@@ -204,6 +242,12 @@ def _record_error(
         # We declined to follow the request; the publisher never answered.
         record.content_status = C.BLOCKED
     record.details["error"] = exc.reason
+    # Diagnostic only: the classification above is unchanged.  The field is
+    # omitted rather than written empty, so a record with no detail keeps exactly
+    # the shape it had before this field existed.
+    detail = bounded_error_detail(exc.detail)
+    if detail:
+        record.details["error_detail"] = detail
     record.details["requested_date"] = day.isoformat()
     record.details["mirror_available"] = MIRROR_NOTE
     return record.finalize()
@@ -328,12 +372,14 @@ def mirror_record(day: date) -> ArtifactRecord:
 
 __all__ = [
     "APPROVED_RESPONSE_HOSTS",
+    "ERROR_DETAIL_LIMIT",
     "HEADER_RE",
     "MIRROR_NOTE",
     "OFFICIAL_HOST",
     "SOURCE",
     "acquire_daily",
     "artifact_path",
+    "bounded_error_detail",
     "inspect_payload",
     "mirror_record",
     "official_url",
