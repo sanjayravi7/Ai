@@ -129,7 +129,7 @@ def test_a_redirect_is_recorded_as_a_final_url(tmp_path):
         epss_bytes(DAY),
         content_type="application/gzip",
         retrieved_at="2026-10-20T10:00:00Z",
-        final_url="https://epss.cyentia.com/daily/epss_scores-2025-02-01.csv.gz",
+        final_url="https://epss.empiricalsecurity.com/daily/epss_scores-2025-02-01.csv.gz",
     )
     record = epss.acquire_daily(transport, DAY)
     payload = record.as_dict()

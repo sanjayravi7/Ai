@@ -8,6 +8,24 @@ history and make the resulting evaluation untraceable.
 The header of every EPSS file states its own ``score_date``.  That internal date
 is checked against the requested cutoff; a mismatch is reported as
 ``SCORE_DATE_MISMATCH`` rather than quietly accepted.
+
+**Host.**  FIRST's current "Get the Data" / API documentation names
+``epss.empiricalsecurity.com`` as the daily CSV host, with date-specific files at
+``https://epss.empiricalsecurity.com/epss_scores-YYYY-MM-DD.csv.gz``.  The legacy
+``epss.cyentia.com`` host is no longer named there; it now redirects to the
+current host, so requesting it would spend a redirect hop (and one policy
+decision) to reach the same bytes.  This module requests the documented endpoint
+directly.
+
+**Redirects.**  The transport refuses redirects to unapproved hosts and refuses
+HTTPS downgrades on every hop.  A :class:`~vulnova.acquisition.transport.Transport`
+is injectable, though, so this module re-checks the URL that actually answered
+before the body is trusted.  A response from a host outside
+:data:`APPROVED_RESPONSE_HOSTS`, or over plaintext, is recorded as ``BLOCKED``
+with ``REDIRECT_BLOCKED`` — never inspected, never stored, never ``VERIFIED``.
+Whether the date-specific endpoint itself redirects is *not* asserted here: the
+response reports its own ``final_url`` and the record keeps both URLs, so a
+redirect is visible rather than assumed.
 """
 
 from __future__ import annotations
@@ -15,6 +33,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import re
+import urllib.parse
 from datetime import date
 from typing import Optional
 
@@ -24,9 +43,23 @@ from ..store import ArtifactStore
 from ..transport import Transport, TransportError
 
 SOURCE = "epss"
-OFFICIAL_HOST = "epss.cyentia.com"
+
+#: The daily-CSV host named by FIRST's current documentation.
+OFFICIAL_HOST = "epss.empiricalsecurity.com"
 OFFICIAL_URL_TEMPLATE = f"https://{OFFICIAL_HOST}/epss_scores-{{date}}.csv.gz"
-#: Documented but *not* used: only reachable copy in some environments.
+
+#: Hosts a response may legitimately come from.  ``epss.empiricalsecurity.com``
+#: serves the files; ``www.first.org`` is the publisher of record (FIRST), so a
+#: first-party FIRST redirect is justified.  Nothing else is.  Both are also in
+#: the transport allowlist; this set is the narrower, source-specific rule that a
+#: test can hold still without weakening the global policy.
+APPROVED_RESPONSE_HOSTS = (OFFICIAL_HOST, "www.first.org")
+
+#: Recorded on a run whose source is unavailable.  The GitHub archive is
+#: described by its publisher as the official historical archive, but it is *not*
+#: fetched or substituted here: a daily file that was not retrieved from the
+#: documented daily-CSV endpoint cannot satisfy the requirement.  The channel and
+#: reason labels are unchanged from 1.7, whose sealed manifest carries them.
 MIRROR_NOTE = "github.com/empiricalsec/epss_scores (third party, not used)"
 
 HEADER_RE = re.compile(r"(model_version|score_date):([^,\s]+)")
@@ -39,6 +72,25 @@ def official_url(day: date) -> str:
 
 def artifact_path(day: date) -> str:
     return f"epss/epss_scores-{day.isoformat()}.csv.gz"
+
+
+def response_url_problem(url: str) -> Optional[str]:
+    """Reason code when the URL that answered is not an approved EPSS target.
+
+    Returns ``HTTPS_DOWNGRADE_BLOCKED`` for a plaintext response and
+    ``DISALLOWED_REDIRECT_HOST`` for any host outside
+    :data:`APPROVED_RESPONSE_HOSTS`; ``None`` means the bytes may be inspected.
+    """
+    try:
+        parts = urllib.parse.urlsplit(url)
+        host = (parts.hostname or "").lower()
+    except ValueError:  # pragma: no cover - urlsplit is lenient
+        return "DISALLOWED_REDIRECT_HOST"
+    if parts.scheme.lower() != "https":
+        return "HTTPS_DOWNGRADE_BLOCKED"
+    if host not in APPROVED_RESPONSE_HOSTS:
+        return "DISALLOWED_REDIRECT_HOST"
+    return None
 
 
 def _decompress(body: bytes) -> str:
@@ -138,6 +190,20 @@ def acquire_daily(
     record.retrieved_at = response.retrieved_at
     record.final_url = response.final_url
     record.http_status = response.status
+
+    # The transport already refuses an unapproved redirect, but a Transport is
+    # injectable.  Re-check the URL that actually answered before any byte is
+    # inspected, hashed or stored, so the guarantee does not depend on which
+    # transport implementation was passed in.
+    problem = response_url_problem(response.final_url)
+    if problem is not None:
+        record.content_status = C.BLOCKED
+        record.reason_code = C.REDIRECT_BLOCKED
+        record.details["error"] = problem
+        record.details["refused_final_url"] = response.final_url
+        record.details["requested_date"] = day.isoformat()
+        return record.finalize()
+
     body = response.body
     record.bytes = len(body)
     record.sha256 = hashlib.sha256(body).hexdigest()
@@ -202,6 +268,7 @@ def mirror_record(day: date) -> ArtifactRecord:
 
 
 __all__ = [
+    "APPROVED_RESPONSE_HOSTS",
     "HEADER_RE",
     "MIRROR_NOTE",
     "OFFICIAL_HOST",
@@ -211,4 +278,5 @@ __all__ = [
     "inspect_payload",
     "mirror_record",
     "official_url",
+    "response_url_problem",
 ]

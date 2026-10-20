@@ -47,7 +47,7 @@ def test_the_offline_guard_is_active():
     with pytest.raises(AssertionError):
         socket.create_connection(("cisa.gov", 443), timeout=0.01)
     with pytest.raises(AssertionError):
-        socket.socket().connect(("epss.cyentia.com", 443))
+        socket.socket().connect(("epss.empiricalsecurity.com", 443))
 
 
 def test_a_capture_does_not_change_the_sealed_archive(tmp_path):

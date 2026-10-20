@@ -9,7 +9,7 @@ change to `src/` or `tests/` does not run VULNOVA's tests.
 
 | Workflow | Project | What it runs | Python |
 | --- | --- | --- | --- |
-| `.github/workflows/vulnova-unit-tests.yml` | VULNOVA | `vulnova_product/tests` (693 tests) | 3.11 |
+| `.github/workflows/vulnova-unit-tests.yml` | VULNOVA | `vulnova_product/tests` (719 tests) | 3.11 |
 | `.github/workflows/vulnova-browser.yml` | VULNOVA | `vulnova_product/tools/ui_browser_check.py` (14 Chromium checks) | 3.11 |
 | `.github/workflows/python-package.yml` | Root data pipeline | `tests/` (192 tests + 6 subtests) and flake8 | 3.9, 3.10, 3.11 |
 
@@ -52,6 +52,10 @@ The acquisition tests (1.7) use an injected `FakeTransport` with canned bytes an
 fixed clocks. They never open a socket and never read `data/acquisition_store/`:
 tampering, missing timestamps, hash mismatches, cutoff mismatches and
 historical-versus-actual retrieval times are all exercised against the fixture.
+`test_acquisition_epss_endpoint.py` pins the EPSS endpoint introduced by the 1.9.1
+hotfix: the exact-date URL on the documented host, the allowlist, and the
+source-level refusal of an unapproved or plaintext response — including through a
+transport that performs no policy checks of its own.
 
 The refresh tests (1.8) follow the same rule. `tests/refresh_fixtures.py` builds a
 canned catalog with explicit `dateAdded` values, an optional direct CISA feed

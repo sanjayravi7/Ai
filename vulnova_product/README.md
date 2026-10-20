@@ -134,8 +134,10 @@ VULNOVA 1.9 starts recording evidence while the period is live, so a future
 assessment does not depend on artifacts downloaded years after the fact. One
 capture preserves, with its real UTC retrieval time and SHA-256, the CISA KEV
 catalog (from the publisher's feed and from CISA's own repository), the exact
-daily EPSS file for the observation date, and the observable cvelistV5 commit
-SHA — without cloning the multi-gigabyte repository.
+daily EPSS file for the observation date from FIRST's documented daily-CSV host
+`epss.empiricalsecurity.com` (1.9.1; the legacy `epss.cyentia.com` is no longer
+requested), and the observable cvelistV5 commit SHA — without cloning the
+multi-gigabyte repository.
 
 ```bash
 cd vulnova_product
@@ -201,7 +203,7 @@ docs/
   MATURITY_REFRESH_1_8.md
   PROSPECTIVE_CAPTURE_1_9.md
   RANKING_SEMANTICS.md
-tests/            test suite (693 tests, including synthetic readiness, acquisition, refresh and prospective fixtures)
+tests/            test suite (719 tests, including synthetic readiness, acquisition, refresh and prospective fixtures)
 tools/            verifiers, digest, manifest, pre-2020 fetch
 reports/
   validation1_1/  previous phase (historical, unchanged)

@@ -164,7 +164,7 @@ def test_a_permitted_redirect_records_both_urls(tmp_path):
     run = run_capture(scenario.options())["run"]
     record = _records(run, "epss")[0]
     assert record["request_url"] == (
-        "https://epss.cyentia.com/epss_scores-2026-10-20.csv.gz"
+        "https://epss.empiricalsecurity.com/epss_scores-2026-10-20.csv.gz"
     )
     assert record["final_url"] == redirect
     assert record["content_status"] == A.VERIFIED
@@ -183,7 +183,7 @@ def test_a_redirect_to_an_unapproved_host_is_blocked(tmp_path):
 
 def test_an_https_downgrade_is_blocked(tmp_path):
     scenario = build_scenario(
-        tmp_path, epss_redirect="http://epss.cyentia.com/epss_scores-2026-10-20.csv.gz"
+        tmp_path, epss_redirect="http://epss.empiricalsecurity.com/epss_scores-2026-10-20.csv.gz"
     )
     run = run_capture(scenario.options())["run"]
     record = _records(run, "epss")[0]

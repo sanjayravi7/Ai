@@ -83,7 +83,7 @@ def test_default_policy_covers_only_first_party_hosts():
     transport = UrllibTransport()
     for url in (
         "https://api.github.com/x",
-        "https://epss.cyentia.com/x",
+        "https://epss.empiricalsecurity.com/x",
         "https://www.cisa.gov/x",
     ):
         transport.policy.check(url)
