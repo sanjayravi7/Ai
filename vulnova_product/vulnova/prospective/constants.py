@@ -52,8 +52,45 @@ STORE_OVERLAPS_PROTECTED = "STORE_OVERLAPS_PROTECTED"
 CAPTURE_ID_COLLISION = "CAPTURE_ID_COLLISION"
 #: A stored artifact does not match the digest it is filed under.
 ARTIFACT_TAMPERED = "ARTIFACT_TAMPERED"
+#: The filesystem cannot provide an atomic, create-once hard link.  The store
+#: refuses to fall back to writing evidence directly into its final path.
+ATOMIC_CREATE_UNAVAILABLE = "ATOMIC_CREATE_UNAVAILABLE"
+#: A file exists under ``artifacts/`` but no readable run record references it.
+#: The bytes may be perfectly intact; this is an incomplete-capture finding.
+UNREFERENCED_ARTIFACT = "UNREFERENCED_ARTIFACT"
+#: A file or directory under the store does not follow the artifact layout.
+UNEXPECTED_ARTIFACT = "UNEXPECTED_ARTIFACT"
+#: A symlink (or other unsafe entry) was found where a regular store file
+#: belongs.  Verification never follows it.
+UNSAFE_ARTIFACT_PATH = "UNSAFE_ARTIFACT_PATH"
+#: A ``.tmp-`` file left behind by an interrupted write.
+ABANDONED_TEMPORARY_FILE = "ABANDONED_TEMPORARY_FILE"
+#: A store file exists but its bytes could not be read (permissions, I/O error,
+#: or a directory where a file belongs).  Never treated as "no file".
+ARTIFACT_UNREADABLE = "ARTIFACT_UNREADABLE"
+#: A run or requirement carries a status outside the three-state vocabulary.
+INVALID_STATUS = "INVALID_STATUS"
 #: The store contains no runs at all.
 NO_CAPTURES = "NO_CAPTURES"
+#: Every top-level field a 1.9 run record carries.  A missing or unexpected field
+#: is a malformed record, not a reason to guess at the writer's intent.
+RUN_FIELDS = frozenset(
+    {
+        "schema_version",
+        "phase",
+        "release",
+        "observation_date",
+        "capture_started_at",
+        "capture_completed_at",
+        "records",
+        "requirements",
+        "summary",
+        "honesty",
+        "run_id",
+        "run_digest",
+    }
+)
+
 #: A prospective capture record carries a historical cutoff.  Prospective
 #: capture records observation dates, never block boundaries.
 HISTORICAL_CUTOFF_IN_PROSPECTIVE_CAPTURE = "HISTORICAL_CUTOFF_IN_PROSPECTIVE_CAPTURE"
@@ -117,6 +154,18 @@ DEFAULT_STORE_DIRNAME = Path(".vulnova") / "prospective"
 RUNS_DIR = "runs"
 ARTIFACTS_DIR = "artifacts"
 
+#: Requirement identifiers written into every run record, and the capture kind
+#: each one summarizes.  Shared by the verifier and the report so neither can
+#: disagree about what a run claims to have captured.
+KEV_REQUIREMENT = "KEV-CAPTURE"
+EPSS_REQUIREMENT = "EPSS-CAPTURE"
+CVELISTV5_REQUIREMENT = "CVELISTV5-REVISION"
+REQUIREMENT_KINDS = {
+    KEV_REQUIREMENT: KEV,
+    EPSS_REQUIREMENT: EPSS,
+    CVELISTV5_REQUIREMENT: CVELISTV5,
+}
+
 #: Fields excluded from the run digest: the digest itself, and the identifier
 #: derived from it.
 RUN_DIGEST_EXCLUDED = ("run_digest", "run_id")
@@ -143,19 +192,35 @@ def statuses() -> tuple[str, ...]:
     return A.STATUSES
 
 
+def is_status(value) -> bool:
+    """True only for a string in the three-state vocabulary.
+
+    JSON values reach this function untyped: a list, an object or an unknown
+    label must be rejected *before* it is used as a dictionary key or a status.
+    """
+    return isinstance(value, str) and value in A.STATUSES
+
+
 __all__ = [
+    "ABANDONED_TEMPORARY_FILE",
     "ARTIFACTS_DIR",
     "ARTIFACT_SUFFIX",
+    "ARTIFACT_UNREADABLE",
     "ARTIFACT_TAMPERED",
+    "ATOMIC_CREATE_UNAVAILABLE",
     "CAPTURE_ID_COLLISION",
     "CAPTURE_KINDS",
     "CONFLICTING_CAPTURES",
     "CVELISTV5",
+    "CVELISTV5_REQUIREMENT",
     "DEFAULT_STORE_DIRNAME",
     "EPSS",
+    "EPSS_REQUIREMENT",
     "FORBIDDEN_RECORD_FIELDS",
     "HISTORICAL_CUTOFF_IN_PROSPECTIVE_CAPTURE",
+    "INVALID_STATUS",
     "KEV",
+    "KEV_REQUIREMENT",
     "NO_CAPTURES",
     "OUTCOME_ALREADY_CAPTURED",
     "OUTCOME_CAPTURED",
@@ -163,12 +228,18 @@ __all__ = [
     "POLICIES",
     "PROTECTED_RELATIVE_PATHS",
     "RELEASE",
+    "REQUIREMENT_KINDS",
     "RUNS_DIR",
     "RUN_DIGEST_EXCLUDED",
+    "RUN_FIELDS",
     "RUN_DIGEST_MISMATCH",
     "SCHEMA_VERSION",
+    "UNEXPECTED_ARTIFACT",
+    "UNREFERENCED_ARTIFACT",
+    "UNSAFE_ARTIFACT_PATH",
     "STORE_ENV",
     "STORE_OVERLAPS_PROTECTED",
     "default_store_root",
+    "is_status",
     "statuses",
 ]

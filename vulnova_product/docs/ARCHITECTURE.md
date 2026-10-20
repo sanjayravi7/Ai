@@ -139,18 +139,28 @@ instead of reimplementing it.
   `VERIFIED` artifact before writing the run.
 * `store.py` is content-addressed and create-once: `<sha256>` names the bytes, a
   temporary file is fsynced and `os.link`ed into place, identical bytes are a
-  no-op and different bytes raise `StoreConflict` rather than overwrite. Paths
-  are checked syntactically and against the resolved store root; symlinks are
-  refused.
+  no-op and different bytes raise `StoreConflict` rather than overwrite. There
+  is no weaker writer: a filesystem that cannot link gets
+  `StoreCapabilityError` (`ATOMIC_CREATE_UNAVAILABLE`) and stores nothing, so a
+  crash can never leave a partial artifact at the evidence path. Paths are
+  checked syntactically and against the resolved store root; symlinks are
+  refused, and the inventory exposes every entry the write path could not have
+  produced.
 * `verify.py` is offline. It recomputes every run digest, re-derives every run
   id, re-hashes every artifact, re-derives every summary status, rejects a
-  cutoff in a prospective record, and re-hashes the sealed 1.7 archive. An empty
+  cutoff in a prospective record, and re-hashes the sealed 1.7 archive. It also
+  inventories `artifacts/` directly — content-addressing every file, refusing
+  symlinks and escapes, distinguishing tampering from an incomplete capture
+  (`UNREFERENCED_ARTIFACT`) and from an abandoned temporary write. An empty
   store is `BLOCKED` (`CAPTURES_PRESENT`), and two captures of one date that
   disagree are a reported conflict, not a failure.
 * `report.py` is derived only from stored runs — no clock, no absolute paths — so
   the same store yields a byte-identical report and digest on any machine. Per
   source it reports the run's own requirement status, not the worst failed
-  attempt beside a successful fallback.
+  attempt beside a successful fallback. A run whose record does not validate is
+  counted as `BLOCKED` and excluded from the source grid; it is named in
+  `malformed_runs` with the exact problems, and an invented or wrong-typed
+  status is never used as a dictionary key or counted as a status.
 * `paths.py` extends the 1.8 fixed protected set with `data/refresh_store_1_8`,
   `reports/refresh_1_8` and `protocol/`. `capture_protected_paths()` treats
   caller paths as additive, so `protected_paths=()` still protects the seals.

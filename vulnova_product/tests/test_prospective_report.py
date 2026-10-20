@@ -252,7 +252,13 @@ def test_a_source_that_never_verified_is_unavailable_in_the_grid(tmp_path):
     assert report["sources"]["kev"][A.UNAVAILABLE] == 1
 
 
-def test_a_malformed_record_does_not_break_the_report(tmp_path):
+def test_a_malformed_record_is_flagged_and_never_summarized_as_good(tmp_path):
+    """A junk record invalidates the run's claim; it is not ignored politely.
+
+    The run file no longer matches its own digest, so nothing it says can be
+    aggregated as a verified source.  It is still counted -- as BLOCKED -- and
+    named in the report.
+    """
     scenario = _captured(tmp_path)
     run_file = next((scenario.store_root / "runs").glob("*.json"))
     payload = json.loads(run_file.read_text())
@@ -261,7 +267,20 @@ def test_a_malformed_record_does_not_break_the_report(tmp_path):
 
     report = build_report(scenario.store_root)
     assert report["captures"] == 1
-    assert report["days"][0]["kev"] == A.VERIFIED
+    assert report["malformed_captures"] == 1
+    assert report["status_counts"] == {A.VERIFIED: 0, A.UNAVAILABLE: 0, A.BLOCKED: 1}
+    assert report["days"] == []
+    assert report["sources"] == {
+        "kev": {A.VERIFIED: 0, A.UNAVAILABLE: 0, A.BLOCKED: 0},
+        "epss": {A.VERIFIED: 0, A.UNAVAILABLE: 0, A.BLOCKED: 0},
+        "cvelistv5": {A.VERIFIED: 0, A.UNAVAILABLE: 0, A.BLOCKED: 0},
+    }
+    problems = report["malformed_runs"][0]["problems"]
+    assert any("records[4] is not an object" in problem for problem in problems)
+    assert any("run_digest" in problem and "does not recompute" in problem for problem in problems)
+    markdown = render_markdown(report)
+    assert "Malformed runs" in markdown
+    assert "| BLOCKED | 1 |" in markdown
 
 
 def test_the_report_explains_that_a_missing_date_is_a_gap(tmp_path):

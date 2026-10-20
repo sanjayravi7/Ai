@@ -9,7 +9,7 @@ change to `src/` or `tests/` does not run VULNOVA's tests.
 
 | Workflow | Project | What it runs | Python |
 | --- | --- | --- | --- |
-| `.github/workflows/vulnova-unit-tests.yml` | VULNOVA | `vulnova_product/tests` (635 tests) | 3.11 |
+| `.github/workflows/vulnova-unit-tests.yml` | VULNOVA | `vulnova_product/tests` (682 tests) | 3.11 |
 | `.github/workflows/vulnova-browser.yml` | VULNOVA | `vulnova_product/tools/ui_browser_check.py` (14 Chromium checks) | 3.11 |
 | `.github/workflows/python-package.yml` | Root data pipeline | `tests/` (192 tests + 6 subtests) and flake8 | 3.9, 3.10, 3.11 |
 
@@ -36,7 +36,7 @@ python -m pytest -q
 Expected on Python 3.11 with `pytest==9.1.1`:
 
 ```text
-635 passed
+678 passed
 ```
 
 The suite creates its own temporary SQLite stores through
@@ -78,8 +78,11 @@ cvelistV5 commit responses and policy-checked redirects; the clock is injected
 through `CaptureOptions`. `tests/conftest.py` installs an autouse guard that fails
 any connection to a non-loopback address, so a test that reached CISA, FIRST or
 GitHub would fail rather than pass slowly and differently on each machine. The
-six `test_prospective_*.py` modules (137 tests) cover capture, verification,
-path safety, the store primitive, the report and the sealed-archive invariant.
+seven `test_prospective_*.py` modules (184 tests) cover capture, verification,
+path safety, the store primitive, the report, the sealed-archive invariant, and an
+adversarial module for the three 1.9 findings: a link-less filesystem fails
+closed, malformed run values are counted as `BLOCKED` rather than summarized, and
+every physical artifact is inventoried whether or not a run references it.
 
 CI also runs two 1.9 smoke steps after the 1.8 verifier: the prospective CLI must
 describe itself, and an empty store must report itself as empty and verify as

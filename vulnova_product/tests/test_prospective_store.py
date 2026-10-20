@@ -8,6 +8,7 @@ symlink or ``..`` cannot redirect a write or a read.
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import os
 from concurrent.futures import ThreadPoolExecutor
@@ -20,6 +21,7 @@ from vulnova.prospective.store import (
     CREATED,
     IDENTICAL,
     ProspectiveStore,
+    StoreCapabilityError,
     StoreConflict,
     atomic_create,
     atomic_replace,
@@ -95,15 +97,78 @@ def test_atomic_create_cleans_up_its_temporary_file_on_conflict(tmp_path):
     assert not list(tmp_path.glob(".tmp-*"))
 
 
-def test_the_fallback_writer_is_used_when_hard_links_are_unavailable(tmp_path, monkeypatch):
+def test_a_filesystem_without_hard_links_refuses_new_evidence(tmp_path, monkeypatch):
+    """There is no weaker writer.  A link-less filesystem cannot store evidence.
+
+    The old behaviour opened the final path directly and blessed it with this
+    test.  That leaves a partial artifact at the evidence path if the process
+    dies mid-write, which is precisely the corruption the store exists to
+    prevent.  The contract is now fail-closed.
+    """
+
     def no_links(*args, **kwargs):  # noqa: ARG001
-        raise OSError("links unsupported")
+        raise OSError(errno.EOPNOTSUPP, "Operation not supported")
 
     monkeypatch.setattr(os, "link", no_links)
     path = tmp_path / "file.bin"
-    assert atomic_create(path, b"data") == CREATED
-    assert path.read_bytes() == b"data"
+
+    with pytest.raises(StoreCapabilityError) as excinfo:
+        atomic_create(path, b"data")
+
+    assert C.ATOMIC_CREATE_UNAVAILABLE in str(excinfo.value)
+    assert not path.exists(), "no partial evidence may be left at the final path"
+    assert not list(tmp_path.glob(".tmp-*")), "the temporary file must be cleaned up"
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_unsupported_links_still_compare_an_existing_destination(tmp_path, monkeypatch):
+    """An existing destination is read-only work; it needs no link at all."""
+    store = ProspectiveStore(tmp_path)
+    stored = store.store_artifact(C.KEV, b"catalog")
+    path = tmp_path / stored.relative_path
+    before = path.read_bytes()
+
+    def no_links(*args, **kwargs):  # noqa: ARG001
+        raise OSError(errno.EOPNOTSUPP, "Operation not supported")
+
+    monkeypatch.setattr(os, "link", no_links)
+    assert atomic_create(path, b"catalog") == IDENTICAL
+    with pytest.raises(StoreConflict):
+        atomic_create(path, b"different")
+    assert path.read_bytes() == before
+    assert not list(tmp_path.rglob(".tmp-*"))
+
+
+def test_a_real_io_error_is_not_reported_as_a_capability_problem(tmp_path, monkeypatch):
+    """An I/O failure must not be turned into a weaker writer either."""
+
+    def io_error(*args, **kwargs):  # noqa: ARG001
+        raise OSError(errno.EIO, "Input/output error")
+
+    monkeypatch.setattr(os, "link", io_error)
+    path = tmp_path / "file.bin"
+
+    with pytest.raises(StoreError) as excinfo:
+        atomic_create(path, b"data")
+
+    assert not isinstance(excinfo.value, StoreCapabilityError)
+    assert not path.exists()
     assert not list(tmp_path.glob(".tmp-*"))
+
+
+def test_a_capability_refusal_is_visible_to_capture(tmp_path, monkeypatch):
+    """Capture surfaces the refusal instead of silently leaving a store gap."""
+    store = ProspectiveStore(tmp_path)
+
+    def no_links(*args, **kwargs):  # noqa: ARG001
+        raise OSError(errno.EPERM, "Operation not permitted")
+
+    monkeypatch.setattr(os, "link", no_links)
+    with pytest.raises(StoreCapabilityError):
+        store.store_artifact(C.EPSS, b"daily")
+    assert not (tmp_path / "artifacts" / "epss").exists() or not list(
+        (tmp_path / "artifacts" / "epss").iterdir()
+    )
 
 
 def test_concurrent_creates_produce_exactly_one_file(tmp_path):

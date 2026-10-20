@@ -119,6 +119,15 @@ not re-stored.
   finds an existing file either proves the bytes identical (no-op) or raises
   `StoreConflict` — existing evidence is never overwritten. A tampered artifact
   is reported, not "repaired" by replacing it.
+* The store therefore **requires a filesystem that supports hard links** (ext4,
+  XFS, APFS, NTFS and most local filesystems do). Where `link(2)` is
+  unavailable, capture fails with `ATOMIC_CREATE_UNAVAILABLE`; it does **not**
+  fall back to opening the final path. A direct write would leave a truncated
+  artifact at the evidence path if the process died mid-write — the exact
+  corruption an append-only store exists to prevent. A read-only comparison of
+  an existing destination still works, so a link-less filesystem can report
+  identical bytes and conflicts; it simply cannot accept new evidence. Choose a
+  local filesystem, not a network share with weak link semantics.
 * The run id is derived from the capture instant and the run digest, so two
   machines computing the same run agree on its name. The digest covers the whole
   record except `run_digest` and `run_id`.
@@ -152,20 +161,51 @@ launder a sealed path.
 
 ## Offline verification
 
-`verify` answers one question: **are these the bytes that were captured, and does
-the record that describes them hold together?** It never touches the network;
-re-downloading would verify the publisher, not the archive.
+`verify` answers one question: **are these the bytes that were captured, does the
+record that describes them hold together, and is the physical store fully
+accounted for?** It never touches the network; re-downloading would verify the
+publisher, not the archive.
 
 | Check | What it proves |
 | --- | --- |
-| `SCHEMA` | Every run parses and carries the 1.9 schema |
+| `SCHEMA` | Every run parses, carries exactly the 1.9 fields, and has an ISO observation date and capture instants |
 | `RUN_DIGEST` | Every run digest recomputes over its own payload |
 | `RUN_IDENTITY` | Every run id is exactly the one derived from its instant and digest |
-| `RECORD_INVARIANTS` | No prospective record carries a cutoff; every `VERIFIED` record names a stored artifact, digest and retrieval time |
-| `ARTIFACTS` | Every stored artifact re-hashes to the recorded SHA-256 and size |
-| `CAPTURE_STATUS` | Every summary status equals the worst recomputed requirement status |
+| `RECORD_INVARIANTS` | Every record is well typed; no prospective record carries a cutoff; every `VERIFIED` record names a usable store path, digest, size and retrieval time |
+| `ARTIFACTS` | Every artifact a run references exists and re-hashes to the recorded SHA-256 and size |
+| `STORE_INVENTORY` | **Every file under `artifacts/`** is enumerated, re-hashed, checked against its content address, and matched to a readable run; symlinks and escapes are refused |
+| `CAPTURE_STATUS` | Every requirement and summary status is in the vocabulary, and the summary counters equal the recomputed requirement statuses |
 | `HISTORICAL_ARCHIVE` | The sealed 1.7 manifest still names artifacts that hash to their recorded values (`NOT_APPLICABLE` when the checkout has none) |
 | `CAPTURES_PRESENT` | An empty store is `BLOCKED`, not `VERIFIED` |
+
+### What the inventory adds
+
+Run records alone cannot prove the store is complete. A capture writes an
+artifact first and its run record second; a crash in between leaves a valid
+artifact that no run mentions, and a verification that only walked the records
+would never see it. The inventory therefore treats the filesystem as the source
+of truth and derives findings from it:
+
+| Finding | Meaning |
+| --- | --- |
+| `ARTIFACT_TAMPERED` | The file's bytes do not hash to the digest in its own name. Corruption, not an incomplete capture. |
+| `UNSAFE_ARTIFACT_PATH` | A symlink (or `artifacts/` itself) is not a regular store file. It is never followed, so bytes outside the store are never hashed as evidence. |
+| `ARTIFACT_MISSING` | A run references an artifact the store does not hold. Evidence was lost or the record was edited. |
+| `UNEXPECTED_ARTIFACT` | A file or directory does not follow `artifacts/<kind>/<sha256><suffix>`. |
+| `ARTIFACT_UNREADABLE` | The file exists but its bytes could not be read. This is never treated as "no file". |
+| `ABANDONED_TEMPORARY_FILE` | A `.tmp-` file from a write that never completed. It is not a captured artifact and is never counted as one. |
+| `UNREFERENCED_ARTIFACT` | The bytes are intact and content-addressed, but no readable run mentions them. This is an **incomplete capture**, not corruption. |
+
+The last distinction is deliberate. A file whose name is its SHA-256 and whose
+bytes match is not damaged; it is evidence whose run record is missing. Deleting
+it to make `verify` green would destroy the only record that the capture
+happened. The store stays `BLOCKED` and the operator investigates.
+
+The inventory is deterministic: entries are sorted, counts are exact, and only
+the first 20 paths of each category are printed (the JSON result carries the
+counts and the capped lists). Symlinked directories are reported, never
+descended. A file that vanishes between the scan and the read is reported as
+unreadable rather than silently skipped.
 
 `verify` exits `0` only when the store verifies and `1` when it does not.
 `capture` and `report` exit `2` when a write-safety rule refuses the command.
@@ -188,7 +228,20 @@ output and the same `report_digest`; the tests assert both. It lists:
 * status counts per run and per source;
 * conflicts, with both run ids and both digests;
 * unreadable run files, named and never discarded;
+* malformed run files, with every problem found: a status outside the
+  vocabulary, a requirement block that is not a list, a record that is not an
+  object, a bad digest/size/timestamp, a missing or unexpected field;
 * an explicit statement that an empty store is not evidence of absence.
+
+A malformed run is **counted as `BLOCKED`, never under the status it claims**,
+and its per-source claims are excluded from the day grid. `captures_well_formed`
+and `malformed_captures` make the difference explicit, so the counts cannot be
+read as "everything that was read succeeded". The report never raises on bad
+values: a list, an object or an invented label is rejected before it can become a
+dictionary key, and only values in the three-state vocabulary are counted. Two
+reports of the same store — however damaged — are byte-identical and carry the
+same `report_digest`, and no absolute path from the machine that produced them
+appears in the output.
 
 The Markdown summary ends with **What this does not prove**: a capture is not an
 evaluation; a hash is not historical correctness; a missing source is not a
@@ -308,8 +361,10 @@ of the environment, not of the code, and they are exactly what the status
 vocabulary is for.
 
 **Unexercised capabilities.** A multi-week scheduled run, restore-from-backup at
-scale, and conflict adjudication by a later assessment have not been exercised.
-The tests prove the mechanics on synthetic stores, not the operational routine.
+scale, an actual link-less filesystem (the failure is simulated by monkeypatching
+`os.link`), and conflict adjudication by a later assessment have not been
+exercised. The tests prove the mechanics on synthetic stores, not the operational
+routine.
 
 **Open research questions.** Whether daily prospective capture makes a future
 three-block evaluation feasible; whether post-2026-10-28 KEV catalogs can observe
@@ -320,10 +375,22 @@ these is answered here.
 
 ## Tests
 
-`tests/test_prospective_*.py` (137 tests) drive the real capture, verify and
+`tests/test_prospective_*.py` (184 tests) drive the real capture, verify and
 report paths against canned responses. No test opens a socket: `tests/conftest.py`
 installs an autouse guard that fails any connection to a non-loopback address, and
-one test asserts the guard is live. The checklist covered:
+one test asserts the guard is live. The seven modules are:
+
+| Module | Tests | Focus |
+| --- | --- | --- |
+| `test_prospective_capture.py` | 38 | KEV/EPSS/cvelistV5 capture, fallback, redirects, provenance, clock |
+| `test_prospective_verify.py` | 19 | tampered/deleted artifacts and records, run identity, conflicts |
+| `test_prospective_paths.py` | 23 | protected-path guard, traversal, symlinks, refusals before I/O |
+| `test_prospective_store.py` | 26 | create-once, atomicity, concurrency, capability refusal, path safety |
+| `test_prospective_report.py` | 26 | determinism, gaps, conflicts, unreadable runs, sealed targets |
+| `test_prospective_archive.py` | 9 | sealed 1.7 archive and committed report invariants |
+| `test_prospective_adversarial.py` | 43 | the 1.9 findings: link-less filesystems, malformed values, orphaned artifacts |
+
+The checklist covered:
 
 * KEV success on both channels, GitHub fallback, partial failure, all-fail;
 * EPSS success, 404, empty, malformed, `score_date` mismatch, unreachable;
@@ -335,9 +402,20 @@ one test asserts the guard is live. The checklist covered:
 * offline verification of a healthy store; tampered artifact, missing artifact,
   tampered record, wrong run id, injected cutoff, unbacked `VERIFIED` record,
   summary/requirement disagreement, checksum mismatch;
+* an unreferenced but intact artifact, two orphans and exact counts; a filename
+  that lies about its bytes; a vanished run record; an unexpected file, an
+  abandoned temporary file, a symlinked artifact or artifact directory, and a
+  directory where an artifact belongs;
 * repeat capture without overwrite, same-date conflicting captures preserved,
   deterministic report and report digest;
-* atomic writes, concurrent create-once, temporary-file cleanup, fallback writer;
+* atomic writes, concurrent create-once (threads and processes), temporary-file
+  cleanup, and a link-less filesystem failing closed with no partial file and no
+  change to existing bytes;
+* malformed report input: `capture_status` as a list, an invented status, a
+  requirement status as an object, `records` as a dict/null/string/number, an
+  unhashable requirement id or record source, bad hashes/sizes/timestamps, and
+  missing or unexpected fields — through both the API and the CLI, with multiple
+  malformed records in one store;
 * unsafe store, report and symlink targets, traversal, and refusals that leave
   no directory and read no clock;
 * programmatic calls with empty defaults still protected; the sealed 1.7 archive
@@ -348,11 +426,16 @@ one test asserts the guard is live. The checklist covered:
 
 * Verification detects corruption relative to the stored record, not a fully
   re-signed forgery. An external trust anchor would be a separate milestone.
-* The store is a filesystem directory; it assumes a local filesystem with hard
-  links and ordinary POSIX semantics. A network filesystem with weak `link`
-  guarantees would weaken the create-once property (the code falls back to
-  `open(..., "xb")`, which is still create-once but less atomic under some
-  network filesystems).
+* The store is a filesystem directory; it **requires** a local filesystem with
+  working hard links and ordinary POSIX semantics. There is no weaker writer:
+  a filesystem that cannot link gets `ATOMIC_CREATE_UNAVAILABLE` and stores
+  nothing. Supporting a network filesystem without atomic link would require a
+  different design (and a project-owner decision), not a fallback.
+* Verification cannot tell an orphaned artifact from one deliberately planted.
+  Both are `UNREFERENCED_ARTIFACT`; the distinction requires the missing run
+  record, which is exactly what is not there.
+* The inventory caps printed paths at 20 per category. Counts are exact, so a
+  truncated list is never mistaken for a complete one.
 * The KEV daily catalog is content-addressed, so an operator cannot reconstruct
   "which day first saw this catalog" from the store alone without reading the run
   records — the run records do carry the observation date and the selected

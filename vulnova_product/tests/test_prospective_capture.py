@@ -391,13 +391,29 @@ def test_a_clock_that_is_not_iso_is_refused(tmp_path):
     assert "non-ISO" in str(excinfo.value)
 
 
+def test_the_fixture_epss_file_is_byte_stable():
+    """Captured bytes must not depend on when the fixture was built.
+
+    ``gzip.compress`` embeds the current time in its header by default, which
+    made every captured EPSS artifact -- and every run and report digest --
+    differ between runs of the same test.
+    """
+    import datetime as dt
+
+    from tests.acquisition_fixtures import epss_bytes
+
+    day = dt.date(2026, 10, 20)
+    assert epss_bytes(day) == epss_bytes(day, model="v2026.06.15")
+    assert epss_bytes(day) == epss_bytes(day)
+
+
 def test_a_store_with_a_file_where_a_directory_belongs_fails_cleanly(tmp_path):
     scenario = build_scenario(tmp_path)
     scenario.store_root.mkdir(parents=True)
     (scenario.store_root / "artifacts").write_text("not a directory")
     with pytest.raises(CaptureError) as excinfo:
         run_capture(scenario.options())
-    assert "cannot create a temporary file" in str(excinfo.value)
+    assert "cannot create the directory" in str(excinfo.value)
 
 
 def test_a_run_directory_that_is_a_file_fails_cleanly(tmp_path):

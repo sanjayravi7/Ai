@@ -155,7 +155,11 @@ def epss_bytes(
     lines = [header, "cve,epss,percentile"]
     for index in range(rows):
         lines.append(f"CVE-2024-{2000 + index},0.5{index},0.9{index}")
-    return gzip.compress(("\n".join(lines) + "\n").encode("utf-8"))
+    # mtime=0 removes the gzip header timestamp.  Without it every call produces
+    # different bytes, which made captured artifacts (and therefore run and
+    # report digests) depend on the wall clock and could flake the
+    # reproducibility tests across a second boundary.
+    return gzip.compress(("\n".join(lines) + "\n").encode("utf-8"), mtime=0)
 
 
 def blob_payload(body: bytes, blob_sha: str) -> dict:

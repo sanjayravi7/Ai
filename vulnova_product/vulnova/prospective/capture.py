@@ -284,18 +284,18 @@ def run_capture(options: CaptureOptions) -> dict:
     kev_selected = _select_kev(kev_records)
     requirements = [
         _requirement(
-            "KEV-CAPTURE",
+            C.KEV_REQUIREMENT,
             "A KEV catalog was captured from a first-party channel",
             kev_records,
             selected=kev_selected,
         ),
         _requirement(
-            "EPSS-CAPTURE",
+            C.EPSS_REQUIREMENT,
             "The exact EPSS daily file for the observation date was captured",
             [epss_record],
         ),
         _requirement(
-            "CVELISTV5-REVISION",
+            C.CVELISTV5_REQUIREMENT,
             "The cvelistV5 revision observable at capture time was recorded",
             [cve_record],
         ),
