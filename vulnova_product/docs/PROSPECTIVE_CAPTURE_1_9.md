@@ -48,14 +48,22 @@ host: VULNOVA requested `epss.cyentia.com`, FIRST's legacy EPSS host. That recor
 is preserved unchanged — it is an accurate record of what was requested and
 refused on that date, and this hotfix does not rewrite it.
 
-What is published and what is merely observed are kept apart here:
+Documented, indexed, observed and unobserved evidence are kept apart here,
+because collapsing them is how a plausible URL becomes a claimed fact:
 
 | Claim | Status |
 | --- | --- |
-| `epss.empiricalsecurity.com` is the daily CSV host | **Published.** FIRST's *Get the Data* page names it and gives `epss_scores-current.csv.gz`. |
-| The *current-file* URL redirects | **Published.** The same page says so and tells users to pass `curl -L`. |
-| A date-specific file exists at `epss_scores-YYYY-MM-DD.csv.gz` on that host | **Observed, not currently documented.** A 2026-10-19 file fetched from that path declares its own `score_date`. An index snippet attributes the pattern to FIRST's API page, but that page returns 404 when fetched. Third-party integrations use the same pattern — corroboration, not documentation. |
-| The date-specific URL redirects, and to where | **Unobserved.** No status code or `Location` header has been seen. |
+| `epss.empiricalsecurity.com` is the daily CSV host | **Published now.** FIRST's *Get the Data* page names it and gives `epss_scores-current.csv.gz`. |
+| The *current-file* URL redirects | **Published now.** The same page says so and tells users to pass `curl -L`. |
+| The date-specific filename pattern `epss_scores-YYYY-MM-DD.csv.gz` appears in FIRST-hosted documentation | **Historically documented, not retrievable now.** FIRST's EPSS statistics page at `www.first.org/epss/data_stats` listed the pattern explicitly. It is still present in search indexes and in third-party issue reports that cite that page as their source, but a direct request to it now returns 404. The pattern is therefore documented history, not a live page that can be re-checked today. |
+| A date-specific file is served from that path on that host | **Observed.** A 2026-10-19 file fetched from the path declares its own `score_date` in its header. |
+| The date-specific URL redirects, and to where | **Unobserved.** No HTTP status code and no `Location` header has been seen. |
+
+The historical row is deliberate. It would be wrong to say the date-specific
+pattern *never* appeared in FIRST-hosted documentation: it did, on the
+statistics page named above. What cannot be done today is re-fetch that page,
+so the pattern rests on indexed/historical documentation plus one observed file
+rather than on a currently live FIRST page.
 
 Since 1.9.1 the source constructs the date-specific URL directly, for the
 observation date and no other.
@@ -70,16 +78,28 @@ observation date and no other.
 | Refusals | an unapproved destination or a plaintext response is `BLOCKED` / `REDIRECT_BLOCKED`, with no digest and no artifact path |
 | Everything else | `score_date` comparison, storage and requirement status are unchanged |
 
-**What is verified, and what is not.** FIRST publishes that the *current-file*
-URL redirects; it says nothing about the date-specific URL. That question could
-not be settled from this sandbox: direct TLS to the host is blocked before the
-handshake completes, and the alternative retrieval path used for the 2026-10-19
-observation returns the file body only — **no HTTP status and no `Location`
-header**, because it is not a raw HTTP client. So the observation establishes
-that the exact-date path serves a file whose own header declares
-`score_date:2026-10-19T12:00:27Z`; it establishes nothing about redirects. It is
-also not a substitute for a real capture, and no live capture is claimed to
-succeed.
+**What is published, indexed, observed and unobserved.** These are four
+different kinds of evidence and they are not interchangeable:
+
+* *Published now* — FIRST's *Get the Data* page names
+  `epss.empiricalsecurity.com` and the current-file URL, and states that the
+  current-file URL redirects. It does not show the date-specific pattern.
+* *Historically documented, not retrievable* — FIRST's EPSS statistics page
+  (`www.first.org/epss/data_stats`) listed the date-specific pattern. That page
+  now returns 404 to a direct request; it survives in search indexes and in
+  third-party reports that cite it.
+* *Observed* — a date-specific file fetched from that path for 2026-10-19
+  declares `score_date:2026-10-19T12:00:27Z` in its own header. The retrieval
+  path used returns the file body only, so it says nothing about the HTTP
+  exchange.
+* *Unobserved* — the HTTP status, the `Location` header and the redirect
+  destination of a date-specific request. Direct TLS to the host is blocked
+  before the handshake completes from this environment, so none of the three
+  could be captured.
+
+The observation establishes that the exact-date path serves a file whose own
+header declares that date. It establishes **nothing** about redirects, and it is
+not a substitute for a real capture; no live capture is claimed to succeed.
 
 Because the response allowlist is now exactly the EPSS host, an undocumented
 redirect to an infrastructure host will fail closed: the record becomes

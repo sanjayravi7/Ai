@@ -9,25 +9,29 @@ The header of every EPSS file states its own ``score_date``.  That internal date
 is checked against the requested cutoff; a mismatch is reported as
 ``SCORE_DATE_MISMATCH`` rather than quietly accepted.
 
-**Host, and how well it is established.**  Three different claims are kept apart
-here, because only the first is published documentation:
+**Host, and how well it is established.**  Four different claims are kept apart
+here.  Collapsing them is how a plausible URL becomes a claimed fact:
 
-1. *Published.*  FIRST's "Get the Data" page names
-   ``epss.empiricalsecurity.com`` as the host for the daily CSV, and gives the
-   current-day file as ``https://epss.empiricalsecurity.com/epss_scores-current.csv.gz``.
-   It states that *that* URL redirects.
-2. *Observed.*  The date-specific URL
-   ``https://epss.empiricalsecurity.com/epss_scores-YYYY-MM-DD.csv.gz`` returned a
-   real file for 2026-10-19 whose own header declared
-   ``score_date:2026-10-19T12:00:27Z``.  That observation came through an
-   alternative retrieval path which does not expose HTTP status codes or
-   ``Location`` headers, so it establishes the payload, not the transport
+1. *Published now.*  FIRST's "Get the Data" page names
+   ``epss.empiricalsecurity.com`` as the host for the daily CSV, gives the
+   current-day file as
+   ``https://epss.empiricalsecurity.com/epss_scores-current.csv.gz``, and states
+   that *that* URL redirects.  It does not show the date-specific pattern.
+2. *Historically documented, not retrievable now.*  FIRST's EPSS statistics page
+   at ``https://www.first.org/epss/data_stats`` listed the date-specific pattern
+   ``epss_scores-YYYY-MM-DD.csv.gz`` explicitly.  It survives in search indexes
+   and in third-party reports that cite it, but a direct request now returns 404,
+   so it is documented history rather than a live page that can be re-checked.
+   The pattern therefore *has* appeared in FIRST-hosted documentation; saying
+   otherwise would be wrong.
+3. *Observed.*  A date-specific file fetched from
+   ``https://epss.empiricalsecurity.com/epss_scores-YYYY-MM-DD.csv.gz`` for
+   2026-10-19 declared ``score_date:2026-10-19T12:00:27Z`` in its own header.
+   That retrieval path returns the file body only — no HTTP status and no
+   ``Location`` header — so it establishes the payload, not the transport
    behaviour.
-3. *Not established.*  No page retrieved from first.org currently documents the
-   date-specific pattern (the FIRST API page that an index snippet attributes it
-   to returns 404), and **whether the date-specific URL redirects, and to where,
-   is unobserved**.  Third-party integrations use the same pattern, which is
-   corroboration, not documentation.
+4. *Not established.*  The HTTP status, the ``Location`` header and the redirect
+   destination of a date-specific request are all **unobserved**.
 
 This module therefore requests the current host directly rather than relying on a
 redirect from the legacy ``epss.cyentia.com``, which FIRST no longer names.

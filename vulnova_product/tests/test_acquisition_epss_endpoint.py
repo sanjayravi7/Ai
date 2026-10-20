@@ -1,9 +1,10 @@
 """EPSS endpoint hotfix: the documented host, and only that host.
 
 FIRST's current documentation names ``epss.empiricalsecurity.com`` as the daily
-CSV host and documents date-specific files at
-``https://epss.empiricalsecurity.com/epss_scores-YYYY-MM-DD.csv.gz``.  The legacy
-``epss.cyentia.com`` host is no longer named there.
+CSV host and publishes the current-file URL.  The date-specific filename pattern
+``epss_scores-YYYY-MM-DD.csv.gz`` appeared on an older FIRST-hosted statistics
+page (``www.first.org/epss/data_stats``) that now returns 404.  The legacy
+``epss.cyentia.com`` host is no longer named by FIRST.
 
 These tests pin the narrow behaviour the hotfix must not drift from:
 
