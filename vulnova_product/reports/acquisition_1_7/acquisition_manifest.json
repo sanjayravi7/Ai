@@ -1,0 +1,849 @@
+{
+  "as_of": "2026-10-20",
+  "cutoffs": [
+    "2025-02-01",
+    "2025-09-01",
+    "2026-04-01"
+  ],
+  "final_candidate_maturity": "2026-10-28",
+  "generated_at": "2026-10-20T02:59:38Z",
+  "grid_cutoffs": [
+    "2025-02-01",
+    "2025-03-01",
+    "2025-04-01",
+    "2025-05-01",
+    "2025-06-01",
+    "2025-07-01",
+    "2025-08-01",
+    "2025-09-01",
+    "2025-10-01",
+    "2025-11-01",
+    "2025-12-01",
+    "2026-01-01",
+    "2026-02-01",
+    "2026-03-01",
+    "2026-04-01",
+    "2026-05-01",
+    "2026-06-01",
+    "2026-07-01",
+    "2026-08-01",
+    "2026-09-01",
+    "2026-10-01"
+  ],
+  "label_observations": {
+    "2025-02-01": {
+      "as_of": "2026-10-20",
+      "catalog_covers_maturity": true,
+      "catalog_released": "2026-10-16T17:15:48.875200+00:00",
+      "cutoff": "2025-02-01",
+      "days_until_matured": -416,
+      "filter_basis": "dateAdded <= maturity_date",
+      "matured_at_as_of": true,
+      "maturity_date": "2025-08-30",
+      "reason_code": "OK_VERIFIED",
+      "status": "VERIFIED"
+    },
+    "2025-09-01": {
+      "as_of": "2026-10-20",
+      "catalog_covers_maturity": true,
+      "catalog_released": "2026-10-16T17:15:48.875200+00:00",
+      "cutoff": "2025-09-01",
+      "days_until_matured": -204,
+      "filter_basis": "dateAdded <= maturity_date",
+      "matured_at_as_of": true,
+      "maturity_date": "2026-03-30",
+      "reason_code": "OK_VERIFIED",
+      "status": "VERIFIED"
+    },
+    "2026-04-01": {
+      "as_of": "2026-10-20",
+      "catalog_covers_maturity": false,
+      "catalog_released": "2026-10-16T17:15:48.875200+00:00",
+      "cutoff": "2026-04-01",
+      "days_until_matured": 8,
+      "filter_basis": "RIGHT_CENSORED_NOT_FILTERED",
+      "matured_at_as_of": false,
+      "maturity_date": "2026-10-28",
+      "reason_code": "CATALOG_PREDATES_MATURITY",
+      "status": "BLOCKED"
+    }
+  },
+  "manifest_digest": "5993ce8ce98a0051bd2accec5e5f6259a799d6f05e8cbc9784c2f3b65a40b8c8",
+  "phase": "Historical Data Acquisition and Provenance",
+  "policies": {
+    "epss_substitution": "A daily EPSS file is used only when its own score_date equals the cutoff. Newer files, later model versions and backfilled values are never substituted.",
+    "historical_access": "Authentic historical content retrieved now is LATE_RETRIEVAL, not contemporaneous provenance, and is reported BLOCKED for that requirement.",
+    "kev_absence": "Absence from the KEV catalog is recorded as NOT_LISTED_IN_CATALOG. It is never treated as proof that a vulnerability was not exploited.",
+    "maturity": "The final candidate block matures 2026-10-28. Maturity is never claimed before that date, and fresh evidence is required after it.",
+    "mirrors": "Third-party mirrors are recorded as mirrors and never satisfy a requirement.",
+    "model_training": "No model is trained, scored or approved by this workflow.",
+    "protocol_approval": "The evaluation protocol remains NOT_APPROVED and unamended.",
+    "retrieval_timestamps": "Retrieval timestamps are captured after the response body is read. They are never derived from the artifact, never backdated, and never edited."
+  },
+  "records": [
+    {
+      "access_provenance": "LATE_RETRIEVAL",
+      "artifact_path": "cvelistv5/commits/2025-02-01.json",
+      "bytes": 1509,
+      "channel": "OFFICIAL_GITHUB",
+      "content_status": "VERIFIED",
+      "cutoff": "2025-02-01",
+      "details": {
+        "committed_at": "2025-01-31T23:08:06+00:00",
+        "pin_crosscheck": "MATCH",
+        "recorded_revision": "b3b7d34318e4f6d1de4e082d03ea21984ff2f176",
+        "selection_rule": "greatest main-branch commit with committer timestamp <= T 00:00:00Z",
+        "tree_sha": "548bc6f0ab0e15ba65e362316f2025776fd2d378"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": 200,
+      "key": "2025-02-01",
+      "reason_code": "OK_VERIFIED",
+      "request_url": "https://api.github.com/repos/CVEProject/cvelistV5/commits?until=2025-02-01T00:00:00Z&per_page=1",
+      "retrieved_at": "2026-10-20T02:59:32Z",
+      "revision": "b3b7d34318e4f6d1de4e082d03ea21984ff2f176",
+      "sha256": "bc59fc810c0fcb6e34394e7d301d5ef0ebc370ff8b8a5b90e55d9a5b2c1701cf",
+      "source": "cvelistv5",
+      "source_timestamp": "2025-01-31T23:08:06Z",
+      "source_url": "https://github.com/CVEProject/cvelistV5",
+      "status": "BLOCKED"
+    },
+    {
+      "access_provenance": "LATE_RETRIEVAL",
+      "artifact_path": "cvelistv5/commits/2025-09-01.json",
+      "bytes": 1508,
+      "channel": "OFFICIAL_GITHUB",
+      "content_status": "VERIFIED",
+      "cutoff": "2025-09-01",
+      "details": {
+        "committed_at": "2025-08-31T23:33:54+00:00",
+        "pin_crosscheck": "MATCH",
+        "recorded_revision": "2549c0e76d2857fa6ed14b146fa377d5164914d7",
+        "selection_rule": "greatest main-branch commit with committer timestamp <= T 00:00:00Z",
+        "tree_sha": "8d770c673f8d297f911c727e72b8b759cce1f962"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": 200,
+      "key": "2025-09-01",
+      "reason_code": "OK_VERIFIED",
+      "request_url": "https://api.github.com/repos/CVEProject/cvelistV5/commits?until=2025-09-01T00:00:00Z&per_page=1",
+      "retrieved_at": "2026-10-20T02:59:33Z",
+      "revision": "2549c0e76d2857fa6ed14b146fa377d5164914d7",
+      "sha256": "eec42dd7c31a789b291dab5dceb98ef16659cc707fe87b833eb71545f1e1a08f",
+      "source": "cvelistv5",
+      "source_timestamp": "2025-08-31T23:33:54Z",
+      "source_url": "https://github.com/CVEProject/cvelistV5",
+      "status": "BLOCKED"
+    },
+    {
+      "access_provenance": "LATE_RETRIEVAL",
+      "artifact_path": "cvelistv5/commits/2026-04-01.json",
+      "bytes": 1523,
+      "channel": "OFFICIAL_GITHUB",
+      "content_status": "VERIFIED",
+      "cutoff": "2026-04-01",
+      "details": {
+        "committed_at": "2026-03-31T23:51:08+00:00",
+        "pin_crosscheck": "MATCH",
+        "recorded_revision": "bc781f6b07948ceacd7c5e1c1ede9119b2ac0778",
+        "selection_rule": "greatest main-branch commit with committer timestamp <= T 00:00:00Z",
+        "tree_sha": "247cee2f032e12fdaedf869b98c75fbb426573af"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": 200,
+      "key": "2026-04-01",
+      "reason_code": "OK_VERIFIED",
+      "request_url": "https://api.github.com/repos/CVEProject/cvelistV5/commits?until=2026-04-01T00:00:00Z&per_page=1",
+      "retrieved_at": "2026-10-20T02:59:33Z",
+      "revision": "bc781f6b07948ceacd7c5e1c1ede9119b2ac0778",
+      "sha256": "a7dc381c70a6cb08dc16b8519e8e3f6b66f15ce829f838e50ea8409af35d303b",
+      "source": "cvelistv5",
+      "source_timestamp": "2026-03-31T23:51:08Z",
+      "source_url": "https://github.com/CVEProject/cvelistV5",
+      "status": "BLOCKED"
+    },
+    {
+      "access_provenance": "NOT_RETRIEVED",
+      "artifact_path": null,
+      "bytes": null,
+      "channel": "OFFICIAL",
+      "content_status": "UNAVAILABLE",
+      "cutoff": null,
+      "details": {
+        "error": "UNREACHABLE"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "current",
+      "reason_code": "OFFICIAL_SOURCE_UNREACHABLE",
+      "request_url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+      "retrieved_at": "2026-10-20T02:59:33Z",
+      "revision": null,
+      "sha256": null,
+      "source": "kev",
+      "source_timestamp": null,
+      "source_url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+      "status": "UNAVAILABLE"
+    },
+    {
+      "access_provenance": "CONTEMPORANEOUS",
+      "artifact_path": "kev/current/known_exploited_vulnerabilities.json",
+      "bytes": 1792713,
+      "channel": "OFFICIAL_GITHUB",
+      "content_status": "VERIFIED",
+      "cutoff": null,
+      "details": {
+        "blob_declared_bytes": 1792713,
+        "blob_sha": "fd8de296db5877570e6d30a85e003665fc802cf2",
+        "blob_url": "https://api.github.com/repos/cisagov/kev-data/git/blobs/fd8de296db5877570e6d30a85e003665fc802cf2",
+        "catalog_version": "2026.10.16",
+        "commit_url": "https://api.github.com/repos/cisagov/kev-data/commits?sha=HEAD&per_page=1",
+        "date_released": "2026-10-16T17:15:48.8752Z",
+        "declared_count": 1748,
+        "maturity_date": "2026-10-28",
+        "maturity_observable": false,
+        "observation": "CATALOG_PREDATES_MATURITY",
+        "parsed_count": 1748,
+        "right_censored_at": "2026-10-16T17:15:48.8752Z",
+        "tree_sha": "9669cc24a112fa503e3c88c4e8d46442ad6b6ed2"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "current#github",
+      "reason_code": "OK_VERIFIED",
+      "request_url": "https://api.github.com/repos/cisagov/kev-data/git/blobs/fd8de296db5877570e6d30a85e003665fc802cf2",
+      "retrieved_at": "2026-10-20T02:59:34Z",
+      "revision": "6a392940c663b52271fa4e6aa7b39995b18c9a71",
+      "sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d",
+      "source": "kev",
+      "source_timestamp": "2026-10-16T17:15:48.8752Z",
+      "source_url": "https://github.com/cisagov/kev-data",
+      "status": "VERIFIED"
+    },
+    {
+      "access_provenance": "LATE_RETRIEVAL",
+      "artifact_path": "kev/revisions/2025-02-01/known_exploited_vulnerabilities.json",
+      "bytes": 1089781,
+      "channel": "OFFICIAL_GITHUB",
+      "content_status": "VERIFIED",
+      "cutoff": "2025-02-01",
+      "details": {
+        "blob_declared_bytes": 1089781,
+        "blob_sha": "920840f42501886eb244bd99cebe43c9bb472595",
+        "blob_url": "https://api.github.com/repos/cisagov/kev-data/git/blobs/920840f42501886eb244bd99cebe43c9bb472595",
+        "catalog_version": "2025.01.29",
+        "commit_query_url": "https://api.github.com/repos/cisagov/kev-data/commits?until=2025-02-01T00:00:00Z&per_page=1",
+        "committed_at": "2025-01-29T17:59:10+00:00",
+        "content_crosscheck": "MATCH",
+        "date_released": "2025-01-29T17:02:51.9769Z",
+        "declared_count": 1253,
+        "parsed_count": 1253,
+        "pin_crosscheck": "MATCH",
+        "recorded_content_sha256": "e040ac917f18d34642f11847ad085b848fd5f77fa3c1fcd77ee872230cbf3ead",
+        "recorded_revision": "49c9495366c4e9b9abc9db85f91657d8bb9a0be2",
+        "tree_sha": "efec8562dfce486ba0f66eca5f2adc01e52d210b"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "2025-02-01",
+      "reason_code": "OK_VERIFIED",
+      "request_url": "https://api.github.com/repos/cisagov/kev-data/git/blobs/920840f42501886eb244bd99cebe43c9bb472595",
+      "retrieved_at": "2026-10-20T02:59:35Z",
+      "revision": "49c9495366c4e9b9abc9db85f91657d8bb9a0be2",
+      "sha256": "e040ac917f18d34642f11847ad085b848fd5f77fa3c1fcd77ee872230cbf3ead",
+      "source": "kev",
+      "source_timestamp": "2025-01-29T17:02:51.9769Z",
+      "source_url": "https://github.com/cisagov/kev-data",
+      "status": "BLOCKED"
+    },
+    {
+      "access_provenance": "LATE_RETRIEVAL",
+      "artifact_path": "kev/revisions/2025-09-01/known_exploited_vulnerabilities.json",
+      "bytes": 1259609,
+      "channel": "OFFICIAL_GITHUB",
+      "content_status": "VERIFIED",
+      "cutoff": "2025-09-01",
+      "details": {
+        "blob_declared_bytes": 1259609,
+        "blob_sha": "518f85e9b4c0aae06cf175e41e2ba62b28ee9ee0",
+        "blob_url": "https://api.github.com/repos/cisagov/kev-data/git/blobs/518f85e9b4c0aae06cf175e41e2ba62b28ee9ee0",
+        "catalog_version": "2025.08.29",
+        "commit_query_url": "https://api.github.com/repos/cisagov/kev-data/commits?until=2025-09-01T00:00:00Z&per_page=1",
+        "committed_at": "2025-08-29T18:07:24+00:00",
+        "content_crosscheck": "MATCH",
+        "date_released": "2025-08-29T17:00:23.7015Z",
+        "declared_count": 1406,
+        "parsed_count": 1406,
+        "pin_crosscheck": "MATCH",
+        "recorded_content_sha256": "d4e88aa93681c637c54554b8daa0bd48ce86f2322f134c7932f3c0c000fd01e9",
+        "recorded_revision": "9d28701f99f7652a1a467353082ea733f048adcf",
+        "tree_sha": "00a7eeaf89b71088b6d8ba8a556464256a974e4f"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "2025-09-01",
+      "reason_code": "OK_VERIFIED",
+      "request_url": "https://api.github.com/repos/cisagov/kev-data/git/blobs/518f85e9b4c0aae06cf175e41e2ba62b28ee9ee0",
+      "retrieved_at": "2026-10-20T02:59:36Z",
+      "revision": "9d28701f99f7652a1a467353082ea733f048adcf",
+      "sha256": "d4e88aa93681c637c54554b8daa0bd48ce86f2322f134c7932f3c0c000fd01e9",
+      "source": "kev",
+      "source_timestamp": "2025-08-29T17:00:23.7015Z",
+      "source_url": "https://github.com/cisagov/kev-data",
+      "status": "BLOCKED"
+    },
+    {
+      "access_provenance": "LATE_RETRIEVAL",
+      "artifact_path": "kev/revisions/2026-04-01/known_exploited_vulnerabilities.json",
+      "bytes": 1431397,
+      "channel": "OFFICIAL_GITHUB",
+      "content_status": "VERIFIED",
+      "cutoff": "2026-04-01",
+      "details": {
+        "blob_declared_bytes": 1431397,
+        "blob_sha": "19bd5645a58b3c5f771d819f2de3261a764d6816",
+        "blob_url": "https://api.github.com/repos/cisagov/kev-data/git/blobs/19bd5645a58b3c5f771d819f2de3261a764d6816",
+        "catalog_version": "2026.03.30",
+        "commit_query_url": "https://api.github.com/repos/cisagov/kev-data/commits?until=2026-04-01T00:00:00Z&per_page=1",
+        "committed_at": "2026-03-30T19:25:29+00:00",
+        "content_crosscheck": "MATCH",
+        "date_released": "2026-03-30T18:55:21.8585Z",
+        "declared_count": 1555,
+        "parsed_count": 1555,
+        "pin_crosscheck": "MATCH",
+        "recorded_content_sha256": "a925400c147a1d08e8832c164d5b7ee11012fc333e4f38e6e8c343bafb74642f",
+        "recorded_revision": "6fe63a2e8d9be004dae532d8ce94aeb56f716e11",
+        "tree_sha": "944a036c9a3b337030a720fde4130d24c4e8c0fc"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "2026-04-01",
+      "reason_code": "OK_VERIFIED",
+      "request_url": "https://api.github.com/repos/cisagov/kev-data/git/blobs/19bd5645a58b3c5f771d819f2de3261a764d6816",
+      "retrieved_at": "2026-10-20T02:59:38Z",
+      "revision": "6fe63a2e8d9be004dae532d8ce94aeb56f716e11",
+      "sha256": "a925400c147a1d08e8832c164d5b7ee11012fc333e4f38e6e8c343bafb74642f",
+      "source": "kev",
+      "source_timestamp": "2026-03-30T18:55:21.8585Z",
+      "source_url": "https://github.com/cisagov/kev-data",
+      "status": "BLOCKED"
+    },
+    {
+      "access_provenance": "NOT_RETRIEVED",
+      "artifact_path": null,
+      "bytes": null,
+      "channel": "OFFICIAL",
+      "content_status": "UNAVAILABLE",
+      "cutoff": "2025-02-01",
+      "details": {
+        "error": "UNREACHABLE",
+        "mirror_available": "github.com/empiricalsec/epss_scores (third party, not used)",
+        "requested_date": "2025-02-01"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "2025-02-01",
+      "reason_code": "OFFICIAL_SOURCE_UNREACHABLE",
+      "request_url": "https://epss.cyentia.com/epss_scores-2025-02-01.csv.gz",
+      "retrieved_at": "2026-10-20T02:59:38Z",
+      "revision": null,
+      "sha256": null,
+      "source": "epss",
+      "source_timestamp": null,
+      "source_url": "https://epss.cyentia.com/epss_scores-2025-02-01.csv.gz",
+      "status": "UNAVAILABLE"
+    },
+    {
+      "access_provenance": "NOT_RETRIEVED",
+      "artifact_path": null,
+      "bytes": null,
+      "channel": "OFFICIAL",
+      "content_status": "UNAVAILABLE",
+      "cutoff": "2025-09-01",
+      "details": {
+        "error": "UNREACHABLE",
+        "mirror_available": "github.com/empiricalsec/epss_scores (third party, not used)",
+        "requested_date": "2025-09-01"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "2025-09-01",
+      "reason_code": "OFFICIAL_SOURCE_UNREACHABLE",
+      "request_url": "https://epss.cyentia.com/epss_scores-2025-09-01.csv.gz",
+      "retrieved_at": "2026-10-20T02:59:38Z",
+      "revision": null,
+      "sha256": null,
+      "source": "epss",
+      "source_timestamp": null,
+      "source_url": "https://epss.cyentia.com/epss_scores-2025-09-01.csv.gz",
+      "status": "UNAVAILABLE"
+    },
+    {
+      "access_provenance": "NOT_RETRIEVED",
+      "artifact_path": null,
+      "bytes": null,
+      "channel": "OFFICIAL",
+      "content_status": "UNAVAILABLE",
+      "cutoff": "2026-04-01",
+      "details": {
+        "error": "UNREACHABLE",
+        "mirror_available": "github.com/empiricalsec/epss_scores (third party, not used)",
+        "requested_date": "2026-04-01"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "2026-04-01",
+      "reason_code": "OFFICIAL_SOURCE_UNREACHABLE",
+      "request_url": "https://epss.cyentia.com/epss_scores-2026-04-01.csv.gz",
+      "retrieved_at": "2026-10-20T02:59:38Z",
+      "revision": null,
+      "sha256": null,
+      "source": "epss",
+      "source_timestamp": null,
+      "source_url": "https://epss.cyentia.com/epss_scores-2026-04-01.csv.gz",
+      "status": "UNAVAILABLE"
+    },
+    {
+      "access_provenance": "NOT_RETRIEVED",
+      "artifact_path": null,
+      "bytes": null,
+      "channel": "THIRD_PARTY_MIRROR",
+      "content_status": "UNAVAILABLE",
+      "cutoff": "2025-02-01",
+      "details": {
+        "mirror_path": "YYYY/epss_scores-2025-02-01.csv.gz",
+        "note": "Not requested. A mirror cannot satisfy an official-source requirement."
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "2025-02-01#mirror",
+      "reason_code": "THIRD_PARTY_MIRROR_ONLY",
+      "request_url": "",
+      "retrieved_at": null,
+      "revision": null,
+      "sha256": null,
+      "source": "epss",
+      "source_timestamp": null,
+      "source_url": "https://github.com/empiricalsec/epss_scores",
+      "status": "UNAVAILABLE"
+    },
+    {
+      "access_provenance": "NOT_RETRIEVED",
+      "artifact_path": null,
+      "bytes": null,
+      "channel": "THIRD_PARTY_MIRROR",
+      "content_status": "UNAVAILABLE",
+      "cutoff": "2025-09-01",
+      "details": {
+        "mirror_path": "YYYY/epss_scores-2025-09-01.csv.gz",
+        "note": "Not requested. A mirror cannot satisfy an official-source requirement."
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "2025-09-01#mirror",
+      "reason_code": "THIRD_PARTY_MIRROR_ONLY",
+      "request_url": "",
+      "retrieved_at": null,
+      "revision": null,
+      "sha256": null,
+      "source": "epss",
+      "source_timestamp": null,
+      "source_url": "https://github.com/empiricalsec/epss_scores",
+      "status": "UNAVAILABLE"
+    },
+    {
+      "access_provenance": "NOT_RETRIEVED",
+      "artifact_path": null,
+      "bytes": null,
+      "channel": "THIRD_PARTY_MIRROR",
+      "content_status": "UNAVAILABLE",
+      "cutoff": "2026-04-01",
+      "details": {
+        "mirror_path": "YYYY/epss_scores-2026-04-01.csv.gz",
+        "note": "Not requested. A mirror cannot satisfy an official-source requirement."
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "2026-04-01#mirror",
+      "reason_code": "THIRD_PARTY_MIRROR_ONLY",
+      "request_url": "",
+      "retrieved_at": null,
+      "revision": null,
+      "sha256": null,
+      "source": "epss",
+      "source_timestamp": null,
+      "source_url": "https://github.com/empiricalsec/epss_scores",
+      "status": "UNAVAILABLE"
+    }
+  ],
+  "requirements": [
+    {
+      "detail": "3 cutoff(s) resolved to an exact commit, with response bytes stored and SHA-256 recorded.",
+      "id": "CVE-01_REVISION_PIN_RESOLVED",
+      "reason_code": "OK_VERIFIED",
+      "records": [
+        "cvelistv5:2025-02-01",
+        "cvelistv5:2025-09-01",
+        "cvelistv5:2026-04-01"
+      ],
+      "status": "VERIFIED",
+      "title": "A cvelistV5 revision is resolved and hashed at every cutoff"
+    },
+    {
+      "detail": "All 3 live revision(s) match the pins recorded in the Phase 2.3K export.",
+      "id": "CVE-02_PIN_CROSSCHECK",
+      "reason_code": "OK_VERIFIED",
+      "records": [
+        "cvelistv5:2025-02-01",
+        "cvelistv5:2025-09-01",
+        "cvelistv5:2026-04-01"
+      ],
+      "status": "VERIFIED",
+      "title": "Live revisions agree with the Phase 2.3K pins"
+    },
+    {
+      "detail": "2025-02-01: RETRIEVAL_NOT_CONTEMPORANEOUS; 2025-09-01: RETRIEVAL_NOT_CONTEMPORANEOUS; 2026-04-01: RETRIEVAL_NOT_CONTEMPORANEOUS",
+      "id": "CVE-03_HISTORICAL_RETRIEVAL_PROVENANCE",
+      "reason_code": "RETRIEVAL_NOT_CONTEMPORANEOUS",
+      "records": [
+        "cvelistv5:2025-02-01",
+        "cvelistv5:2025-09-01",
+        "cvelistv5:2026-04-01"
+      ],
+      "status": "BLOCKED",
+      "title": "cvelistV5 was observed at each cutoff, not reconstructed later"
+    },
+    {
+      "detail": "current: OFFICIAL_SOURCE_UNREACHABLE",
+      "id": "KEV-01_DIRECT_CISA_FEED",
+      "reason_code": "OFFICIAL_SOURCE_UNREACHABLE",
+      "records": [
+        "kev:current"
+      ],
+      "status": "UNAVAILABLE",
+      "title": "The direct CISA feed is reachable and preserved"
+    },
+    {
+      "detail": "1 trusted channel(s) verified: OFFICIAL_GITHUB:current#github; unavailable: OFFICIAL:current (OFFICIAL_SOURCE_UNREACHABLE)",
+      "id": "KEV-02_CURRENT_CATALOG",
+      "reason_code": "OK_VERIFIED",
+      "records": [
+        "kev:current",
+        "kev:current#github"
+      ],
+      "status": "VERIFIED",
+      "title": "The current KEV catalog is preserved from a first-party channel"
+    },
+    {
+      "detail": "All 3 record(s) verified.",
+      "id": "KEV-03_HISTORICAL_REVISION_AT_CUTOFF",
+      "reason_code": "OK_VERIFIED",
+      "records": [
+        "kev:2025-02-01",
+        "kev:2025-09-01",
+        "kev:2026-04-01"
+      ],
+      "status": "VERIFIED",
+      "title": "The KEV catalog as published at each cutoff is preserved and hashed"
+    },
+    {
+      "detail": "2026-04-01: CATALOG_PREDATES_MATURITY",
+      "evidence": {
+        "label_observations": {
+          "2025-02-01": {
+            "as_of": "2026-10-20",
+            "catalog_covers_maturity": true,
+            "catalog_released": "2026-10-16T17:15:48.875200+00:00",
+            "cutoff": "2025-02-01",
+            "days_until_matured": -416,
+            "filter_basis": "dateAdded <= maturity_date",
+            "matured_at_as_of": true,
+            "maturity_date": "2025-08-30",
+            "reason_code": "OK_VERIFIED",
+            "status": "VERIFIED"
+          },
+          "2025-09-01": {
+            "as_of": "2026-10-20",
+            "catalog_covers_maturity": true,
+            "catalog_released": "2026-10-16T17:15:48.875200+00:00",
+            "cutoff": "2025-09-01",
+            "days_until_matured": -204,
+            "filter_basis": "dateAdded <= maturity_date",
+            "matured_at_as_of": true,
+            "maturity_date": "2026-03-30",
+            "reason_code": "OK_VERIFIED",
+            "status": "VERIFIED"
+          },
+          "2026-04-01": {
+            "as_of": "2026-10-20",
+            "catalog_covers_maturity": false,
+            "catalog_released": "2026-10-16T17:15:48.875200+00:00",
+            "cutoff": "2026-04-01",
+            "days_until_matured": 8,
+            "filter_basis": "RIGHT_CENSORED_NOT_FILTERED",
+            "matured_at_as_of": false,
+            "maturity_date": "2026-10-28",
+            "reason_code": "CATALOG_PREDATES_MATURITY",
+            "status": "BLOCKED"
+          }
+        }
+      },
+      "id": "KEV-04_LABEL_MATURITY_COVERAGE",
+      "reason_code": "CATALOG_PREDATES_MATURITY",
+      "records": [
+        "kev:current#github"
+      ],
+      "status": "BLOCKED",
+      "title": "Every block's labels can be observed at its maturity date"
+    },
+    {
+      "detail": "2025-02-01: RETRIEVAL_NOT_CONTEMPORANEOUS; 2025-09-01: RETRIEVAL_NOT_CONTEMPORANEOUS; 2026-04-01: RETRIEVAL_NOT_CONTEMPORANEOUS",
+      "id": "KEV-05_HISTORICAL_RETRIEVAL_PROVENANCE",
+      "reason_code": "RETRIEVAL_NOT_CONTEMPORANEOUS",
+      "records": [
+        "kev:2025-02-01",
+        "kev:2025-09-01",
+        "kev:2026-04-01"
+      ],
+      "status": "BLOCKED",
+      "title": "KEV revisions were observed at their cutoffs, not downloaded later"
+    },
+    {
+      "detail": "2025-02-01: OFFICIAL_SOURCE_UNREACHABLE; 2025-09-01: OFFICIAL_SOURCE_UNREACHABLE; 2026-04-01: OFFICIAL_SOURCE_UNREACHABLE",
+      "evidence": {
+        "mirrors_satisfy_requirement": false,
+        "third_party_mirrors": [
+          {
+            "access_provenance": "NOT_RETRIEVED",
+            "artifact_path": null,
+            "bytes": null,
+            "channel": "THIRD_PARTY_MIRROR",
+            "content_status": "UNAVAILABLE",
+            "cutoff": "2025-02-01",
+            "details": {
+              "mirror_path": "YYYY/epss_scores-2025-02-01.csv.gz",
+              "note": "Not requested. A mirror cannot satisfy an official-source requirement."
+            },
+            "historical_retrieval_verified": false,
+            "http_status": null,
+            "key": "2025-02-01#mirror",
+            "reason_code": "THIRD_PARTY_MIRROR_ONLY",
+            "request_url": "",
+            "retrieved_at": null,
+            "revision": null,
+            "sha256": null,
+            "source": "epss",
+            "source_timestamp": null,
+            "source_url": "https://github.com/empiricalsec/epss_scores",
+            "status": "UNAVAILABLE"
+          },
+          {
+            "access_provenance": "NOT_RETRIEVED",
+            "artifact_path": null,
+            "bytes": null,
+            "channel": "THIRD_PARTY_MIRROR",
+            "content_status": "UNAVAILABLE",
+            "cutoff": "2025-09-01",
+            "details": {
+              "mirror_path": "YYYY/epss_scores-2025-09-01.csv.gz",
+              "note": "Not requested. A mirror cannot satisfy an official-source requirement."
+            },
+            "historical_retrieval_verified": false,
+            "http_status": null,
+            "key": "2025-09-01#mirror",
+            "reason_code": "THIRD_PARTY_MIRROR_ONLY",
+            "request_url": "",
+            "retrieved_at": null,
+            "revision": null,
+            "sha256": null,
+            "source": "epss",
+            "source_timestamp": null,
+            "source_url": "https://github.com/empiricalsec/epss_scores",
+            "status": "UNAVAILABLE"
+          },
+          {
+            "access_provenance": "NOT_RETRIEVED",
+            "artifact_path": null,
+            "bytes": null,
+            "channel": "THIRD_PARTY_MIRROR",
+            "content_status": "UNAVAILABLE",
+            "cutoff": "2026-04-01",
+            "details": {
+              "mirror_path": "YYYY/epss_scores-2026-04-01.csv.gz",
+              "note": "Not requested. A mirror cannot satisfy an official-source requirement."
+            },
+            "historical_retrieval_verified": false,
+            "http_status": null,
+            "key": "2026-04-01#mirror",
+            "reason_code": "THIRD_PARTY_MIRROR_ONLY",
+            "request_url": "",
+            "retrieved_at": null,
+            "revision": null,
+            "sha256": null,
+            "source": "epss",
+            "source_timestamp": null,
+            "source_url": "https://github.com/empiricalsec/epss_scores",
+            "status": "UNAVAILABLE"
+          }
+        ]
+      },
+      "id": "EPSS-01_EXACT_DAILY_FILE",
+      "reason_code": "OFFICIAL_SOURCE_UNREACHABLE",
+      "records": [
+        "epss:2025-02-01",
+        "epss:2025-09-01",
+        "epss:2026-04-01"
+      ],
+      "status": "UNAVAILABLE",
+      "title": "The exact daily EPSS file exists for every cutoff"
+    },
+    {
+      "detail": "2025-02-01: OFFICIAL_SOURCE_UNREACHABLE; 2025-09-01: OFFICIAL_SOURCE_UNREACHABLE; 2026-04-01: OFFICIAL_SOURCE_UNREACHABLE",
+      "evidence": {
+        "mirrors_satisfy_requirement": false,
+        "third_party_mirrors": [
+          {
+            "access_provenance": "NOT_RETRIEVED",
+            "artifact_path": null,
+            "bytes": null,
+            "channel": "THIRD_PARTY_MIRROR",
+            "content_status": "UNAVAILABLE",
+            "cutoff": "2025-02-01",
+            "details": {
+              "mirror_path": "YYYY/epss_scores-2025-02-01.csv.gz",
+              "note": "Not requested. A mirror cannot satisfy an official-source requirement."
+            },
+            "historical_retrieval_verified": false,
+            "http_status": null,
+            "key": "2025-02-01#mirror",
+            "reason_code": "THIRD_PARTY_MIRROR_ONLY",
+            "request_url": "",
+            "retrieved_at": null,
+            "revision": null,
+            "sha256": null,
+            "source": "epss",
+            "source_timestamp": null,
+            "source_url": "https://github.com/empiricalsec/epss_scores",
+            "status": "UNAVAILABLE"
+          },
+          {
+            "access_provenance": "NOT_RETRIEVED",
+            "artifact_path": null,
+            "bytes": null,
+            "channel": "THIRD_PARTY_MIRROR",
+            "content_status": "UNAVAILABLE",
+            "cutoff": "2025-09-01",
+            "details": {
+              "mirror_path": "YYYY/epss_scores-2025-09-01.csv.gz",
+              "note": "Not requested. A mirror cannot satisfy an official-source requirement."
+            },
+            "historical_retrieval_verified": false,
+            "http_status": null,
+            "key": "2025-09-01#mirror",
+            "reason_code": "THIRD_PARTY_MIRROR_ONLY",
+            "request_url": "",
+            "retrieved_at": null,
+            "revision": null,
+            "sha256": null,
+            "source": "epss",
+            "source_timestamp": null,
+            "source_url": "https://github.com/empiricalsec/epss_scores",
+            "status": "UNAVAILABLE"
+          },
+          {
+            "access_provenance": "NOT_RETRIEVED",
+            "artifact_path": null,
+            "bytes": null,
+            "channel": "THIRD_PARTY_MIRROR",
+            "content_status": "UNAVAILABLE",
+            "cutoff": "2026-04-01",
+            "details": {
+              "mirror_path": "YYYY/epss_scores-2026-04-01.csv.gz",
+              "note": "Not requested. A mirror cannot satisfy an official-source requirement."
+            },
+            "historical_retrieval_verified": false,
+            "http_status": null,
+            "key": "2026-04-01#mirror",
+            "reason_code": "THIRD_PARTY_MIRROR_ONLY",
+            "request_url": "",
+            "retrieved_at": null,
+            "revision": null,
+            "sha256": null,
+            "source": "epss",
+            "source_timestamp": null,
+            "source_url": "https://github.com/empiricalsec/epss_scores",
+            "status": "UNAVAILABLE"
+          }
+        ]
+      },
+      "id": "EPSS-02_HISTORICAL_RETRIEVAL_PROVENANCE",
+      "reason_code": "OFFICIAL_SOURCE_UNREACHABLE",
+      "records": [
+        "epss:2025-02-01",
+        "epss:2025-09-01",
+        "epss:2026-04-01"
+      ],
+      "status": "UNAVAILABLE",
+      "title": "EPSS scores were observed at their cutoff dates"
+    },
+    {
+      "detail": "Final candidate cutoff 2026-04-01 matures 2026-10-28; this run is as of 2026-10-20 (8 days remaining). Maturity is not claimed and fresh evidence is still required afterwards.",
+      "evidence": {
+        "as_of": "2026-10-20",
+        "final_candidate_cutoff": "2026-04-01",
+        "final_candidate_maturity": "2026-10-28",
+        "fresh_evidence_required_after_maturity": true,
+        "maturity_claimed": false
+      },
+      "id": "PROV-01_FINAL_BLOCK_MATURITY_NOT_CLAIMED",
+      "reason_code": "OK_VERIFIED",
+      "records": [],
+      "status": "VERIFIED",
+      "title": "Premature maturity of the final candidate block is impossible"
+    }
+  ],
+  "runtime": {
+    "reference_pins": {
+      "available": true,
+      "kev_revisions_digest": "e72effdb8136769fccc85a14eef658fe633dcbc9838c408aeb7e28f4c2eaa230",
+      "root": "vulnova_product/build/acquisition_reference/VULNOVA_Phase2.3K_core"
+    },
+    "requests": 19,
+    "store_dir": "vulnova_product/data/acquisition_store",
+    "transport": "UrllibTransport"
+  },
+  "schema_version": "vulnova.acquisition/1.7",
+  "summary": {
+    "by_access_provenance": {
+      "CONTEMPORANEOUS": 1,
+      "LATE_RETRIEVAL": 6,
+      "NOT_RETRIEVED": 7
+    },
+    "by_content_status": {
+      "BLOCKED": 0,
+      "UNAVAILABLE": 7,
+      "VERIFIED": 7
+    },
+    "by_status": {
+      "BLOCKED": 6,
+      "UNAVAILABLE": 7,
+      "VERIFIED": 1
+    },
+    "evidence_status": "BLOCKED",
+    "records": 14,
+    "requirements": 11,
+    "requirements_by_status": {
+      "BLOCKED": 3,
+      "UNAVAILABLE": 3,
+      "VERIFIED": 5
+    },
+    "unverified_requirements": [
+      "CVE-03_HISTORICAL_RETRIEVAL_PROVENANCE",
+      "KEV-01_DIRECT_CISA_FEED",
+      "KEV-04_LABEL_MATURITY_COVERAGE",
+      "KEV-05_HISTORICAL_RETRIEVAL_PROVENANCE",
+      "EPSS-01_EXACT_DAILY_FILE",
+      "EPSS-02_HISTORICAL_RETRIEVAL_PROVENANCE"
+    ]
+  }
+}

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vulnova"
-version = "1.6.0"
-description = "VULNOVA vulnerability triage console and evaluation-readiness tooling (1.6)"
+version = "1.7.0"
+description = "VULNOVA vulnerability triage console, evaluation-readiness and historical acquisition tooling (1.7)"
 requires-python = ">=3.11"
 dependencies = []
 
@@ -16,9 +16,16 @@ test = ["pytest==9.1.1"]
 vulnova-web = "vulnova.web:main"
 vulnova-ingest = "vulnova.ingest:main"
 vulnova-readiness = "vulnova.evaluation.cli:main"
+vulnova-acquire = "vulnova.acquisition.cli:main"
 
 [tool.setuptools]
-packages = ["vulnova", "vulnova.sources", "vulnova.evaluation"]
+packages = [
+    "vulnova",
+    "vulnova.sources",
+    "vulnova.evaluation",
+    "vulnova.acquisition",
+    "vulnova.acquisition.sources",
+]
 
 [tool.setuptools.package-data]
 vulnova = ["static/*"]
