@@ -168,13 +168,13 @@ publisher, not the archive.
 
 | Check | What it proves |
 | --- | --- |
-| `SCHEMA` | Every run parses, carries exactly the 1.9 fields, and has an ISO observation date and capture instants |
+| `SCHEMA` | Every run parses, carries exactly the 1.9 fields, has an ISO observation date and capture instants, and does not finish before it starts |
 | `RUN_DIGEST` | Every run digest recomputes over its own payload |
 | `RUN_IDENTITY` | Every run id is exactly the one derived from its instant and digest |
 | `RECORD_INVARIANTS` | Every record is well typed; no prospective record carries a cutoff; every `VERIFIED` record names a usable store path, digest, size and retrieval time |
 | `ARTIFACTS` | Every artifact a run references exists and re-hashes to the recorded SHA-256 and size |
 | `STORE_INVENTORY` | **Every file under `artifacts/`** is enumerated, re-hashed, checked against its content address, and matched to a readable run; symlinks and escapes are refused |
-| `CAPTURE_STATUS` | Every requirement and summary status is in the vocabulary, and the summary counters equal the recomputed requirement statuses |
+| `CAPTURE_STATUS` | Exactly one entry exists for every requirement ID (duplicates and missing IDs are refused), every status is in the vocabulary, and the summary counters equal the recomputed requirement statuses |
 | `HISTORICAL_ARCHIVE` | The sealed 1.7 manifest still names artifacts that hash to their recorded values (`NOT_APPLICABLE` when the checkout has none) |
 | `CAPTURES_PRESENT` | An empty store is `BLOCKED`, not `VERIFIED` |
 
@@ -375,7 +375,7 @@ these is answered here.
 
 ## Tests
 
-`tests/test_prospective_*.py` (185 tests) drive the real capture, verify and
+`tests/test_prospective_*.py` (189 tests) drive the real capture, verify and
 report paths against canned responses. No test opens a socket: `tests/conftest.py`
 installs an autouse guard that fails any connection to a non-loopback address, and
 one test asserts the guard is live. The seven modules are:
@@ -388,7 +388,7 @@ one test asserts the guard is live. The seven modules are:
 | `test_prospective_store.py` | 26 | create-once, atomicity, concurrency, capability refusal, path safety |
 | `test_prospective_report.py` | 26 | determinism, gaps, conflicts, unreadable runs, sealed targets |
 | `test_prospective_archive.py` | 9 | sealed 1.7 archive and committed report invariants |
-| `test_prospective_adversarial.py` | 44 | the 1.9 findings: link-less filesystems, malformed values, orphaned artifacts |
+| `test_prospective_adversarial.py` | 48 | the 1.9 findings: link-less filesystems, malformed values, orphaned artifacts |
 
 The checklist covered:
 
@@ -416,6 +416,10 @@ The checklist covered:
   unhashable requirement id or record source, bad hashes/sizes/timestamps, and
   missing or unexpected fields — through both the API and the CLI, with multiple
   malformed records in one store;
+* structural requirement validation after re-signing: a duplicate requirement ID
+  and a missing required ID are refused even when the summary counters are made
+  consistent, and `capture_completed_at` earlier than `capture_started_at` is
+  rejected by both verification and the report (equal instants are accepted);
 * unsafe store, report and symlink targets, traversal, and refusals that leave
   no directory and read no clock;
 * programmatic calls with empty defaults still protected; the sealed 1.7 archive

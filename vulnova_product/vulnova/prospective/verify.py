@@ -393,27 +393,36 @@ def verify_store(store_root: Path | str) -> dict:
             schema_errors.append(f"{run_id}: run_id is not a string")
             continue
         started = run.get("capture_started_at")
+        instants: dict[str, dt.datetime] = {}
         for field in ("capture_started_at", "capture_completed_at"):
             value = run.get(field)
             try:
                 if not isinstance(value, str):
                     raise TypeError
-                to_instant(value)
+                instants[field] = to_instant(value)
             except (TypeError, ValueError):
                 schema_errors.append(
                     f"{run_id}: {field} {_short(value)} is not an ISO timestamp"
                 )
+        # A capture cannot finish before it starts.  Capture refuses a clock that
+        # moves backwards; verification refuses a record that claims it did.
+        if (
+            "capture_started_at" in instants
+            and "capture_completed_at" in instants
+            and instants["capture_completed_at"] < instants["capture_started_at"]
+        ):
+            schema_errors.append(
+                f"{run_id}: capture_completed_at precedes capture_started_at"
+            )
         # The observation date is the UTC date of the capture instant.  Capture
         # computes it that way; a run that claims a different day is misdated,
         # however well its digest recomputes.
-        try:
-            if isinstance(started, str) and to_instant(started).date().isoformat() != observation:
+        if "capture_started_at" in instants:
+            if instants["capture_started_at"].date().isoformat() != observation:
                 schema_errors.append(
                     f"{run_id}: observation_date {observation} is not the UTC date of "
                     f"capture_started_at {_short(started)}"
                 )
-        except (TypeError, ValueError):
-            pass
         runs.append(run)
 
         recorded = run.get("run_digest")
@@ -561,6 +570,7 @@ def verify_store(store_root: Path | str) -> dict:
             status_errors.append(f"{run_id}: requirements is empty")
 
         statuses: list[str] = []
+        seen_requirement_ids: set[str] = set()
         for requirement in requirements:
             if not isinstance(requirement, dict):
                 status_errors.append(f"{run_id}: a requirement is not a JSON object")
@@ -574,6 +584,14 @@ def verify_store(store_root: Path | str) -> dict:
                     f"{run_id}: unknown requirement id {_short(requirement_id)}"
                 )
                 continue
+            if requirement_id in seen_requirement_ids:
+                # Never let a repeated entry contribute a second status: that
+                # would inflate sources_verified and could manufacture VERIFIED.
+                status_errors.append(
+                    f"{run_id}: duplicate requirement id {requirement_id}"
+                )
+                continue
+            seen_requirement_ids.add(requirement_id)
             status = requirement.get("status")
             if not C.is_status(status):
                 status_errors.append(
@@ -583,7 +601,20 @@ def verify_store(store_root: Path | str) -> dict:
                 continue
             statuses.append(status)
 
-        complete = bool(statuses) and len(statuses) == len(requirements)
+        missing_requirement_ids = sorted(
+            set(C.REQUIREMENT_KINDS) - seen_requirement_ids
+        )
+        if missing_requirement_ids:
+            status_errors.append(
+                f"{run_id}: missing required requirement(s) "
+                f"{', '.join(missing_requirement_ids)}"
+            )
+
+        complete = (
+            bool(statuses)
+            and len(statuses) == len(requirements)
+            and len(statuses) == len(C.REQUIREMENT_KINDS)
+        )
         expected_status = A.worst(statuses) if complete else A.BLOCKED
         summary = run.get("summary")
         summary = summary if isinstance(summary, dict) else {}

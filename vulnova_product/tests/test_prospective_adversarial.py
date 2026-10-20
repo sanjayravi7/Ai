@@ -681,3 +681,124 @@ def test_an_observation_date_that_is_not_the_capture_utc_date_is_refused(tmp_pat
     assert result["status"] == A.BLOCKED
     assert "SCHEMA" in verify_failure_reasons(result)
     assert "is not the UTC date" in _check(result, "SCHEMA")["detail"]
+
+
+# --------------------------------------- structural requirement validation
+def test_a_duplicate_requirement_is_refused_structurally(tmp_path, capsys):
+    """Re-signed, with counters to match: only the duplicate check can catch it."""
+    scenario = _captured(tmp_path)
+
+    def mutate(run):
+        duplicate = json.loads(json.dumps(run["requirements"][0]))
+        run["requirements"].append(duplicate)
+        run["summary"]["sources_total"] = 4
+        run["summary"]["sources_verified"] = 4
+        run["summary"]["partial_capture"] = False
+        run["summary"]["capture_status"] = A.VERIFIED
+
+    _rewrite(scenario, mutate)
+    result = verify_store(scenario.store_root)
+    assert result["status"] == A.BLOCKED
+    assert "CAPTURE_STATUS" in verify_failure_reasons(result)
+    # The structural check, not a digest or identity mismatch, did the work.
+    assert "RUN_DIGEST" not in verify_failure_reasons(result)
+    assert "RUN_IDENTITY" not in verify_failure_reasons(result)
+    detail = _check(result, "CAPTURE_STATUS")["detail"]
+    assert "duplicate requirement id KEV-CAPTURE" in detail
+
+    report = build_report(scenario.store_root)
+    assert report["malformed_captures"] == 1
+    assert report["status_counts"] == {A.VERIFIED: 0, A.UNAVAILABLE: 0, A.BLOCKED: 1}
+    assert report["days"] == []
+    assert any(
+        "duplicate KEV-CAPTURE" in problem
+        for problem in report["malformed_runs"][0]["problems"]
+    )
+
+    assert cli.main(["verify", "--store", str(scenario.store_root)]) == 1
+    capsys.readouterr()
+    assert cli.main(["report", "--store", str(scenario.store_root)]) == 0
+    assert "Malformed runs" in capsys.readouterr().out
+
+
+def test_a_missing_required_requirement_is_refused_structurally(tmp_path, capsys):
+    """Two verified requirements and matching counters must still be BLOCKED."""
+    scenario = _captured(tmp_path)
+
+    def mutate(run):
+        run["requirements"] = [
+            requirement
+            for requirement in run["requirements"]
+            if requirement["id"] != C.EPSS_REQUIREMENT
+        ]
+        run["summary"]["sources_total"] = 2
+        run["summary"]["sources_verified"] = 2
+        run["summary"]["partial_capture"] = False
+        run["summary"]["capture_status"] = A.VERIFIED
+
+    _rewrite(scenario, mutate)
+    result = verify_store(scenario.store_root)
+    assert result["status"] == A.BLOCKED
+    assert "CAPTURE_STATUS" in verify_failure_reasons(result)
+    assert "RUN_DIGEST" not in verify_failure_reasons(result)
+    assert "RUN_IDENTITY" not in verify_failure_reasons(result)
+    detail = _check(result, "CAPTURE_STATUS")["detail"]
+    assert "missing required requirement(s) EPSS-CAPTURE" in detail
+
+    report = build_report(scenario.store_root)
+    assert report["malformed_captures"] == 1
+    assert report["status_counts"] == {A.VERIFIED: 0, A.UNAVAILABLE: 0, A.BLOCKED: 1}
+    assert report["days"] == []
+    assert any(
+        "no entry for EPSS-CAPTURE" in problem
+        for problem in report["malformed_runs"][0]["problems"]
+    )
+
+    assert cli.main(["verify", "--store", str(scenario.store_root)]) == 1
+    capsys.readouterr()
+    assert cli.main(["report", "--store", str(scenario.store_root)]) == 0
+    assert "Malformed runs" in capsys.readouterr().out
+
+
+def test_capture_chronology_is_rejected_by_verify_and_report(tmp_path):
+    scenario = _captured(tmp_path)
+
+    def mutate(run):
+        run["capture_completed_at"] = "2026-10-20T13:59:59Z"
+
+    _rewrite(scenario, mutate)
+    result = verify_store(scenario.store_root)
+    assert result["status"] == A.BLOCKED
+    assert "SCHEMA" in verify_failure_reasons(result)
+    assert "RUN_DIGEST" not in verify_failure_reasons(result)
+    assert "RUN_IDENTITY" not in verify_failure_reasons(result)
+    assert "capture_completed_at precedes capture_started_at" in _check(
+        result, "SCHEMA"
+    )["detail"]
+
+    report = build_report(scenario.store_root)
+    assert report["malformed_captures"] == 1
+    assert report["status_counts"] == {A.VERIFIED: 0, A.UNAVAILABLE: 0, A.BLOCKED: 1}
+    assert any(
+        "capture_completed_at precedes capture_started_at" in problem
+        for problem in report["malformed_runs"][0]["problems"]
+    )
+
+
+def test_equal_capture_instants_are_accepted(tmp_path):
+    """The invariant is 'not earlier', not 'strictly later'."""
+    scenario = _captured(tmp_path)
+
+    def mutate(run):
+        run["capture_completed_at"] = run["capture_started_at"]
+
+    _rewrite(scenario, mutate)
+    result = verify_store(scenario.store_root)
+    assert result["status"] == A.VERIFIED, verify_failure_reasons(result)
+    assert "RUN_DIGEST" not in verify_failure_reasons(result)
+    assert "RUN_IDENTITY" not in verify_failure_reasons(result)
+
+    report = build_report(scenario.store_root)
+    assert report["malformed_captures"] == 0
+    assert report["status_counts"] == {A.VERIFIED: 1, A.UNAVAILABLE: 0, A.BLOCKED: 0}
+    assert report["days"][0]["kev"] == A.VERIFIED

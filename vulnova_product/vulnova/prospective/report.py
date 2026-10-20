@@ -99,7 +99,7 @@ def _requirement_statuses(run: dict) -> tuple[dict, list[str]]:
     if not requirements:
         return {}, ["requirements is empty"]
 
-    seen: set[str] = set()
+    seen_ids: set[str] = set()
     for index, requirement in enumerate(requirements):
         if not isinstance(requirement, dict):
             problems.append(f"requirements[{index}] is not an object")
@@ -115,9 +115,12 @@ def _requirement_statuses(run: dict) -> tuple[dict, list[str]]:
                 f"requirements[{index}]: unknown requirement id {_short(requirement_id)}"
             )
             continue
-        if kind in seen:
+        if requirement_id in seen_ids:
+            # A repeated requirement is malformed and contributes no status; it
+            # must not inflate the per-source counts or the summary counters.
             problems.append(f"requirements[{index}]: duplicate {requirement_id}")
-        seen.add(kind)
+            continue
+        seen_ids.add(requirement_id)
         status = requirement.get("status")
         if not C.is_status(status):
             problems.append(
@@ -128,8 +131,8 @@ def _requirement_statuses(run: dict) -> tuple[dict, list[str]]:
             continue
         collected.setdefault(kind, []).append(status)
 
-    for kind in sorted(set(C.REQUIREMENT_KINDS.values()) - seen):
-        problems.append(f"requirements: no entry for {kind}")
+    for requirement_id in sorted(set(C.REQUIREMENT_KINDS) - seen_ids):
+        problems.append(f"requirements: no entry for {requirement_id}")
 
     return {kind: A.worst(values) for kind, values in collected.items()}, problems
 
@@ -239,6 +242,13 @@ def _run_problems(run: dict, filename_run_id: str) -> list[str]:
     for field in ("capture_started_at", "capture_completed_at"):
         if not _iso_instant(run.get(field)):
             problems.append(f"{field} is not an ISO timestamp")
+    if _iso_instant(run.get("capture_started_at")) and _iso_instant(
+        run.get("capture_completed_at")
+    ):
+        if to_instant(run["capture_completed_at"]) < to_instant(
+            run["capture_started_at"]
+        ):
+            problems.append("capture_completed_at precedes capture_started_at")
     if not _iso_date(run.get("observation_date")):
         problems.append(
             f"observation_date {_short(run.get('observation_date'))} is not an ISO date"
