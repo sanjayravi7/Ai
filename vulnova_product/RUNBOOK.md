@@ -54,10 +54,15 @@ should live outside the repository:
 
 ```bash
 export VULNOVA_PROSPECTIVE_STORE=/srv/vulnova/evidence
-.venv/bin/python -m vulnova.prospective capture
+.venv/bin/python -m vulnova.prospective cycle     # capture + verify + report
 .venv/bin/python -m vulnova.prospective verify    # offline re-hash
 .venv/bin/python -m vulnova.prospective report    # offline summary
 ```
+
+`cycle` is the scheduled form: one capture, the same offline verification and the
+same deterministic report, with an exit status a scheduler can act on (`0`
+verified, `2` nothing recorded, `3` recorded but incomplete, `4` the store did not
+verify). The individual `capture`, `verify` and `report` commands still work.
 
 Schedule it once per UTC day after ~13:00 UTC. Do not backfill a missed day, do
 not edit or delete a run, and do not commit the store. `verify` inventories every

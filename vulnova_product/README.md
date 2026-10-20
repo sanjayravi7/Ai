@@ -141,10 +141,17 @@ multi-gigabyte repository.
 
 ```bash
 cd vulnova_product
-python -m vulnova.prospective capture   # the only network-using command
+python -m vulnova.prospective cycle     # one capture + verify + report, one exit status
+python -m vulnova.prospective capture   # or the three steps on their own
 python -m vulnova.prospective verify    # offline: re-hash every capture
 python -m vulnova.prospective report    # offline: deterministic summary
 ```
+
+`cycle` is the scheduler-facing command: it validates every destination before
+the first request, captures once, verifies the store and prints the report digest.
+It exits `0` only when the capture and the store both verify, `3` when the run was
+recorded but a source did not verify, and `4` when the store did not verify. A
+non-zero exit never removes a recorded capture.
 
 The store is append-only and content-addressed (`~/.vulnova/prospective` by
 default, `--store` or `VULNOVA_PROSPECTIVE_STORE` to relocate). Nothing is
@@ -153,9 +160,9 @@ reported as a conflict. Every write target is validated before the first network
 request against the sealed 1.6 report, the 1.7 archive, `data/snapshots`, the
 Phase 2.3K export, the 1.8 refresh store and reports, and `protocol/`. An
 unreachable source is `UNAVAILABLE`, a policy refusal is `BLOCKED`, and a partial
-capture is never rounded up. `capture` has no date override: scheduling, backup
-and the reasons there is no GitHub Actions capture job are in
-`docs/PROSPECTIVE_CAPTURE_1_9.md`.
+capture is never rounded up. Neither `capture` nor `cycle` has a date override:
+scheduling, alerting, backup and the reasons there is no GitHub Actions capture
+job are in `docs/PROSPECTIVE_CAPTURE_1_9.md`.
 
 This milestone adds the capability and its tests, not captured evidence: no
 prospective store is committed. It does not mature labels, admit a design or
