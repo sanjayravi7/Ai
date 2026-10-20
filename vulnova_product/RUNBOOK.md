@@ -28,6 +28,24 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
+## 2b. Maturity gate (optional, offline)
+
+The 1.8 maturity gate needs no data and no network — it reads the committed 1.7
+manifest and the real UTC clock:
+
+```bash
+cd vulnova_product
+.venv/bin/python -m vulnova.refresh gate
+```
+
+On or after 2026-10-28 the refresh command fetches fresh evidence into its own
+store (`data/refresh_store_1_8/`) and never touches the 1.7 archive:
+
+```bash
+.venv/bin/python -m vulnova.refresh run
+.venv/bin/python -m vulnova.refresh verify   # offline re-hash
+```
+
 ## 3. Fetch the pinned sources
 
 ```bash

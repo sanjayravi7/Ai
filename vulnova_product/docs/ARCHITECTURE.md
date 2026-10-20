@@ -87,6 +87,35 @@ no caller can declare historical access that the data does not support.
 rejects disagreement, which is what makes the archive auditable by a third party
 with no network access.
 
+## Maturity-refresh subsystem (1.8)
+
+`vulnova/refresh/` sits on top of acquisition and reuses it verbatim: the same
+`ArtifactStore`, the same KEV parser, the same transport, the same
+`VERIFIED`/`UNAVAILABLE`/`BLOCKED` vocabulary and the same `Requirement` type.
+It adds no source adapter and no second definition of a status.
+
+* `gate.py` answers the maturity question in two steps — has the calendar date
+  arrived, and was the catalog published on or after it — and returns
+  `NOT_MATURED`, `MATURED_SOURCE_MISSING`, `MATURED_SOURCE_PREDATES` or
+  `MATURED_AND_OBSERVED`. Only the last sets `filter_applied`, which is what
+  permits `filter_entries_by_date_added` to produce a derived view. Every other
+  outcome is reported `RIGHT_CENSORED_NOT_FILTERED` and the requirement is
+  `BLOCKED`.
+* `workflow.py` runs the acquisition, gates each block, writes the report, and
+  enforces two structural guarantees: the refresh store may not overlap the
+  sealed 1.7 paths (checked before any write, either direction), and the sealed
+  1.7 manifest plus its seven artifacts are fingerprinted before and after the
+  run. A maturity claim is re-checked against the run's own as-of date after the
+  status is computed; a run that would claim maturity early raises.
+* `comparison.py` compares a fresh readiness report against the committed 1.6
+  one by **check status and design verdict**, not by report digest. A readiness
+  report embeds its `as_of` date, so digests legitimately differ when nothing
+  changed; the report says so rather than letting a reader conflate the two.
+
+`run_refresh` takes its clock as a parameter. The CLI never exposes a date for
+`run`: production acquisition always uses the real UTC clock, and every
+`retrieved_at` is the transport's actual receipt time.
+
 ## Design decisions
 
 **One row per `(cve_id, source)`.** cvelistV5 and the legacy extract never overwrite

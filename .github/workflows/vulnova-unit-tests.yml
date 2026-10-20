@@ -57,3 +57,14 @@ jobs:
       - name: Verify the committed acquisition archive offline
         working-directory: vulnova_product
         run: python -m vulnova.acquisition verify
+
+      # Offline verification of the committed 1.8 refresh report: it recomputes
+      # the refresh digest, re-hashes the refreshed catalog, re-checks the
+      # maturity invariant (no block may claim maturity before its date) and
+      # re-hashes all seven sealed 1.7 artifacts. It does not use the network.
+      # Do NOT make this gated on evidence completeness: the committed run
+      # truthfully reports the final block as NOT_MATURED and EPSS as
+      # UNAVAILABLE, and those are findings, not build failures.
+      - name: Verify the committed 1.8 refresh report offline
+        working-directory: vulnova_product
+        run: python -m vulnova.refresh verify

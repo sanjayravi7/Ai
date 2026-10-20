@@ -134,13 +134,23 @@ def _store(
 
 
 # ------------------------------------------------------------------ current
-def acquire_current(transport: Transport, *, store: Optional[ArtifactStore] = None):
+def acquire_current(
+    transport: Transport,
+    *,
+    store: Optional[ArtifactStore] = None,
+    relative: Optional[str] = None,
+):
     """Fetch the current catalog from CISA, then from CISA's GitHub repository.
 
     Returns ``(records, facts)``.  Both records are kept: the CISA attempt is
     recorded even when it fails, so an unreachable official endpoint can never
     disappear from the provenance record.
+
+    ``relative`` overrides the path inside the store.  The 1.8 refresh run
+    passes its own path so it cannot overwrite the sealed 1.7 archive; the
+    default keeps the 1.7 layout byte-identical.
     """
+    relative = relative or CURRENT_ARTIFACT_PATH
     records: list[ArtifactRecord] = []
     official = ArtifactRecord(
         source=SOURCE,
@@ -178,7 +188,7 @@ def acquire_current(transport: Transport, *, store: Optional[ArtifactStore] = No
         else:
             official.content_status = C.VERIFIED
             official.reason_code = C.OK_VERIFIED
-            path, size, digest = _store(store, CURRENT_ARTIFACT_PATH, response.body)
+            path, size, digest = _store(store, relative, response.body)
             official.artifact_path = path
             official.bytes = size
             official.sha256 = digest
@@ -191,8 +201,14 @@ def acquire_current_github(
     *,
     store: Optional[ArtifactStore] = None,
     maturity: Optional[date] = None,
+    relative: Optional[str] = None,
 ) -> ArtifactRecord:
-    """Fetch the current catalog from CISA's own GitHub repository."""
+    """Fetch the current catalog from CISA's own GitHub repository.
+
+    ``relative`` overrides the path inside the store, for the same reason as
+    :func:`acquire_current`: a refresh must not overwrite a sealed artifact.
+    """
+    relative = relative or CURRENT_ARTIFACT_PATH
     record = ArtifactRecord(
         source=SOURCE,
         key="current#github",
@@ -242,7 +258,7 @@ def acquire_current_github(
         body,
         blob_meta,
         store=store,
-        relative=CURRENT_ARTIFACT_PATH,
+        relative=relative,
         maturity=maturity,
     )
 

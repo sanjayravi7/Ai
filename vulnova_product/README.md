@@ -95,6 +95,36 @@ requirements are `UNAVAILABLE`/`BLOCKED`, never quietly satisfied. The 2026-04-0
 block matures 2026-10-28 and maturity is not claimed. Overall evidence status:
 `BLOCKED`. See `docs/DATA_ACQUISITION_1_7.md`.
 
+## Maturity gate and evidence refresh (1.8)
+
+VULNOVA 1.8 answers one question the earlier phases could only defer: after the
+final candidate block matures on **2026-10-28**, can its labels actually be
+observed? Calendar maturity and observability are kept apart, because a KEV
+catalog released before the maturity date cannot contain labels that settled
+after it.
+
+```bash
+cd vulnova_product
+python -m vulnova.refresh gate     # offline: is the block mature, and observable?
+python -m vulnova.refresh run      # the only network-using command
+python -m vulnova.refresh verify   # offline: re-hash the refresh + the sealed archive
+```
+
+The committed run (as of 2026-10-20) reports `BLOCKED_MATURITY_NOT_REACHED`: the
+final labels mature 2026-10-28, 8 days later, and the catalog in hand
+(`2026.10.16`) predates them, so the observation is right-censored and **no**
+`dateAdded`-filtered label view is produced. `run` has no date override — it
+always uses the real UTC clock and records each artifact's actual retrieval
+time. The refresh writes to its own store and report directory, refuses any path
+that overlaps `data/acquisition_store` or `reports/acquisition_1_7`, and
+re-hashes all seven sealed 1.7 artifacts before and after each run.
+
+The readiness comparison against the committed 1.6 report shows **0 check status
+changes** and **no admissible design**; the protocol remains `NOT_APPROVED`.
+A digest difference between the two reports is expected and is explained in the
+report itself: a readiness report embeds its own as-of date. See
+`docs/MATURITY_REFRESH_1_8.md`.
+
 ## CI
 
 GitHub Actions runs the unit tests and the Chromium smoke test on changes under
@@ -121,6 +151,7 @@ vulnova/
   web.py          HTTP API + static UI
   evaluation/     readiness checks, temporal validation, report writer
   acquisition/    historical acquisition, provenance manifest, offline verify
+  refresh/        maturity gate, evidence refresh, feasibility comparison (1.8)
   static/         index.html, style.css, app.js
 protocol/
   EVALUATION_PROTOCOL_1.6.md      draft protocol (NOT_APPROVED)
@@ -130,8 +161,9 @@ docs/
   BROWSER_TESTING.md
   CI.md
   EVALUATION_READINESS.md
+  MATURITY_REFRESH_1_8.md
   RANKING_SEMANTICS.md
-tests/            test suite (386 tests, including synthetic readiness and acquisition fixtures)
+tests/            test suite (467 tests, including synthetic readiness, acquisition and refresh fixtures)
 tools/            verifiers, digest, manifest, pre-2020 fetch
 reports/
   validation1_1/  previous phase (historical, unchanged)
@@ -139,8 +171,10 @@ reports/
   improvement1_5/ CI hardening report
   evaluation_readiness_1_6/ committed readiness report (JSON + Markdown)
   acquisition_1_7/ committed acquisition manifest and missing-evidence report
+  refresh_1_8/    committed maturity gate, refresh report and comparison
 data/snapshots/   KEV, EPSS, cvelistV5 manifest
 data/acquisition_store/ historical artifacts acquired in 1.7, with hashes
+data/refresh_store_1_8/  refreshed artifacts from 1.8, kept separate from 1.7
 build/vulnova.db  derived store (not snapshotted)
 ```
 
