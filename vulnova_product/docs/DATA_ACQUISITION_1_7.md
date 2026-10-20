@@ -42,6 +42,14 @@ retrieved, so its access provenance is `NOT_RETRIEVED`, never `LATE_RETRIEVAL`.
 | KEV | CISA | `www.cisa.gov` feed, then `cisagov/kev-data` | Direct feed is canonical; `cisagov/kev-data` is the same agency's repository, not a third-party mirror. |
 | EPSS | FIRST / Cyentia | `epss.cyentia.com` only | The published daily feed. |
 
+**Host note (added 2026-10-20, 1.9.1 hotfix).** This document records the 1.7
+run as it happened, when FIRST's feed was published at `epss.cyentia.com`; the
+sealed manifest and this description are deliberately left as they were written.
+FIRST now documents `epss.empiricalsecurity.com` as the daily-CSV host, so current
+code requests that host instead. Historical requests are not rewritten to
+retrofit the new URL: a record that says what was actually requested is the point.
+An EPSS file is never substituted across dates or model versions by either path.
+
 Third-party mirrors are **recorded but never used**. `github.com/empiricalsec/epss_scores`
 mirrors per-day EPSS files and is reachable; it is stored as a
 `THIRD_PARTY_MIRROR` record with reason `THIRD_PARTY_MIRROR_ONLY` and can never

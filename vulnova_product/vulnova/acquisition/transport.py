@@ -137,14 +137,28 @@ class HostPolicy:
 
 
 #: Hosts the tooling is allowed to contact.  All are first-party: GitHub for the
-#: CVE Program and CISA repositories, and the two official data publishers.
+#: CVE Program and CISA repositories, and the one official data publisher whose
+#: endpoint is actually fetched.
+#:
+#: Entries are here because a production source requests them:
+#:
+#: * ``api.github.com`` / ``codeload.github.com`` / ``github.com`` — cvelistV5 and
+#:   the CISA KEV repository;
+#: * ``www.cisa.gov`` — the canonical KEV feed;
+#: * ``epss.empiricalsecurity.com`` — the daily EPSS CSV host FIRST publishes.
+#:
+#: ``epss.cyentia.com`` and ``www.first.org`` were both removed.  Neither is
+#: requested by any source: the legacy EPSS host is no longer the daily-CSV host,
+#: and ``www.first.org`` is FIRST's documentation site, not a data endpoint.
+#: Nothing showed the EPSS data endpoint redirecting to it, so leaving it here
+#: would have granted a redirect destination on plausibility alone.  Removing a
+#: host narrows the allowlist; it never relaxes a redirect or downgrade check.
 DEFAULT_ALLOWED_HOSTS = (
     "api.github.com",
     "codeload.github.com",
     "github.com",
-    "epss.cyentia.com",
+    "epss.empiricalsecurity.com",
     "www.cisa.gov",
-    "www.first.org",
 )
 
 

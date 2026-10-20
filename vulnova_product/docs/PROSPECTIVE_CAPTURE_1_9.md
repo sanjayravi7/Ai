@@ -28,7 +28,7 @@ this subsystem exists to avoid repeating. Tests inject a clock through
 | Source | First-party endpoint | What is preserved |
 | --- | --- | --- |
 | CISA KEV | `www.cisa.gov/.../known_exploited_vulnerabilities.json`, then `api.github.com/repos/cisagov/kev-data` | The catalog bytes, catalog version, `dateReleased`, entry count, and the commit SHA that served them on the GitHub channel |
-| FIRST EPSS | `epss.cyentia.com/epss_scores-<UTC observation date>.csv.gz` | The exact daily file for the observation date, its declared model version and `score_date`, and a parsed-row count |
+| FIRST EPSS | `epss.empiricalsecurity.com/epss_scores-<UTC observation date>.csv.gz` | The exact daily file for the observation date, its declared model version and `score_date`, and a parsed-row count |
 | cvelistV5 | `api.github.com/repos/CVEProject/cvelistV5/commits?sha=HEAD&per_page=1` | The observable default-branch commit SHA and the API response bytes — never a clone |
 
 All three endpoints are first-party. There is no mirror fallback: an unreachable
@@ -39,6 +39,81 @@ The cvelistV5 repository is far too large to clone on a daily schedule, and
 cloning would add nothing to the identifier: a commit SHA fully names the
 revision. `capture_current` therefore makes one API request, stores its bytes,
 and records `clone_required=false`. A test pins that exactly one URL is fetched.
+
+## EPSS endpoint (1.9.1 hotfix)
+
+The first real capture (`20261020T062217Z-3ba1c441132c`) recorded EPSS as
+`BLOCKED` / `REDIRECT_BLOCKED` while KEV and cvelistV5 verified. The cause was the
+host: VULNOVA requested `epss.cyentia.com`, FIRST's legacy EPSS host. That record
+is preserved unchanged — it is an accurate record of what was requested and
+refused on that date, and this hotfix does not rewrite it.
+
+Documented, indexed, observed and unobserved evidence are kept apart here,
+because collapsing them is how a plausible URL becomes a claimed fact:
+
+| Claim | Status |
+| --- | --- |
+| `epss.empiricalsecurity.com` is the daily CSV host | **Published now.** FIRST's *Get the Data* page names it and gives `epss_scores-current.csv.gz`. |
+| The *current-file* URL redirects | **Published now.** The same page says so and tells users to pass `curl -L`. |
+| The date-specific filename pattern `epss_scores-YYYY-MM-DD.csv.gz` appears in FIRST-hosted documentation | **Historically documented, not retrievable now.** FIRST's EPSS statistics page at `www.first.org/epss/data_stats` listed the pattern explicitly. It is still present in search indexes and in third-party issue reports that cite that page as their source, but a direct request to it now returns 404. The pattern is therefore documented history, not a live page that can be re-checked today. |
+| A date-specific file is served from that path on that host | **Observed.** A 2026-10-19 file fetched from the path declares its own `score_date` in its header. |
+| The date-specific URL redirects, and to where | **Unobserved.** No HTTP status code and no `Location` header has been seen. |
+
+The historical row is deliberate. It would be wrong to say the date-specific
+pattern *never* appeared in FIRST-hosted documentation: it did, on the
+statistics page named above. What cannot be done today is re-fetch that page,
+so the pattern rests on indexed/historical documentation plus one observed file
+rather than on a currently live FIRST page.
+
+Since 1.9.1 the source constructs the date-specific URL directly, for the
+observation date and no other.
+
+| Rule | Behaviour |
+| --- | --- |
+| Requested URL | `https://epss.empiricalsecurity.com/epss_scores-<UTC date>.csv.gz` — always the exact date, never `-current` and never a different day |
+| Allowlist | `DEFAULT_ALLOWED_HOSTS` names only hosts a source fetches: the three GitHub hosts, `www.cisa.gov` and `epss.empiricalsecurity.com`. `epss.cyentia.com` and `www.first.org` were removed — neither is requested by any source, and the latter is FIRST's documentation site, not a data endpoint |
+| Redirects | `SafeRedirectHandler` and `require_https` are unchanged. Every hop must stay HTTPS and inside the allowlist |
+| Response check | the source re-checks the URL that actually answered against `APPROVED_RESPONSE_HOSTS`, which holds **exactly** `epss.empiricalsecurity.com`, before the body is parsed, hashed or stored |
+| Recorded URLs | `request_url` is always kept; `final_url` is recorded only when a response actually answered. A redirect is therefore visible rather than assumed, and a refusal issued before the hop leaves no `final_url` at all |
+| Refusals | an unapproved destination or a plaintext response is `BLOCKED` / `REDIRECT_BLOCKED`, with no digest and no artifact path |
+| Everything else | `score_date` comparison, storage and requirement status are unchanged |
+
+**What is published, indexed, observed and unobserved.** These are four
+different kinds of evidence and they are not interchangeable:
+
+* *Published now* — FIRST's *Get the Data* page names
+  `epss.empiricalsecurity.com` and the current-file URL, and states that the
+  current-file URL redirects. It does not show the date-specific pattern.
+* *Historically documented, not retrievable* — FIRST's EPSS statistics page
+  (`www.first.org/epss/data_stats`) listed the date-specific pattern. That page
+  now returns 404 to a direct request; it survives in search indexes and in
+  third-party reports that cite it.
+* *Observed* — a date-specific file fetched from that path for 2026-10-19
+  declares `score_date:2026-10-19T12:00:27Z` in its own header. The retrieval
+  path used returns the file body only, so it says nothing about the HTTP
+  exchange.
+* *Unobserved* — the HTTP status, the `Location` header and the redirect
+  destination of a date-specific request. Direct TLS to the host is blocked
+  before the handshake completes from this environment, so none of the three
+  could be captured.
+
+The observation establishes that the exact-date path serves a file whose own
+header declares that date. It establishes **nothing** about redirects, and it is
+not a substitute for a real capture; no live capture is claimed to succeed.
+
+Because the response allowlist is now exactly the EPSS host, an undocumented
+redirect to an infrastructure host will fail closed: the record becomes
+`BLOCKED` / `REDIRECT_BLOCKED` and names the refused destination. That is the
+deliberate trade — an unverified redirect is not silently trusted — and it is
+recoverable by adding an evidence-backed allowance if one is later observed.
+
+**What a refusal guarantees.** A refused response is not parsed, not hashed and
+not written to the store; `request_url` and `final_url` are both kept. It does
+**not** mean the bytes were never received: the transport reads a response body
+before the source sees the URL that produced it, so the guarantee is about what
+is done with those bytes, not about whether they arrived. In production the
+transport refuses an unapproved redirect before the follow-up request is issued,
+so the destination is never contacted at all.
 
 ## Provenance recorded per artifact
 
@@ -353,9 +428,10 @@ not captured observations. The repository commits no prospective store, and no
 real daily capture has been performed from this environment. The first real
 observation is whatever an operator captures first.
 
-**Unavailable evidence.** From this sandbox the direct `www.cisa.gov` feed and
-`epss.cyentia.com` are unreachable (connection refused/timeout), so a live
-capture here would honestly record `OFFICIAL_SOURCE_UNREACHABLE`; CISA's GitHub
+**Unavailable evidence.** From this sandbox the direct `www.cisa.gov` feed is
+unreachable, and TLS to `epss.empiricalsecurity.com` is closed before the
+handshake completes (`SSLZeroReturnError`, TCP connects), so a live capture here
+would honestly record `OFFICIAL_SOURCE_UNREACHABLE` for EPSS; CISA's GitHub
 repository is reachable and can satisfy the KEV requirement. Those are properties
 of the environment, not of the code, and they are exactly what the status
 vocabulary is for.

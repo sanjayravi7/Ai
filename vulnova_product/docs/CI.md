@@ -9,7 +9,7 @@ change to `src/` or `tests/` does not run VULNOVA's tests.
 
 | Workflow | Project | What it runs | Python |
 | --- | --- | --- | --- |
-| `.github/workflows/vulnova-unit-tests.yml` | VULNOVA | `vulnova_product/tests` (693 tests) | 3.11 |
+| `.github/workflows/vulnova-unit-tests.yml` | VULNOVA | `vulnova_product/tests` (744 tests) | 3.11 |
 | `.github/workflows/vulnova-browser.yml` | VULNOVA | `vulnova_product/tools/ui_browser_check.py` (14 Chromium checks) | 3.11 |
 | `.github/workflows/python-package.yml` | Root data pipeline | `tests/` (192 tests + 6 subtests) and flake8 | 3.9, 3.10, 3.11 |
 
@@ -52,6 +52,13 @@ The acquisition tests (1.7) use an injected `FakeTransport` with canned bytes an
 fixed clocks. They never open a socket and never read `data/acquisition_store/`:
 tampering, missing timestamps, hash mismatches, cutoff mismatches and
 historical-versus-actual retrieval times are all exercised against the fixture.
+`test_acquisition_epss_endpoint.py` pins the EPSS endpoint introduced by the 1.9.1
+hotfix: the exact-date URL on the documented host, a one-host allowlist, and the
+source-level refusal of an unapproved or plaintext response — including through a
+transport that performs no policy checks of its own. It also establishes the URL
+validator's actual behaviour for non-string input, malformed authorities,
+non-default and malformed ports, and embedded credentials. These are synthetic
+`final_url` values, not observed responses.
 
 The refresh tests (1.8) follow the same rule. `tests/refresh_fixtures.py` builds a
 canned catalog with explicit `dateAdded` values, an optional direct CISA feed
@@ -65,12 +72,14 @@ committed inputs, including a full readiness re-run at the committed as-of date.
 The redirect tests are deterministic too. `SafeRedirectHandler.redirect_request`
 is called directly with synthetic `Location` values; a second group drives the
 *real* `OpenerDirector` and redirect chain with a canned handler that never opens
-a socket. No DNS, no live redirect. They cover
-an allowed same-host redirect, an allowed cross-host redirect, a relative
-`Location`, a lookalike `//host/path`, a disallowed host, a 301/303/307/308
-HTTPS-to-HTTP downgrade, a non-HTTP scheme, a plaintext initial URL, and the
-final URL being recorded separately. They also assert that urllib's permissive
-default handler is genuinely *replaced* in the installed opener.
+a socket. No DNS, no live request, and no test asserts a live redirect: no HTTP
+status or `Location` header has been observed from `epss.empiricalsecurity.com`.
+They cover an allowed same-host redirect, a cross-host redirect permitted by an
+explicit custom policy, a relative `Location`, a lookalike `//host/path`, a
+disallowed host, a 301/303/307/308 HTTPS-to-HTTP downgrade, a non-HTTP scheme, a
+plaintext initial URL, and the final URL being recorded separately. They also
+assert that urllib's permissive default handler is genuinely *replaced* in the
+installed opener.
 
 The prospective-capture tests (1.9) are fully offline as well.
 `tests/prospective_fixtures.py` serves canned KEV catalogs, EPSS daily files,

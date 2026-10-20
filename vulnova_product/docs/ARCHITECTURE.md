@@ -87,6 +87,22 @@ no caller can declare historical access that the data does not support.
 rejects disagreement, which is what makes the archive auditable by a third party
 with no network access.
 
+The EPSS adapter is the one source whose host has moved. FIRST publishes
+`epss.empiricalsecurity.com` as the daily CSV host; the legacy
+`epss.cyentia.com` is no longer documented, so it is neither requested nor
+allowlisted. Because a `Transport` is injectable — and may carry a broader
+policy, or none at all — the EPSS adapter *also* re-checks the URL that actually
+answered against `APPROVED_RESPONSE_HOSTS`, which holds exactly that one host, on
+the default HTTPS port, with no embedded credentials. The check runs before the
+body is parsed, hashed or stored.
+
+The transport's `SafeRedirectHandler` remains the primary control: it refuses an
+unapproved hop before the follow-up request is issued, and refuses HTTPS
+downgrades. The source check is not a duplicate of it — it is what still holds
+when the transport is supplied by the caller. Note the limit that follows: the
+transport has already read a response body by the time the source inspects its
+URL, so a source-level refusal means the bytes were received but never used.
+
 ## Maturity-refresh subsystem (1.8)
 
 `vulnova/refresh/` sits on top of acquisition and reuses it verbatim: the same

@@ -110,7 +110,7 @@ def kev_blob_url(blob_sha: str) -> str:
 
 
 def epss_url(day: dt.date) -> str:
-    return f"https://epss.cyentia.com/epss_scores-{day.isoformat()}.csv.gz"
+    return f"https://epss.empiricalsecurity.com/epss_scores-{day.isoformat()}.csv.gz"
 
 
 def kev_catalog_bytes(

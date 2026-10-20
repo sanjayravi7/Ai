@@ -117,6 +117,12 @@ Two vocabularies meet here. Neither may be softened.
 position relative to the evidence. They are never interchanged, and a policy
 refusal (`REDIRECT_BLOCKED`) is always `BLOCKED`, never an outage.
 
+**Host note (added 2026-10-20, 1.9.1 hotfix).** The 1.8 refresh requested the EPSS
+daily files from `epss.cyentia.com`, which was FIRST's published host at the time
+and did not answer. FIRST now documents `epss.empiricalsecurity.com`; current code
+requests that host. The 1.8 report is sealed and unchanged — its recorded URLs and
+`UNAVAILABLE` outcomes describe that run honestly and are not retrofitted.
+
 ### Access axis — `CONTEMPORANEOUS` / `LATE_RETRIEVAL` / `NOT_RETRIEVED`
 
 A 2025 file fetched in 2026 is `LATE_RETRIEVAL`. It can satisfy a *content*
