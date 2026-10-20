@@ -68,7 +68,22 @@ Schedule it once per UTC day after ~13:00 UTC. Do not backfill a missed day, do
 not edit or delete a run, and do not commit the store. `verify` inventories every
 file under `artifacts/`, not only the files the run records mention; a green
 `verify` means the store is fully accounted for, and an orphaned artifact is
-reported rather than ignored. See `docs/PROSPECTIVE_CAPTURE_1_9.md`.
+reported rather than ignored.
+
+Check the schedule configuration before trusting it, and again after moving the
+machine between timezones:
+
+```bash
+.venv/bin/python tools/check_schedule.py \
+    --store /srv/vulnova/evidence \
+    --out /srv/vulnova/reports/prospective.md
+```
+
+It is offline (no capture, no socket) and exits `1` on a configuration that would
+fail. **A bare `13:10` is not UTC:** cron and Windows Task Scheduler read it in
+the machine's local time — 13:10 UTC is 18:40 in `Asia/Kolkata`. The UTC-aware
+forms (`CRON_TZ=UTC` where supported, systemd's `OnCalendar=… UTC`) and the
+local-time conversion are in `docs/PROSPECTIVE_CAPTURE_1_9.md`.
 
 ## 3. Fetch the pinned sources
 

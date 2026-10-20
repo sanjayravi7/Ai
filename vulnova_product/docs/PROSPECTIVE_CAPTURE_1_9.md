@@ -391,29 +391,165 @@ scheduler can use either. `--out PATH` writes the deterministic report as well;
 that path is validated before the capture starts and may not sit inside the
 store or inside a sealed path.
 
-**cron** (Linux, macOS):
+#### Check a schedule before trusting it
 
-```cron
-# 13:10 UTC daily: one cycle, a persistent report, and an alert on failure.
-10 13 * * * cd /srv/vulnova/vulnova_product && \
-  .venv/bin/python -m vulnova.prospective cycle \
-    --store /srv/vulnova/evidence \
-    --out /srv/vulnova/reports/prospective.md \
-    >> /var/log/vulnova-cycle.log 2>&1 || \
-  /usr/local/bin/alert-vulnova "prospective cycle failed: see /var/log/vulnova-cycle.log"
+A scheduler is configured once and then runs unattended for months, so the
+mistakes worth catching are configuration mistakes. The preflight checks them
+without capturing anything and without opening a socket:
+
+```bash
+cd /srv/vulnova/vulnova_product
+.venv/bin/python tools/check_schedule.py \
+  --store /srv/vulnova/evidence \
+  --out /srv/vulnova/reports/prospective.md \
+  --trigger-utc 13:10
 ```
 
-**systemd** timer, same schedule:
+It checks that the interpreter is 3.11+ and can import `vulnova`, that both paths
+are absolute, that neither is inside the repository, that neither touches the
+sealed 1.6/1.7/1.8 paths or `protocol/`, that the destination filesystem really
+supports hard links (the store refuses to write without them), that the report is
+not inside the store, and that the existing store still verifies. It also prints
+the machine's UTC offset and what `13:10` UTC is in local time — the single most
+common source of a schedule that runs, and looks fine, at the wrong hour.
+
+Exit status is `0` when every check passes and `1` when any fails; warnings do not
+fail the run. An empty store is a **warning**: there is nothing to verify yet, and
+an empty store is never reported as verified. `--json` emits the whole result.
+
+The preflight reads the store; it never writes evidence, never deletes evidence
+and never contacts a publisher. Its only filesystem mutation is a temporary
+directory used to prove hard-link support, removed immediately afterwards.
+
+#### Which clock does the scheduler use?
+
+The same text means different instants on different systems:
+
+| Scheduler | How the configured time is interpreted |
+| --- | --- |
+| cron | the **host's local timezone**, unless the implementation supports `CRON_TZ` and it is set |
+| systemd timer | the **host's local timezone**, unless the calendar spec names a zone (`… UTC`) |
+| Windows Task Scheduler | the **machine's local timezone**; the command line has no UTC option |
+
+For a machine in `Asia/Kolkata` (UTC+05:30, no daylight saving), **13:10 UTC is
+18:40 IST**. For `Pacific/Auckland` in October (UTC+13) it is **02:10 the next
+day**. A schedule labelled "13:10" without a timezone is therefore a statement
+about the host, not about UTC.
+
+Only the systemd example below is configured in UTC. The cron and Windows
+examples that use a literal clock time are labelled **local**, because that is
+what those schedulers do with it.
+
+#### cron
+
+On a Vixie-derived cron — cronie (RHEL, Fedora, Arch), Debian's `cron`, FreeBSD —
+`CRON_TZ` sets the timezone used to *interpret the schedule*, so the entry fires
+at 13:10 UTC regardless of the host's zone:
+
+```cron
+# User crontab (crontab -e).
+# CRON_TZ applies to the entries below it in this file.
+CRON_TZ=UTC
+SHELL=/bin/sh
+PATH=/usr/local/bin:/usr/bin:/bin
+MAILTO=""
+
+10 13 * * * /usr/local/bin/vulnova-cycle
+```
+
+Two compatibility caveats, both of which fail **quietly** rather than loudly:
+
+* `CRON_TZ` is a Vixie-cron extension. Check the host's own manual —
+  `man 5 crontab | grep CRON_TZ` — before relying on it. BusyBox `crond` and
+  several minimal container images do not implement it and **silently ignore**
+  it; the job then runs at 13:10 *local*. In a container, run the scheduler
+  outside the container or use a UTC host.
+* `TZ=` is **not** `CRON_TZ=`. `TZ` sets the environment of the job; it does not
+  move the firing time.
+
+If the implementation has no `CRON_TZ`, convert the instant and label it as local
+time:
+
+```cron
+# 18:40 Asia/Kolkata (UTC+05:30, no DST) == 13:10 UTC. THIS IS LOCAL TIME.
+40 18 * * * /usr/local/bin/vulnova-cycle
+```
+
+Derive the offset from `timedatectl` or `date +%z`, add it to 13:10 UTC, and write
+the local result. Where the zone observes daylight saving, the local time of a
+fixed UTC instant moves by an hour twice a year; either recompute after every
+transition or use a scheduler that can be told UTC. `tools/check_schedule.py`
+prints the current conversion for the machine it runs on, which is the value to
+compare against.
+
+Keep shell logic out of the crontab: an unescaped `%` in a crontab means "newline"
+and will corrupt anything using `printf` or `date +%F`. Put it in a wrapper the
+operator owns, outside the repository:
+
+```sh
+#!/bin/sh
+# /usr/local/bin/vulnova-cycle  (chmod 0755; owned by the operator, not the repo)
+set -u
+PY=/srv/vulnova/vulnova_product/.venv/bin/python
+STORE=/srv/vulnova/evidence
+REPORT=/srv/vulnova/reports/prospective.md
+LOG=/var/log/vulnova-cycle.log
+LOCK=/run/lock/vulnova-cycle.lock
+
+# One instance at a time. An overlapping cycle would double the requests to each
+# publisher and confuse the log; it could never corrupt the store.
+command -v flock >/dev/null || { echo "flock (util-linux) is required" >>"$LOG"; exit 2; }
+exec 9>"$LOCK" || exit 2
+if ! flock -n 9; then
+    echo "$(date -u +%FT%TZ) skipped: previous cycle still running" >>"$LOG"
+    exit 75          # EX_TEMPFAIL: logged, not paged
+fi
+
+"$PY" -m vulnova.prospective cycle --store "$STORE" --out "$REPORT" >>"$LOG" 2>&1
+status=$?
+echo "$(date -u +%FT%TZ) cycle exit=$status" >>"$LOG"
+
+case "$status" in
+    0) ;;
+    2) vulnova-alert alert    "cycle recorded nothing; configuration or path" ;;
+    3) vulnova-alert notice   "cycle recorded, at least one source incomplete" ;;
+    4) vulnova-alert critical "store integrity failure; do not delete anything" ;;
+    *) vulnova-alert critical "cycle exited $status" ;;
+esac
+exit "$status"
+```
+
+`vulnova-alert` is a stand-in for whatever paging or mail hook the operator
+already runs; VULNOVA ships no alerting binary and does not assume one. What
+matters is the mapping: a non-zero `cycle` exit is classified and forwarded, and
+the exit status is still propagated so the scheduler's own reporting agrees.
+
+The wrapper never deletes the previous report: `--out` replaces that file
+atomically, and the report is regenerable — the evidence store is not touched.
+
+#### systemd
+
+The timer states its timezone explicitly, so no local-time conversion is needed:
 
 ```ini
 # /etc/systemd/system/vulnova-cycle.service
 [Unit]
 Description=VULNOVA prospective evidence cycle
+Wants=network-online.target
+After=network-online.target
+OnFailure=vulnova-alert@%n.service
 
 [Service]
 Type=oneshot
+User=vulnova
+Group=vulnova
 WorkingDirectory=/srv/vulnova/vulnova_product
 ExecStart=/srv/vulnova/vulnova_product/.venv/bin/python -m vulnova.prospective cycle --store /srv/vulnova/evidence --out /srv/vulnova/reports/prospective.md
+# Distinguish 3 from 4 in the alert; EXIT_STATUS is set for ExecStopPost.
+ExecStopPost=/usr/local/bin/vulnova-alert --status "$EXIT_STATUS"
+RuntimeMaxSec=1800
+TimeoutStartSec=1900
+Nice=10
 ```
 
 ```ini
@@ -423,47 +559,132 @@ Description=Daily VULNOVA prospective cycle
 
 [Timer]
 OnCalendar=*-*-* 13:10:00 UTC
-Persistent=true
+AccuracySec=1min
+RandomizedDelaySec=0
+Persistent=false
+Unit=vulnova-cycle.service
 
 [Install]
 WantedBy=timers.target
 ```
 
-Use `OnFailure=vulnova-alert.service` on the service (or a `FailureAction=` in
-`[Unit]`) to alert on a non-zero exit.
+Enable it with `systemctl enable --now vulnova-cycle.timer`, then confirm the
+computed instant instead of assuming it:
 
-**Windows Task Scheduler.** `schtasks` has no working-directory option, and
-`python -m vulnova.prospective` must run from `vulnova_product`, so change
-directory inside the command itself:
+```bash
+systemd-analyze calendar '*-*-* 13:10:00 UTC'   # prints Next elapse … UTC
+systemctl list-timers vulnova-cycle.timer       # NEXT column is the real answer
+```
+
+* **`Persistent=false` on purpose.** `Persistent=true` replays a missed timer at
+  the next boot. For a capture that is wrong twice over: the run happens hours
+  late, and on a machine that boots before ~12:00 UTC it happens *before* the new
+  day's EPSS file exists, so it records a partial capture on a date nobody chose.
+  A missed day must stay missing — see the rules below.
+* **No overlap is possible.** systemd does not start a second instance of a
+  `Type=oneshot` unit while it is running, so no lock file is needed here;
+  `RuntimeMaxSec` bounds a hung capture instead of letting it block tomorrow's.
+* Use an absolute `ExecStart` pointing at the deployment's own virtualenv, an
+  absolute `--store` **outside** the repository, and an absolute `--out` outside
+  both. `WorkingDirectory` is set so a relative path cannot be resolved against
+  `/`.
+* `OnFailure=` fires for any non-zero exit (2, 3 or 4); `ExecStopPost` receives
+  `$EXIT_STATUS` so the alert can say which one. Both point at an alert unit the
+  operator supplies — VULNOVA does not ship one.
+
+#### Windows Task Scheduler
+
+Task Scheduler interprets the trigger in the **machine's local time**, and
+`schtasks` has no UTC switch. On a machine set to `Asia/Kolkata`, 13:10 UTC is
+**18:40 IST**, so that is the value to configure:
 
 ```
-schtasks /Create /TN "VULNOVA prospective cycle" /SC DAILY /ST 13:10 ^
-  /TR "cmd /c cd /d C:\vulnova\vulnova_product && .venv\Scripts\python.exe -m vulnova.prospective cycle --store C:\vulnova\evidence --out C:\vulnova\reports\prospective.md" ^
+schtasks /Create /TN "VULNOVA prospective cycle" /SC DAILY /ST 18:40 ^
+  /TR "C:\vulnova\vulnova-cycle.cmd" ^
   /RU SYSTEM
 ```
 
-Equivalently in the GUI: *Create Task* → *Triggers* → daily at 13:10 → *Actions*
-→ Start a program: `cmd.exe`, arguments
-`/c cd /d C:\vulnova\vulnova_product && .venv\Scripts\python.exe -m vulnova.prospective cycle --store C:\vulnova\evidence`,
-and set *Start in* to `C:\vulnova\vulnova_product`. Tick *Run whether user is
-logged on or not*. PowerShell can register the same task:
+To derive it for another machine, ask the machine rather than doing the
+arithmetic by hand:
 
 ```powershell
-$action  = New-ScheduledTaskAction -Execute "cmd.exe" `
-  -Argument '/c cd /d C:\vulnova\vulnova_product && .venv\Scripts\python.exe -m vulnova.prospective cycle --store C:\vulnova\evidence'
-$trigger = New-ScheduledTaskTrigger -Daily -At 13:10
-Register-ScheduledTask -TaskName "VULNOVA prospective cycle" -Action $action -Trigger $trigger
+Get-TimeZone | Select-Object Id, BaseUtcOffset
+$utc = [datetime]::UtcNow.Date.AddHours(13).AddMinutes(10)
+[TimeZoneInfo]::ConvertTimeFromUtc($utc, [TimeZoneInfo]::Local).ToString("yyyy-MM-dd HH:mm")
 ```
 
-The exit status of `cmd.exe` is the Python process's exit status, so Task
-Scheduler's *Last Run Result* carries `0` / `2` / `3` / `4` unchanged.
+The second line prints the local time of 13:10 UTC **today**; use its `HH:mm` in
+`/ST`, and its date to notice a day boundary (a zone at UTC+13 puts 13:10 UTC at
+02:10 the next local day). Where the zone observes daylight saving, the result
+moves by an hour twice a year: rerun it after each transition, or schedule with a
+UTC-aware tool. Do not label that value UTC — it is not.
 
-**Alert on the exit status, not on the presence of a log line.** Exit `3` should
-page nobody at 3 a.m.; it should be a daily digest item. Exit `4` should page
-someone, because the archive itself is in question. Exit `2` means the schedule
-is misconfigured — wrong path, wrong permissions, wrong interpreter.
+In the GUI the same task is *Create Task* → *Triggers* → daily at **18:40** →
+*Actions* → start `C:\vulnova\vulnova-cycle.cmd` → *Settings* → **If the task is
+already running: Do not start a new instance**, and untick *Run task as soon as
+possible after a scheduled start is missed* (the Windows analogue of
+`Persistent=false`). PowerShell:
 
-Rules for the schedule:
+```powershell
+$action  = New-ScheduledTaskAction -Execute "C:\vulnova\vulnova-cycle.cmd"
+$trigger = New-ScheduledTaskTrigger -Daily -At "18:40"
+$settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew `
+  -ExecutionTimeLimit (New-TimeSpan -Minutes 30) -StartWhenAvailable:$false
+Register-ScheduledTask -TaskName "VULNOVA prospective cycle" `
+  -Action $action -Trigger $trigger -Settings $settings `
+  -User "NT AUTHORITY\SYSTEM" -RunLevel Highest
+```
+
+`-MultipleInstances IgnoreNew` is the overlap guard; without it a slow run and
+the next day's run can overlap. `18:40` is local time.
+
+`vulnova-cycle.cmd` (operator-owned, outside the repository) logs the exit code
+and raises an event so the run is visible in Event Viewer and to any monitoring
+that reads it:
+
+```bat
+@echo off
+setlocal
+set PY=C:\vulnova\vulnova_product\.venv\Scripts\python.exe
+set LOG=C:\vulnova\logs\cycle.log
+if not exist C:\vulnova\logs mkdir C:\vulnova\logs
+
+"%PY%" -m vulnova.prospective cycle --store C:\vulnova\evidence ^
+  --out C:\vulnova\reports\prospective.md >> "%LOG%" 2>&1
+set RC=%ERRORLEVEL%
+echo %DATE% %TIME% exit=%RC% >> "%LOG%"
+
+if "%RC%"=="2" eventcreate /T ERROR   /ID 100 /L APPLICATION /D "VULNOVA cycle recorded nothing (exit 2)"
+if "%RC%"=="3" eventcreate /T WARNING /ID 101 /L APPLICATION /D "VULNOVA cycle incomplete (exit 3)"
+if "%RC%"=="4" eventcreate /T ERROR   /ID 102 /L APPLICATION /D "VULNOVA store integrity failure (exit 4)"
+
+exit /b %RC%
+```
+
+`eventcreate` may need elevation depending on the machine's audit policy. If it
+is not permitted, forward `C:\vulnova\logs\cycle.log` to the existing monitoring
+instead — the exit code and the JSON summary are both in that file, and Task
+Scheduler's *Last Run Result* carries the same number.
+
+#### Testing a schedule without capturing
+
+Three checks, in increasing cost, none of which records evidence:
+
+1. `tools/check_schedule.py` — validates the configuration (above). Run it as the
+   scheduled user, with the same absolute paths the job uses.
+2. **Fire the schedule with the preflight instead of the cycle.** Point the
+   cron/Task entry or `ExecStart` at `check_schedule.py` for one day, confirm from
+   the log and the timer's next-elapse that it fires at the intended instant, then
+   switch it to `cycle`. This tests the *scheduler* — timezone, user, paths,
+   permissions — without a single network request.
+3. `python -m vulnova.prospective verify --store …` — offline re-hash of what is
+   already stored.
+
+Never test a schedule by lowering the trigger time and letting it capture for
+real: that records a run at an hour nobody chose, on a day that is now part of the
+archive.
+
+#### Rules for the schedule
 
 * **Missed days are left missing.** There is no backfill and no date override:
   running later cannot create a contemporaneous observation, and a file
@@ -479,6 +700,12 @@ Rules for the schedule:
   by hand. Both would break `verify`, which is the point.
 * **No retry loop.** One cycle per schedule slot. If a source is down, the cycle
   records the outage and exits; the next *scheduled* run is the retry.
+* **Nothing is deleted automatically.** No pruning, no rotation that removes old
+  runs, no cleanup of "failed" captures. Exit 3 and exit 4 both leave the store
+  exactly as the run left it.
+* **Evidence and reports stay outside the repository.** The store, the report and
+  the log all live outside the checkout; `check_schedule.py` fails a store or
+  report path inside it.
 
 ### Backup and restore
 
@@ -573,10 +800,11 @@ these is answered here.
 
 ## Tests
 
-`tests/test_prospective_*.py` (224 tests) drive the real capture, cycle, verify
-and report paths against canned responses. No test opens a socket:
-`tests/conftest.py` installs an autouse guard that fails any connection to a
-non-loopback address, and one test asserts the guard is live. The eight modules
+`tests/test_prospective_*.py` (224 tests) and `test_schedule_preflight.py` (24)
+drive the real capture, cycle, verify and report paths against canned responses,
+and exercise the schedule preflight against temporary directories. No test opens a
+socket: `tests/conftest.py` installs an autouse guard that fails any connection to
+a non-loopback address, and one test asserts the guard is live. The nine modules
 are:
 
 | Module | Tests | Focus |
@@ -589,6 +817,7 @@ are:
 | `test_prospective_report.py` | 26 | determinism, gaps, conflicts, unreadable runs, sealed targets |
 | `test_prospective_archive.py` | 9 | sealed 1.7 archive and committed report invariants |
 | `test_prospective_adversarial.py` | 54 | the 1.9 findings: link-less filesystems, malformed values, orphaned artifacts, structural requirement validation |
+| `test_schedule_preflight.py` | 24 | UTC→local trigger arithmetic (including a next-day zone), store/report path refusals, hard-link capability, store integrity, and the preflight CLI's exit codes |
 
 The checklist covered:
 
@@ -624,6 +853,12 @@ The checklist covered:
   verifier is `BLOCKED` exactly when the report calls the run malformed and
   excludes it from the day grid — a permissive report can never contradict a
   failed verification;
+* a scheduled configuration: the preflight passes a usable store, refuses one
+  inside the repository, one overlapping a sealed path, a relative path, a report
+  inside the store and a filesystem without hard links; it warns on an empty store
+  and fails a tampered one; it writes nothing into the store and leaves no probe
+  directory behind; the UTC→local conversion is pinned for +05:30, +00:00, −08:00
+  and a +13 zone that lands on the next local date;
 * unsafe store, report and symlink targets, traversal, and refusals that leave
   no directory and read no clock;
 * programmatic calls with empty defaults still protected; the sealed 1.7 archive

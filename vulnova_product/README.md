@@ -164,6 +164,12 @@ capture is never rounded up. Neither `capture` nor `cycle` has a date override:
 scheduling, alerting, backup and the reasons there is no GitHub Actions capture
 job are in `docs/PROSPECTIVE_CAPTURE_1_9.md`.
 
+Schedulers disagree about timezones — cron and Windows Task Scheduler read a bare
+clock time as **local**, so `13:10` is only UTC where the configuration says so.
+`python tools/check_schedule.py --store … --out …` validates a schedule's paths,
+sealed-path safety, hard-link support and store integrity, and prints what the
+trigger time means on that machine, without capturing anything.
+
 This milestone adds the capability and its tests, not captured evidence: no
 prospective store is committed. It does not mature labels, admit a design or
 approve the protocol — `protocol/evaluation_protocol.json` remains
