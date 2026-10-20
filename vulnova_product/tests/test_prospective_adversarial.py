@@ -1,4 +1,4 @@
-"""Adversarial tests for the three 1.9 findings.
+"""Adversarial tests for the 1.9 hardening findings.
 
 Each test starts from a real, captured store and then damages it the way a crash,
 a partial write, a corrupted disk or a hand-edited JSON file would.  The rules
@@ -6,6 +6,9 @@ under test are deliberately blunt:
 
 * a filesystem without hard links cannot store evidence at all;
 * a malformed run is never summarized under the status it claims;
+* a run with a duplicated or missing requirement, or with a capture that
+  finishes before it starts, is refused structurally even when it was re-signed
+  and padded with self-consistent counters;
 * an artifact is inventoried because it exists, not because a run mentions it.
 
 The verification and report entry points are exercised through the API and the
@@ -802,3 +805,87 @@ def test_equal_capture_instants_are_accepted(tmp_path):
     assert report["malformed_captures"] == 0
     assert report["status_counts"] == {A.VERIFIED: 1, A.UNAVAILABLE: 0, A.BLOCKED: 0}
     assert report["days"][0]["kev"] == A.VERIFIED
+
+
+# ------------------------------------------------ verify/report agreement
+def _duplicate_first_requirement(run):
+    run["requirements"].append(json.loads(json.dumps(run["requirements"][0])))
+
+
+def _duplicate_with_consistent_counters(run):
+    _duplicate_first_requirement(run)
+    run["summary"]["sources_total"] = 4
+    run["summary"]["sources_verified"] = 4
+    run["summary"]["partial_capture"] = False
+    run["summary"]["capture_status"] = A.VERIFIED
+
+
+def _drop_a_required_requirement(run):
+    run["requirements"] = [
+        requirement
+        for requirement in run["requirements"]
+        if requirement["id"] != C.EPSS_REQUIREMENT
+    ]
+    run["summary"]["sources_total"] = 2
+    run["summary"]["sources_verified"] = 2
+    run["summary"]["partial_capture"] = False
+    run["summary"]["capture_status"] = A.VERIFIED
+
+
+def _finish_before_starting(run):
+    run["capture_completed_at"] = "2026-10-20T13:59:59Z"
+
+
+def _unknown_requirement_id(run):
+    run["requirements"].append(
+        {"id": "NOT-A-REQUIREMENT", "description": "x", "status": A.VERIFIED}
+    )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        _duplicate_first_requirement,
+        _duplicate_with_consistent_counters,
+        _drop_a_required_requirement,
+        _finish_before_starting,
+        _unknown_requirement_id,
+    ],
+    ids=[
+        "duplicate",
+        "duplicate-with-matching-counters",
+        "missing-required",
+        "impossible-chronology",
+        "unknown-id",
+    ],
+)
+def test_verify_and_report_agree_on_every_structural_defect(tmp_path, mutation):
+    """Both entry points must fail for the same record, and neither may pass.
+
+    A defect that one surface catches and the other summarizes as a sound day
+    would let an operator quote the permissive report and ignore verification.
+    """
+    scenario = _captured(tmp_path)
+    _rewrite(scenario, mutation)
+
+    result = verify_store(scenario.store_root)
+    report = build_report(scenario.store_root)
+
+    blocked = result["status"] == A.BLOCKED
+    assert blocked, verify_failure_reasons(result)
+    assert blocked == (report["malformed_captures"] == 1)
+    assert blocked == bool(verify_failure_reasons(result))
+    assert report["days"] == []
+    assert report["status_counts"] == {A.VERIFIED: 0, A.UNAVAILABLE: 0, A.BLOCKED: 1}
+    assert "Malformed runs" in render_markdown(report)
+
+
+def test_a_sound_run_is_verified_by_both_entry_points(tmp_path):
+    """The negative tests above are only meaningful if a sound run still passes."""
+    scenario = _captured(tmp_path)
+    result = verify_store(scenario.store_root)
+    report = build_report(scenario.store_root)
+    assert result["status"] == A.VERIFIED
+    assert verify_failure_reasons(result) == []
+    assert report["malformed_captures"] == 0
+    assert report["status_counts"] == {A.VERIFIED: 1, A.UNAVAILABLE: 0, A.BLOCKED: 0}

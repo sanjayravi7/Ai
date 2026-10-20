@@ -375,7 +375,7 @@ these is answered here.
 
 ## Tests
 
-`tests/test_prospective_*.py` (189 tests) drive the real capture, verify and
+`tests/test_prospective_*.py` (195 tests) drive the real capture, verify and
 report paths against canned responses. No test opens a socket: `tests/conftest.py`
 installs an autouse guard that fails any connection to a non-loopback address, and
 one test asserts the guard is live. The seven modules are:
@@ -388,7 +388,7 @@ one test asserts the guard is live. The seven modules are:
 | `test_prospective_store.py` | 26 | create-once, atomicity, concurrency, capability refusal, path safety |
 | `test_prospective_report.py` | 26 | determinism, gaps, conflicts, unreadable runs, sealed targets |
 | `test_prospective_archive.py` | 9 | sealed 1.7 archive and committed report invariants |
-| `test_prospective_adversarial.py` | 48 | the 1.9 findings: link-less filesystems, malformed values, orphaned artifacts |
+| `test_prospective_adversarial.py` | 54 | the 1.9 findings: link-less filesystems, malformed values, orphaned artifacts, structural requirement validation |
 
 The checklist covered:
 
@@ -420,6 +420,10 @@ The checklist covered:
   and a missing required ID are refused even when the summary counters are made
   consistent, and `capture_completed_at` earlier than `capture_started_at` is
   rejected by both verification and the report (equal instants are accepted);
+* verify/report agreement: for every structural defect the suite damages, the
+  verifier is `BLOCKED` exactly when the report calls the run malformed and
+  excludes it from the day grid — a permissive report can never contradict a
+  failed verification;
 * unsafe store, report and symlink targets, traversal, and refusals that leave
   no directory and read no clock;
 * programmatic calls with empty defaults still protected; the sealed 1.7 archive

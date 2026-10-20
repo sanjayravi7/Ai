@@ -12,8 +12,11 @@ It checks:
 * every record has well-typed fields, a status in the three-state vocabulary, no
   historical cutoff, and — when ``VERIFIED`` — a stored artifact whose size and
   SHA-256 match;
-* every requirement names a known requirement and carries a valid status, and
-  the summary status equals the worst recomputed requirement status;
+* every requirement names a known requirement and carries a valid status, the
+  requirements block holds **exactly one entry per required ID** (a duplicate
+  contributes no second status and a missing ID is an error), the capture did
+  not finish before it started, and the summary status equals the worst
+  recomputed requirement status;
 * **every physical file** under ``artifacts/`` is inventoried, content-addressed,
   and referenced by a readable run (see below);
 * the sealed 1.7 archive still matches its manifest (when this is a repository
