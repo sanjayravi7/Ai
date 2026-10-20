@@ -52,7 +52,7 @@ receives an immutable-by-convention `CheckContext` and returns a status with
 explicit reasons. Unavailable evidence produces `BLOCKED`, never a pass and never
 a fabricated failure. The only human decision in the pipeline — protocol approval
 and design adoption — is read from `protocol/evaluation_protocol.json`; the tool
-cannot write it. See `docs/EVALUATION_READINESS.md`.
+cannot write it. See `docs/EVALUATION_READINESS_1_6.md`.
 
 ## Historical-acquisition subsystem (1.7)
 
@@ -123,6 +123,50 @@ It adds no source adapter and no second definition of a status.
 `run_refresh` takes its clock as a parameter. The CLI never exposes a date for
 `run`: production acquisition always uses the real UTC clock, and every
 `retrieved_at` is the transport's actual receipt time.
+
+## Prospective-capture subsystem (1.9)
+
+`vulnova/prospective/` captures the same three first-party sources while the
+period is live. It reuses the 1.7 adapters, transport, host policy, status
+vocabulary and `Requirement` type, and it reuses the 1.8 write-safety gate
+instead of reimplementing it.
+
+* `capture.py` runs the KEV direct feed and CISA's GitHub repository (both
+  attempts are kept), the exact EPSS daily file for the run's UTC observation
+  date via `acquire_daily(..., historical=False)`, and `capture_current`, which
+  records cvelistV5's default-branch commit SHA from one API response without a
+  clone. It rejects any record carrying a historical cutoff and re-hashes every
+  `VERIFIED` artifact before writing the run.
+* `store.py` is content-addressed and create-once: `<sha256>` names the bytes, a
+  temporary file is fsynced and `os.link`ed into place, identical bytes are a
+  no-op and different bytes raise `StoreConflict` rather than overwrite. There
+  is no weaker writer: a filesystem that cannot link gets
+  `StoreCapabilityError` (`ATOMIC_CREATE_UNAVAILABLE`) and stores nothing, so a
+  crash can never leave a partial artifact at the evidence path. Paths are
+  checked syntactically and against the resolved store root; symlinks are
+  refused, and the inventory exposes every entry the write path could not have
+  produced.
+* `verify.py` is offline. It recomputes every run digest, re-derives every run
+  id, re-hashes every artifact, re-derives every summary status, rejects a
+  cutoff in a prospective record, and re-hashes the sealed 1.7 archive. It also
+  inventories `artifacts/` directly — content-addressing every file, refusing
+  symlinks and escapes, distinguishing tampering from an incomplete capture
+  (`UNREFERENCED_ARTIFACT`) and from an abandoned temporary write. An empty
+  store is `BLOCKED` (`CAPTURES_PRESENT`), and two captures of one date that
+  disagree are a reported conflict, not a failure.
+* `report.py` is derived only from stored runs — no clock, no absolute paths — so
+  the same store yields a byte-identical report and digest on any machine. Per
+  source it reports the run's own requirement status, not the worst failed
+  attempt beside a successful fallback. A run whose record does not validate is
+  counted as `BLOCKED` and excluded from the source grid; it is named in
+  `malformed_runs` with the exact problems, and an invented or wrong-typed
+  status is never used as a dictionary key or counted as a status.
+* `paths.py` extends the 1.8 fixed protected set with `data/refresh_store_1_8`,
+  `reports/refresh_1_8` and `protocol/`. `capture_protected_paths()` treats
+  caller paths as additive, so `protected_paths=()` still protects the seals.
+
+The CLI exposes `capture`, `verify` and `report`. `capture` has no date override;
+tests inject a clock only through `CaptureOptions`.
 
 ## Design decisions
 

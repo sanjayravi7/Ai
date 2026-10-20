@@ -27,3 +27,9 @@ dist/
 # Large source trees fetched for ingest (never committed; see RUNBOOK.md)
 /tmp/cvel2020_2023/
 data/snapshots/cvelistv5/cves/
+
+# Prospective evidence stores (1.9). The default lives outside the repository;
+# these patterns keep an operator from committing a growing daily EPSS stream
+# if they override --store into the checkout.
+data/prospective_store*/
+data/prospective/

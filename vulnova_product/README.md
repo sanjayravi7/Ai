@@ -67,7 +67,7 @@ adopt a design or relax the event gate. The protocol in
 report is `BLOCKED_PROTOCOL_NOT_APPROVED`: 42 PASS, 0 FAIL, 1 BLOCKED (retrieval
 timestamps) and 1 NOT_APPLICABLE (no previous report). The earliest three-block
 design matures 2026-10-28, after the reference date, and the supplied KEV timeline
-ends 2026-10-15. See `docs/EVALUATION_READINESS.md` for the check catalog, report
+ends 2026-10-15. See `docs/EVALUATION_READINESS_1_6.md` for the check catalog, report
 schema and status semantics.
 
 ## Historical data acquisition (1.7)
@@ -128,6 +128,38 @@ A digest difference between the two reports is expected and is explained in the
 report itself: a readiness report embeds its own as-of date. See
 `docs/MATURITY_REFRESH_1_8.md`.
 
+## Prospective evidence capture (1.9)
+
+VULNOVA 1.9 starts recording evidence while the period is live, so a future
+assessment does not depend on artifacts downloaded years after the fact. One
+capture preserves, with its real UTC retrieval time and SHA-256, the CISA KEV
+catalog (from the publisher's feed and from CISA's own repository), the exact
+daily EPSS file for the observation date, and the observable cvelistV5 commit
+SHA — without cloning the multi-gigabyte repository.
+
+```bash
+cd vulnova_product
+python -m vulnova.prospective capture   # the only network-using command
+python -m vulnova.prospective verify    # offline: re-hash every capture
+python -m vulnova.prospective report    # offline: deterministic summary
+```
+
+The store is append-only and content-addressed (`~/.vulnova/prospective` by
+default, `--store` or `VULNOVA_PROSPECTIVE_STORE` to relocate). Nothing is
+overwritten; two captures of the same day that disagree are both kept and
+reported as a conflict. Every write target is validated before the first network
+request against the sealed 1.6 report, the 1.7 archive, `data/snapshots`, the
+Phase 2.3K export, the 1.8 refresh store and reports, and `protocol/`. An
+unreachable source is `UNAVAILABLE`, a policy refusal is `BLOCKED`, and a partial
+capture is never rounded up. `capture` has no date override: scheduling, backup
+and the reasons there is no GitHub Actions capture job are in
+`docs/PROSPECTIVE_CAPTURE_1_9.md`.
+
+This milestone adds the capability and its tests, not captured evidence: no
+prospective store is committed. It does not mature labels, admit a design or
+approve the protocol — `protocol/evaluation_protocol.json` remains
+`NOT_APPROVED`.
+
 ## CI
 
 GitHub Actions runs the unit tests and the Chromium smoke test on changes under
@@ -155,6 +187,7 @@ vulnova/
   evaluation/     readiness checks, temporal validation, report writer
   acquisition/    historical acquisition, provenance manifest, offline verify
   refresh/        maturity gate, evidence refresh, feasibility comparison (1.8)
+  prospective/    append-only prospective evidence capture and verification (1.9)
   static/         index.html, style.css, app.js
 protocol/
   EVALUATION_PROTOCOL_1.6.md      draft protocol (NOT_APPROVED)
@@ -163,10 +196,12 @@ docs/
   ARCHITECTURE.md
   BROWSER_TESTING.md
   CI.md
-  EVALUATION_READINESS.md
+  DATA_ACQUISITION_1_7.md
+  EVALUATION_READINESS_1_6.md
   MATURITY_REFRESH_1_8.md
+  PROSPECTIVE_CAPTURE_1_9.md
   RANKING_SEMANTICS.md
-tests/            test suite (467 tests, including synthetic readiness, acquisition and refresh fixtures)
+tests/            test suite (693 tests, including synthetic readiness, acquisition, refresh and prospective fixtures)
 tools/            verifiers, digest, manifest, pre-2020 fetch
 reports/
   validation1_1/  previous phase (historical, unchanged)

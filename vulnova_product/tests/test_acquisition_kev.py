@@ -46,6 +46,41 @@ def test_current_catalog_prefers_the_direct_cisa_feed(tmp_path):
     assert store.exists(records[0].artifact_path)
 
 
+def test_an_empty_catalog_is_refused_not_verified(tmp_path):
+    """Zero entries is a broken feed, never "no exploited vulnerabilities"."""
+    body = kev_catalog_bytes("2026.10.16", "2026-10-16T17:15:48Z", count=0)
+    transport = FakeTransport().add_bytes(
+        kev.CISA_FEED_URL, body, content_type="application/json", retrieved_at="2026-10-20T10:00:00Z"
+    )
+    records, facts = kev.acquire_current(transport, store=ArtifactStore(tmp_path / "store"))
+    assert facts is None
+    assert records[0].content_status == C.BLOCKED
+    assert records[0].reason_code == C.NO_RECORDS
+    assert not (tmp_path / "store").exists()
+
+
+def test_a_future_dated_catalog_is_blocked_on_the_direct_feed(tmp_path):
+    """The direct feed must be finalized *after* its source timestamp is attached.
+
+    Regression: ``acquire_current`` used to call ``finalize()`` before
+    ``_observe`` attached ``dateReleased``, so a catalog dated after its own
+    retrieval was reported VERIFIED on the direct channel while the GitHub
+    channel correctly reported ``RETRIEVAL_BEFORE_SOURCE_TIME``.
+    """
+    body = kev_catalog_bytes("2026.10.21", "2026-10-20T15:00:00Z", count=3)
+    transport = FakeTransport().add_bytes(
+        kev.CISA_FEED_URL,
+        body,
+        content_type="application/json",
+        retrieved_at="2026-10-20T10:00:00Z",
+    )
+    records, _facts = kev.acquire_current(transport, store=ArtifactStore(tmp_path / "store"))
+    assert len(records) == 1
+    assert records[0].source_timestamp == "2026-10-20T15:00:00Z"
+    assert records[0].content_status == C.BLOCKED
+    assert records[0].reason_code == C.RETRIEVAL_BEFORE_SOURCE_TIME
+
+
 def test_unreachable_cisa_feed_is_recorded_even_when_github_succeeds(tmp_path):
     transport = FakeTransport().add_error(kev.CISA_FEED_URL, reason="UNREACHABLE")
     records, facts = kev.acquire_current(transport, store=ArtifactStore(tmp_path / "store"))
@@ -71,6 +106,21 @@ def test_catalog_without_release_timestamp_is_rejected():
     payload = json.dumps({"catalogVersion": "1", "count": 0, "vulnerabilities": []})
     try:
         kev.inspect_catalog(payload.encode())
+    except ValueError as exc:
+        assert str(exc) == C.SOURCE_TIMESTAMP_MISSING
+    else:  # pragma: no cover
+        raise AssertionError("expected a rejection")
+
+
+def test_a_release_field_that_is_not_a_timestamp_is_rejected():
+    payload = {
+        "catalogVersion": "1",
+        "dateReleased": "last Tuesday",
+        "count": 1,
+        "vulnerabilities": [{"cveID": "CVE-2024-0001"}],
+    }
+    try:
+        kev.inspect_catalog(json.dumps(payload).encode())
     except ValueError as exc:
         assert str(exc) == C.SOURCE_TIMESTAMP_MISSING
     else:  # pragma: no cover
@@ -353,3 +403,14 @@ def test_redirected_direct_feed_preserves_both_urls(tmp_path):
     assert facts is not None
     assert payload["request_url"] == kev.CISA_FEED_URL
     assert payload["final_url"] == destination
+
+
+def test_a_non_object_commit_is_malformed_not_a_crash(tmp_path):
+    transport = FakeTransport().add_json(
+        kev_latest_url(), ["not a commit"], retrieved_at="2026-10-20T10:00:00Z"
+    )
+    record = kev.acquire_current_github(
+        GitHubApi(transport), store=ArtifactStore(tmp_path / "store")
+    )
+    assert record.content_status == C.BLOCKED
+    assert record.reason_code == C.MALFORMED_RESPONSE
