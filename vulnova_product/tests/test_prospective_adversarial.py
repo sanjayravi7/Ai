@@ -660,3 +660,24 @@ def test_an_artifact_path_for_the_wrong_kind_is_malformed(tmp_path):
     result = verify_store(scenario.store_root)
     assert result["status"] == A.BLOCKED
     assert "RECORD_INVARIANTS" in verify_failure_reasons(result)
+
+
+def test_an_observation_date_that_is_not_the_capture_utc_date_is_refused(tmp_path):
+    scenario = _captured(tmp_path)
+
+    def mutate(run):
+        run["observation_date"] = "2026-10-19"
+        run["summary"]["observation_date"] = "2026-10-19"
+
+    _rewrite(scenario, mutate)
+    report = build_report(scenario.store_root)
+    assert report["malformed_captures"] == 1
+    assert any(
+        "is not the UTC date" in problem
+        for problem in report["malformed_runs"][0]["problems"]
+    )
+    assert report["days"] == []
+    result = verify_store(scenario.store_root)
+    assert result["status"] == A.BLOCKED
+    assert "SCHEMA" in verify_failure_reasons(result)
+    assert "is not the UTC date" in _check(result, "SCHEMA")["detail"]

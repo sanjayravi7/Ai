@@ -243,6 +243,13 @@ def _run_problems(run: dict, filename_run_id: str) -> list[str]:
         problems.append(
             f"observation_date {_short(run.get('observation_date'))} is not an ISO date"
         )
+    elif _iso_instant(run.get("capture_started_at")):
+        started = to_instant(run["capture_started_at"]).date().isoformat()
+        if started != run["observation_date"]:
+            problems.append(
+                f"observation_date {run['observation_date']} is not the UTC date of "
+                f"capture_started_at ({started})"
+            )
 
     requirement_statuses, requirement_problems = _requirement_statuses(run)
     problems.extend(requirement_problems)

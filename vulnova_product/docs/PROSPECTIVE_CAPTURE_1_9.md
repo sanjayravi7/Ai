@@ -375,7 +375,7 @@ these is answered here.
 
 ## Tests
 
-`tests/test_prospective_*.py` (184 tests) drive the real capture, verify and
+`tests/test_prospective_*.py` (185 tests) drive the real capture, verify and
 report paths against canned responses. No test opens a socket: `tests/conftest.py`
 installs an autouse guard that fails any connection to a non-loopback address, and
 one test asserts the guard is live. The seven modules are:
@@ -388,7 +388,7 @@ one test asserts the guard is live. The seven modules are:
 | `test_prospective_store.py` | 26 | create-once, atomicity, concurrency, capability refusal, path safety |
 | `test_prospective_report.py` | 26 | determinism, gaps, conflicts, unreadable runs, sealed targets |
 | `test_prospective_archive.py` | 9 | sealed 1.7 archive and committed report invariants |
-| `test_prospective_adversarial.py` | 43 | the 1.9 findings: link-less filesystems, malformed values, orphaned artifacts |
+| `test_prospective_adversarial.py` | 44 | the 1.9 findings: link-less filesystems, malformed values, orphaned artifacts |
 
 The checklist covered:
 

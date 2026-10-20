@@ -201,7 +201,7 @@ docs/
   MATURITY_REFRESH_1_8.md
   PROSPECTIVE_CAPTURE_1_9.md
   RANKING_SEMANTICS.md
-tests/            test suite (682 tests, including synthetic readiness, acquisition, refresh and prospective fixtures)
+tests/            test suite (683 tests, including synthetic readiness, acquisition, refresh and prospective fixtures)
 tools/            verifiers, digest, manifest, pre-2020 fetch
 reports/
   validation1_1/  previous phase (historical, unchanged)

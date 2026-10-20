@@ -392,6 +392,7 @@ def verify_store(store_root: Path | str) -> dict:
         if not isinstance(run.get("run_id"), str):
             schema_errors.append(f"{run_id}: run_id is not a string")
             continue
+        started = run.get("capture_started_at")
         for field in ("capture_started_at", "capture_completed_at"):
             value = run.get(field)
             try:
@@ -402,6 +403,17 @@ def verify_store(store_root: Path | str) -> dict:
                 schema_errors.append(
                     f"{run_id}: {field} {_short(value)} is not an ISO timestamp"
                 )
+        # The observation date is the UTC date of the capture instant.  Capture
+        # computes it that way; a run that claims a different day is misdated,
+        # however well its digest recomputes.
+        try:
+            if isinstance(started, str) and to_instant(started).date().isoformat() != observation:
+                schema_errors.append(
+                    f"{run_id}: observation_date {observation} is not the UTC date of "
+                    f"capture_started_at {_short(started)}"
+                )
+        except (TypeError, ValueError):
+            pass
         runs.append(run)
 
         recorded = run.get("run_digest")
