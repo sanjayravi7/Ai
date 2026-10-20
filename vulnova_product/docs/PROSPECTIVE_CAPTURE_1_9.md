@@ -48,31 +48,52 @@ host: VULNOVA requested `epss.cyentia.com`, FIRST's legacy EPSS host. That recor
 is preserved unchanged — it is an accurate record of what was requested and
 refused on that date, and this hotfix does not rewrite it.
 
-FIRST's current documentation ("Get the Data") names
-`epss.empiricalsecurity.com` as the daily CSV host, and the EPSS API page
-documents date-specific files at
-`https://epss.empiricalsecurity.com/epss_scores-YYYY-MM-DD.csv.gz`. Since 1.9.1
-the source constructs that URL directly, for the observation date and no other.
+What is published and what is merely observed are kept apart here:
+
+| Claim | Status |
+| --- | --- |
+| `epss.empiricalsecurity.com` is the daily CSV host | **Published.** FIRST's *Get the Data* page names it and gives `epss_scores-current.csv.gz`. |
+| The *current-file* URL redirects | **Published.** The same page says so and tells users to pass `curl -L`. |
+| A date-specific file exists at `epss_scores-YYYY-MM-DD.csv.gz` on that host | **Observed, not currently documented.** A 2026-10-19 file fetched from that path declares its own `score_date`. An index snippet attributes the pattern to FIRST's API page, but that page returns 404 when fetched. Third-party integrations use the same pattern — corroboration, not documentation. |
+| The date-specific URL redirects, and to where | **Unobserved.** No status code or `Location` header has been seen. |
+
+Since 1.9.1 the source constructs the date-specific URL directly, for the
+observation date and no other.
 
 | Rule | Behaviour |
 | --- | --- |
 | Requested URL | `https://epss.empiricalsecurity.com/epss_scores-<UTC date>.csv.gz` — always the exact date, never `-current` and never a different day |
-| Allowlist | `epss.empiricalsecurity.com` replaces `epss.cyentia.com` in `DEFAULT_ALLOWED_HOSTS`; the legacy host is no longer requested or accepted as a redirect target |
+| Allowlist | `DEFAULT_ALLOWED_HOSTS` names only hosts a source fetches: the three GitHub hosts, `www.cisa.gov` and `epss.empiricalsecurity.com`. `epss.cyentia.com` and `www.first.org` were removed — neither is requested by any source, and the latter is FIRST's documentation site, not a data endpoint |
 | Redirects | `SafeRedirectHandler` and `require_https` are unchanged. Every hop must stay HTTPS and inside the allowlist |
-| Response check | the source re-checks the URL that actually answered (`APPROVED_RESPONSE_HOSTS`: the EPSS host and FIRST's own `www.first.org`) before inspecting a byte, so an injected transport cannot smuggle an unapproved host's bytes into evidence |
-| Recorded URLs | `request_url` and `final_url` are stored separately, so a redirect is visible rather than assumed |
+| Response check | the source re-checks the URL that actually answered against `APPROVED_RESPONSE_HOSTS`, which holds **exactly** `epss.empiricalsecurity.com`, before the body is parsed, hashed or stored |
+| Recorded URLs | `request_url` is always kept; `final_url` is recorded only when a response actually answered. A redirect is therefore visible rather than assumed, and a refusal issued before the hop leaves no `final_url` at all |
 | Refusals | an unapproved destination or a plaintext response is `BLOCKED` / `REDIRECT_BLOCKED`, with no digest and no artifact path |
 | Everything else | `score_date` comparison, storage and requirement status are unchanged |
 
-**What is verified, and what is not.** FIRST documents that the *current-file*
-URL (`epss_scores-current.csv.gz`) redirects; it does not state whether the
-date-specific URL does. That question could not be settled from this sandbox:
-direct TLS to the host is blocked, and the retrieval path available here does not
-expose HTTP status codes. The exact-date URL does serve the right bytes — a
-2026-10-19 file read through that path declares
-`score_date:2026-10-19T12:00:27Z` — but that is not a substitute for a real
-capture. No redirect destination beyond the EPSS host and `www.first.org` is
-permitted, and no live capture is claimed to succeed.
+**What is verified, and what is not.** FIRST publishes that the *current-file*
+URL redirects; it says nothing about the date-specific URL. That question could
+not be settled from this sandbox: direct TLS to the host is blocked before the
+handshake completes, and the alternative retrieval path used for the 2026-10-19
+observation returns the file body only — **no HTTP status and no `Location`
+header**, because it is not a raw HTTP client. So the observation establishes
+that the exact-date path serves a file whose own header declares
+`score_date:2026-10-19T12:00:27Z`; it establishes nothing about redirects. It is
+also not a substitute for a real capture, and no live capture is claimed to
+succeed.
+
+Because the response allowlist is now exactly the EPSS host, an undocumented
+redirect to an infrastructure host will fail closed: the record becomes
+`BLOCKED` / `REDIRECT_BLOCKED` and names the refused destination. That is the
+deliberate trade — an unverified redirect is not silently trusted — and it is
+recoverable by adding an evidence-backed allowance if one is later observed.
+
+**What a refusal guarantees.** A refused response is not parsed, not hashed and
+not written to the store; `request_url` and `final_url` are both kept. It does
+**not** mean the bytes were never received: the transport reads a response body
+before the source sees the URL that produced it, so the guarantee is about what
+is done with those bytes, not about whether they arrived. In production the
+transport refuses an unapproved redirect before the follow-up request is issued,
+so the destination is never contacted at all.
 
 ## Provenance recorded per artifact
 

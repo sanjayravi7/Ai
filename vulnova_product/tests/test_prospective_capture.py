@@ -158,8 +158,10 @@ def test_a_score_date_mismatch_is_never_substituted(tmp_path):
 
 
 # ---------------------------------------------------------------- redirects
-def test_a_permitted_redirect_records_both_urls(tmp_path):
-    redirect = "https://www.first.org/epss/epss_scores-2026-10-20.csv.gz"
+def test_a_same_host_redirect_records_both_urls(tmp_path):
+    redirect = (
+        "https://epss.empiricalsecurity.com/daily/epss_scores-2026-10-20.csv.gz"
+    )
     scenario = build_scenario(tmp_path, epss_redirect=redirect)
     run = run_capture(scenario.options())["run"]
     record = _records(run, "epss")[0]
@@ -168,6 +170,32 @@ def test_a_permitted_redirect_records_both_urls(tmp_path):
     )
     assert record["final_url"] == redirect
     assert record["content_status"] == A.VERIFIED
+
+
+def test_a_cross_host_redirect_to_the_publisher_docs_is_blocked(tmp_path):
+    """www.first.org is FIRST's documentation site, not an EPSS data endpoint.
+
+    No observed response shows the data endpoint redirecting there, so the
+    attempt is refused rather than trusted.  This goes through
+    ``PolicyTransport``, which applies the real host policy, so the refusal
+    happens *before the hop is issued*: no follow-up response exists, and the
+    record honestly carries no ``final_url`` at all.
+    """
+    redirect = "https://www.first.org/epss/epss_scores-2026-10-20.csv.gz"
+    scenario = build_scenario(tmp_path, epss_redirect=redirect)
+    run = run_capture(scenario.options())["run"]
+    record = _records(run, "epss")[0]
+    assert record["request_url"] == (
+        "https://epss.empiricalsecurity.com/epss_scores-2026-10-20.csv.gz"
+    )
+    assert record["content_status"] == A.BLOCKED
+    assert record["reason_code"] == A.REDIRECT_BLOCKED
+    assert record["details"]["error"] == "DISALLOWED_REDIRECT_HOST"
+    assert record["sha256"] is None
+    assert record["artifact_path"] is None
+    # The refused destination was never requested, so nothing answered it.
+    assert "final_url" not in record
+    assert run["summary"]["capture_status"] == A.BLOCKED
 
 
 def test_a_redirect_to_an_unapproved_host_is_blocked(tmp_path):

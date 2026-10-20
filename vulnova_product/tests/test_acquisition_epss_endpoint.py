@@ -217,7 +217,13 @@ def test_a_same_host_redirect_is_allowed_and_both_urls_are_recorded():
     assert payload["request_url"] != payload["final_url"]
 
 
-def test_a_first_party_first_org_redirect_is_allowed_and_recorded():
+def test_a_redirect_to_the_publisher_documentation_site_is_refused():
+    """FIRST's docs site is not an EPSS data endpoint and is not allowlisted.
+
+    The transport here performs no policy checks, so this exercises the
+    source-level rule: a plausible-sounding first-party host is still refused
+    when nothing shows the data endpoint redirecting to it.
+    """
     redirected = f"https://www.first.org/epss/epss_scores-{DAY.isoformat()}.csv.gz"
     transport = FakeTransport().add_bytes(
         epss_url(DAY),
@@ -227,14 +233,23 @@ def test_a_first_party_first_org_redirect_is_allowed_and_recorded():
         final_url=redirected,
     )
     record = epss.acquire_daily(transport, DAY)
-    assert record.content_status == C.VERIFIED
-    assert record.final_url == redirected
+    assert record.content_status == C.BLOCKED
+    assert record.reason_code == C.REDIRECT_BLOCKED
+    assert record.details["error"] == "DISALLOWED_REDIRECT_HOST"
+    assert record.sha256 is None
+    assert record.artifact_path is None
 
 
 def test_response_url_problem_classifies_each_case():
     assert epss.response_url_problem(epss_url(DAY)) is None
+    # The default HTTPS port, explicit, is the same destination.
     assert (
-        epss.response_url_problem("https://www.first.org/x.csv.gz") is None
+        epss.response_url_problem("https://epss.empiricalsecurity.com:443/x.csv.gz")
+        is None
+    )
+    assert (
+        epss.response_url_problem("https://www.first.org/x.csv.gz")
+        == "DISALLOWED_REDIRECT_HOST"
     )
     assert (
         epss.response_url_problem("https://unknown.example/x.csv.gz")
@@ -249,6 +264,79 @@ def test_response_url_problem_classifies_each_case():
         epss.response_url_problem("https://epss.empiricalsecurity.com.evil.example/x")
         == "DISALLOWED_REDIRECT_HOST"
     )
+    # Nor is the approved name used as a userinfo prefix for another host.
+    assert (
+        epss.response_url_problem("https://epss.empiricalsecurity.com@evil.example/x")
+        == "DISALLOWED_REDIRECT_HOST"
+    )
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://epss.empiricalsecurity.com:8443/epss_scores-2026-10-20.csv.gz",
+        "https://epss.empiricalsecurity.com:80/epss_scores-2026-10-20.csv.gz",
+        "https://epss.empiricalsecurity.com:0/epss_scores-2026-10-20.csv.gz",
+        "https://epss.empiricalsecurity.com:99999999/x",
+        "https://epss.empiricalsecurity.com:abc/x",
+        "https://epss.empiricalsecurity.com:/x",
+    ],
+    ids=["8443", "80", "0", "out-of-range", "non-numeric", "empty-port"],
+)
+def test_a_non_default_or_malformed_port_is_refused(url):
+    """Only the default HTTPS port, or no port at all, is the same destination."""
+    assert epss.response_url_problem(url) == "DISALLOWED_REDIRECT_HOST"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://user:secret@epss.empiricalsecurity.com/x",
+        "https://user@epss.empiricalsecurity.com/x",
+        "https://evil.example@epss.empiricalsecurity.com/x",
+        "https://user:secret@epss.empiricalsecurity.com:8443/x",
+    ],
+    ids=["user-and-password", "user-only", "lookalike-prefix", "user-and-port"],
+)
+def test_embedded_user_information_is_refused(url):
+    """Credentials would also be persisted verbatim into the run record."""
+    assert epss.response_url_problem(url) == "DISALLOWED_REDIRECT_HOST"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [None, 7, 3.5, b"https://epss.empiricalsecurity.com/x", ["x"], {"url": "x"}],
+    ids=["none", "int", "float", "bytes", "list", "dict"],
+)
+def test_non_string_input_is_refused_without_raising(value):
+    """The URL comes from an injectable transport; it is untrusted input."""
+    assert epss.response_url_problem(value) == "DISALLOWED_REDIRECT_HOST"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://[::1/x",  # malformed IPv6 authority
+        "https://epss.empiricalsecurity.com%5C@evil.example/x",
+        "https://epss.empiricalsecurity.com%2f@evil.example/x",
+        "https://epss.empiricalsecurity.com%0A.evil.example/x",
+        "https://epss.empiricalsecurity.com./x",
+        "//epss.empiricalsecurity.com/x",
+        "",
+    ],
+    ids=[
+        "bad-ipv6",
+        "encoded-backslash",
+        "encoded-slash",
+        "encoded-newline",
+        "trailing-dot",
+        "scheme-relative",
+        "empty",
+    ],
+)
+def test_malformed_or_ambiguous_urls_are_refused(url):
+    """Ambiguity is refused wherever it would change the destination's meaning."""
+    assert epss.response_url_problem(url) is not None
 
 
 def test_an_insecure_initial_url_is_still_refused_by_the_real_transport():
@@ -302,11 +390,15 @@ def test_the_protocol_is_still_not_approved():
 
 
 # ------------------------------------------------------------------ address
-def test_no_approved_response_host_is_also_the_request_host_by_accident():
-    """Documents the intentional narrowing: request host is a strict member."""
-    assert epss.OFFICIAL_HOST in epss.APPROVED_RESPONSE_HOSTS
+def test_the_source_allowlist_holds_exactly_the_documented_host():
+    """The response allowlist is one host, and it is inside the transport's list."""
+    assert epss.APPROVED_RESPONSE_HOSTS == (epss.OFFICIAL_HOST,)
     assert set(epss.APPROVED_RESPONSE_HOSTS) <= set(DEFAULT_ALLOWED_HOSTS)
-    assert "www.first.org" in epss.APPROVED_RESPONSE_HOSTS
+    # Neither the legacy host nor the documentation site is a data endpoint.
+    assert "epss.cyentia.com" not in epss.APPROVED_RESPONSE_HOSTS
+    assert "www.first.org" not in epss.APPROVED_RESPONSE_HOSTS
+    for host in ("epss.cyentia.com", "www.first.org"):
+        assert host not in DEFAULT_ALLOWED_HOSTS
 
 
 def test_a_canned_response_dataclass_defaults_final_url_to_the_request():

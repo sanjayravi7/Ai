@@ -144,7 +144,7 @@ ranking     345,249      reference date   2026-10-16
 ./verify_all.sh
 ```
 
-Expected: `719 passed` (pytest), `64 PASS / 0 FAIL` (product), `30 PASS / 0 FAIL`
+Expected: `744 passed` (pytest), `64 PASS / 0 FAIL` (product), `30 PASS / 0 FAIL`
 (DOM-shim render check). Exit code 0.
 
 ## 7. Run the console

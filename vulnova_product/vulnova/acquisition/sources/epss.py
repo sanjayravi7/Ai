@@ -9,22 +9,48 @@ The header of every EPSS file states its own ``score_date``.  That internal date
 is checked against the requested cutoff; a mismatch is reported as
 ``SCORE_DATE_MISMATCH`` rather than quietly accepted.
 
-**Host.**  FIRST's current "Get the Data" / API documentation names
-``epss.empiricalsecurity.com`` as the daily CSV host, with date-specific files at
-``https://epss.empiricalsecurity.com/epss_scores-YYYY-MM-DD.csv.gz``.  The legacy
-``epss.cyentia.com`` host is no longer named there.  This module therefore
-requests the documented endpoint directly rather than relying on an undocumented
-redirect from a host FIRST no longer documents.
+**Host, and how well it is established.**  Three different claims are kept apart
+here, because only the first is published documentation:
 
-**Redirects.**  The transport refuses redirects to unapproved hosts and refuses
-HTTPS downgrades on every hop.  A :class:`~vulnova.acquisition.transport.Transport`
-is injectable, though, so this module re-checks the URL that actually answered
-before the body is trusted.  A response from a host outside
-:data:`APPROVED_RESPONSE_HOSTS`, or over plaintext, is recorded as ``BLOCKED``
-with ``REDIRECT_BLOCKED`` — never inspected, never stored, never ``VERIFIED``.
-Whether the date-specific endpoint itself redirects is *not* asserted here: the
-response reports its own ``final_url`` and the record keeps both URLs, so a
-redirect is visible rather than assumed.
+1. *Published.*  FIRST's "Get the Data" page names
+   ``epss.empiricalsecurity.com`` as the host for the daily CSV, and gives the
+   current-day file as ``https://epss.empiricalsecurity.com/epss_scores-current.csv.gz``.
+   It states that *that* URL redirects.
+2. *Observed.*  The date-specific URL
+   ``https://epss.empiricalsecurity.com/epss_scores-YYYY-MM-DD.csv.gz`` returned a
+   real file for 2026-10-19 whose own header declared
+   ``score_date:2026-10-19T12:00:27Z``.  That observation came through an
+   alternative retrieval path which does not expose HTTP status codes or
+   ``Location`` headers, so it establishes the payload, not the transport
+   behaviour.
+3. *Not established.*  No page retrieved from first.org currently documents the
+   date-specific pattern (the FIRST API page that an index snippet attributes it
+   to returns 404), and **whether the date-specific URL redirects, and to where,
+   is unobserved**.  Third-party integrations use the same pattern, which is
+   corroboration, not documentation.
+
+This module therefore requests the current host directly rather than relying on a
+redirect from the legacy ``epss.cyentia.com``, which FIRST no longer names.
+
+**Redirects.**  In production the transport refuses an unapproved redirect before
+the follow-up request is issued, and refuses HTTPS downgrades on every hop.  A
+:class:`~vulnova.acquisition.transport.Transport` is injectable, though, so this
+module *also* re-checks the URL that actually answered, using the narrower
+:data:`APPROVED_RESPONSE_HOSTS`.  The distinction matters: the transport check
+covers hosts the transport allows, while this check is what holds when a caller
+supplies its own transport (or a broader policy).
+
+A refused response is recorded as ``BLOCKED`` / ``REDIRECT_BLOCKED``.  Its body is
+never parsed, never hashed and never written to the store.  When this check is
+what refuses it, both ``final_url`` and ``request_url`` are kept so the refusal is
+visible; when the transport refuses first, no response exists and ``final_url`` is
+absent.  The transport has already read the bytes into memory before this check
+runs — unavoidable without a streaming API — so the guarantee is about what is
+*done* with them, not about whether they were received.
+
+If the date-specific endpoint does redirect to an infrastructure host, capture
+will fail closed with ``BLOCKED`` until an evidence-backed allowance is added.
+That is the intended trade: an unverified redirect is not silently trusted.
 """
 
 from __future__ import annotations
@@ -47,12 +73,16 @@ SOURCE = "epss"
 OFFICIAL_HOST = "epss.empiricalsecurity.com"
 OFFICIAL_URL_TEMPLATE = f"https://{OFFICIAL_HOST}/epss_scores-{{date}}.csv.gz"
 
-#: Hosts a response may legitimately come from.  ``epss.empiricalsecurity.com``
-#: serves the files; ``www.first.org`` is the publisher of record (FIRST), so a
-#: first-party FIRST redirect is justified.  Nothing else is.  Both are also in
-#: the transport allowlist; this set is the narrower, source-specific rule that a
-#: test can hold still without weakening the global policy.
-APPROVED_RESPONSE_HOSTS = (OFFICIAL_HOST, "www.first.org")
+#: Hosts a response may legitimately come from.  Exactly one: the host FIRST
+#: publishes for the daily CSV, and the host the observed exact-date response came
+#: from.  ``www.first.org`` is deliberately absent.  It is FIRST's documentation
+#: site, but nothing shows the *data* endpoint redirecting there, and an allowlist
+#: entry needs evidence rather than plausibility.
+#:
+#: This tuple is narrower than the transport allowlist on purpose.  It is not a
+#: duplicate of it: a caller can inject a transport, or one configured with a
+#: broader policy, and this check is what still holds.
+APPROVED_RESPONSE_HOSTS = (OFFICIAL_HOST,)
 
 #: Recorded on a run whose source is unavailable.  The GitHub archive is
 #: described by its publisher as the official historical archive, but it is *not*
@@ -73,20 +103,44 @@ def artifact_path(day: date) -> str:
     return f"epss/epss_scores-{day.isoformat()}.csv.gz"
 
 
-def response_url_problem(url: str) -> Optional[str]:
+def response_url_problem(url: object) -> Optional[str]:
     """Reason code when the URL that answered is not an approved EPSS target.
 
-    Returns ``HTTPS_DOWNGRADE_BLOCKED`` for a plaintext response and
-    ``DISALLOWED_REDIRECT_HOST`` for any host outside
-    :data:`APPROVED_RESPONSE_HOSTS`; ``None`` means the bytes may be inspected.
+    ``None`` means the bytes may be parsed.  ``HTTPS_DOWNGRADE_BLOCKED`` means the
+    response was not HTTPS; every other rejection is
+    ``DISALLOWED_REDIRECT_HOST``.  Those are the two codes the transport already
+    uses for redirect refusals, so a refusal reads the same whichever layer
+    caught it.
+
+    The URL reaches this function from an injectable transport, so it is treated
+    as untrusted input: a non-string, an unparseable URL, a malformed or
+    non-default port, or embedded credentials are all refusals rather than
+    exceptions or silent acceptance.  Only an exact hostname match on the default
+    HTTPS port passes.
     """
+    if not isinstance(url, str):
+        return "DISALLOWED_REDIRECT_HOST"
     try:
         parts = urllib.parse.urlsplit(url)
         host = (parts.hostname or "").lower()
-    except ValueError:  # pragma: no cover - urlsplit is lenient
+        # ``.port`` raises ValueError for a non-numeric or out-of-range port and
+        # ``urlsplit`` does the same for a malformed authority such as a broken
+        # IPv6 literal.  Both are untrusted input, not programming errors.
+        port = parts.port
+    except ValueError:
         return "DISALLOWED_REDIRECT_HOST"
     if parts.scheme.lower() != "https":
         return "HTTPS_DOWNGRADE_BLOCKED"
+    if parts.username is not None or parts.password is not None:
+        # The source never builds such a URL.  A credential-bearing final URL
+        # would also be persisted verbatim into the run record.
+        return "DISALLOWED_REDIRECT_HOST"
+    # "host:/path" parses with no port, which would make a malformed authority
+    # indistinguishable from a clean one.  The source never builds that form.
+    if parts.netloc.rsplit("@", 1)[-1].endswith(":"):
+        return "DISALLOWED_REDIRECT_HOST"
+    if port not in (None, 443):
+        return "DISALLOWED_REDIRECT_HOST"
     if host not in APPROVED_RESPONSE_HOSTS:
         return "DISALLOWED_REDIRECT_HOST"
     return None
@@ -190,10 +244,12 @@ def acquire_daily(
     record.final_url = response.final_url
     record.http_status = response.status
 
-    # The transport already refuses an unapproved redirect, but a Transport is
-    # injectable.  Re-check the URL that actually answered before any byte is
-    # inspected, hashed or stored, so the guarantee does not depend on which
-    # transport implementation was passed in.
+    # The transport already refuses an unapproved redirect before issuing it, but
+    # a Transport is injectable and may carry a broader policy.  Re-check the URL
+    # that actually answered before the body is parsed, hashed or stored, so the
+    # guarantee does not depend on which transport implementation was passed in.
+    # (The bytes themselves have already been read by then; the check governs
+    # what is done with them.)
     problem = response_url_problem(response.final_url)
     if problem is not None:
         record.content_status = C.BLOCKED

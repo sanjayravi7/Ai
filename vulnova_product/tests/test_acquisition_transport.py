@@ -11,6 +11,7 @@ from urllib.request import BaseHandler
 import pytest
 
 from vulnova.acquisition.transport import (
+    DEFAULT_ALLOWED_HOSTS,
     DisallowedHost,
     FakeTransport,
     HostPolicy,
@@ -89,6 +90,28 @@ def test_default_policy_covers_only_first_party_hosts():
         transport.policy.check(url)
     with pytest.raises(DisallowedHost):
         transport.policy.check("https://raw.githubusercontent.com/x")
+
+
+def test_the_default_policy_names_only_hosts_a_source_actually_requests():
+    """Every allowlisted host must have a caller; otherwise it is unused surface.
+
+    ``www.first.org`` is FIRST's documentation site and ``epss.cyentia.com`` is
+    the legacy EPSS host.  Neither is fetched by any source, and nothing shows
+    the EPSS data endpoint redirecting to the former, so both were removed.
+    """
+    transport = UrllibTransport()
+    assert set(DEFAULT_ALLOWED_HOSTS) == {
+        "api.github.com",
+        "codeload.github.com",
+        "github.com",
+        "epss.empiricalsecurity.com",
+        "www.cisa.gov",
+    }
+    for unused in ("www.first.org", "epss.cyentia.com"):
+        assert unused not in DEFAULT_ALLOWED_HOSTS
+        with pytest.raises(DisallowedHost) as excinfo:
+            transport.policy.check(f"https://{unused}/x")
+        assert excinfo.value.reason == "DISALLOWED_HOST"
 
 
 def test_urllib_transport_timestamps_after_body_read():
