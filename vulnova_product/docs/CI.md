@@ -9,7 +9,7 @@ change to `src/` or `tests/` does not run VULNOVA's tests.
 
 | Workflow | Project | What it runs | Python |
 | --- | --- | --- | --- |
-| `.github/workflows/vulnova-unit-tests.yml` | VULNOVA | `vulnova_product/tests` (386 tests) | 3.11 |
+| `.github/workflows/vulnova-unit-tests.yml` | VULNOVA | `vulnova_product/tests` (467 tests) | 3.11 |
 | `.github/workflows/vulnova-browser.yml` | VULNOVA | `vulnova_product/tools/ui_browser_check.py` (14 Chromium checks) | 3.11 |
 | `.github/workflows/python-package.yml` | Root data pipeline | `tests/` (192 tests + 6 subtests) and flake8 | 3.9, 3.10, 3.11 |
 
@@ -36,7 +36,7 @@ python -m pytest -q
 Expected on Python 3.11 with `pytest==9.1.1`:
 
 ```text
-386 passed
+467 passed
 ```
 
 The suite creates its own temporary SQLite stores through
@@ -52,6 +52,15 @@ The acquisition tests (1.7) use an injected `FakeTransport` with canned bytes an
 fixed clocks. They never open a socket and never read `data/acquisition_store/`:
 tampering, missing timestamps, hash mismatches, cutoff mismatches and
 historical-versus-actual retrieval times are all exercised against the fixture.
+
+The refresh tests (1.8) follow the same rule. `tests/refresh_fixtures.py` builds a
+canned catalog with explicit `dateAdded` values, an optional direct CISA feed
+(including a redirect), optional EPSS files (present, absent, or carrying the
+wrong `score_date`) and an optional sealed 1.7-shaped archive. `RefreshOptions`
+takes the clock as a parameter, so a test can stand on 2026-10-27, on the
+maturity date, or after it without touching the system time. Seven tests in
+`test_refresh_repository_report.py` re-derive the committed report from the
+committed inputs, including a full readiness re-run at the committed as-of date.
 
 The redirect tests are deterministic too. `SafeRedirectHandler.redirect_request`
 is called directly with synthetic `Location` values; a second group drives the
@@ -79,6 +88,21 @@ python -m vulnova.acquisition check     # offline; exit 1 on a missing source ro
 from the recorded timestamps. It reports `integrity: VERIFIED` and
 `evidence: BLOCKED` for the committed archive: the bytes are intact, and three
 requirements are still honestly unmet.
+
+The 1.8 refresh has the same offline command, and CI runs it after the 1.7 one:
+
+```bash
+cd vulnova_product
+python -m vulnova.refresh verify    # offline; exit 1 on tampering
+python -m vulnova.refresh gate      # offline; prints the maturity boundary
+```
+
+`refresh verify` recomputes `refresh_digest`, re-hashes the refreshed catalog,
+re-checks that no block claims maturity before its maturity date, and re-hashes
+all seven sealed 1.7 artifacts. It reports `integrity: VERIFIED`,
+`evidence: BLOCKED` and `BLOCKED_MATURITY_NOT_REACHED`. It must **not** be gated
+on evidence completeness: the committed run's honest findings are that the final
+block has not matured and that EPSS is unavailable.
 
 ## VULNOVA Chromium smoke test
 

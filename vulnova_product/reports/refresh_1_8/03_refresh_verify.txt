@@ -1,0 +1,19 @@
+# Offline verification of the committed 1.8 refresh report and the sealed 1.7 archive
+# 2026-10-20T04:01:52Z · no network
+
+VULNOVA 1.8 — offline verification
+  VERIFIED  SCHEMA — schema_version and required sections are present
+  VERIFIED  REPORT_DIGEST — recorded 36803f26f02331e705c26e31a437fae04f0dc5705b837a11a849c3cd6ea174f4, recomputed 36803f26f02331e705c26e31a437fae04f0dc5705b837a11a849c3cd6ea174f4
+  VERIFIED  MATURITY_INVARIANT — no block claims maturity before its maturity date
+  VERIFIED  REFRESH_STATUS — refresh status 'BLOCKED_MATURITY_NOT_REACHED'
+  VERIFIED  PROTOCOL_NOT_APPROVED — approval_state=NOT_APPROVED, protocol_execution_authorized=False
+  VERIFIED  REFRESH_ARTIFACTS — 1 refresh artifact(s) re-hashed; all match
+  VERIFIED  SEALED_ARCHIVE — 7 sealed 1.7 artifact(s) re-hashed; all match
+integrity: VERIFIED
+evidence: BLOCKED (from the refresh report)
+artifacts hashed: 1 · network used: no
+
+# The sealed 1.7 acquisition archive, verified separately
+integrity: VERIFIED
+evidence: BLOCKED (from the manifest)
+artifacts hashed: 7 · network used: no

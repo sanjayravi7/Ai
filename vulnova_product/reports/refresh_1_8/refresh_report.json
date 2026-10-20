@@ -1,0 +1,1011 @@
+{
+  "archive_guard": {
+    "after": {
+      "all_artifacts_unchanged": true,
+      "artifact_count": 7,
+      "artifacts": [
+        {
+          "actual_sha256": "bc59fc810c0fcb6e34394e7d301d5ef0ebc370ff8b8a5b90e55d9a5b2c1701cf",
+          "artifact_path": "cvelistv5/commits/2025-02-01.json",
+          "key": "2025-02-01",
+          "recorded_sha256": "bc59fc810c0fcb6e34394e7d301d5ef0ebc370ff8b8a5b90e55d9a5b2c1701cf",
+          "source": "cvelistv5",
+          "unchanged": true
+        },
+        {
+          "actual_sha256": "eec42dd7c31a789b291dab5dceb98ef16659cc707fe87b833eb71545f1e1a08f",
+          "artifact_path": "cvelistv5/commits/2025-09-01.json",
+          "key": "2025-09-01",
+          "recorded_sha256": "eec42dd7c31a789b291dab5dceb98ef16659cc707fe87b833eb71545f1e1a08f",
+          "source": "cvelistv5",
+          "unchanged": true
+        },
+        {
+          "actual_sha256": "a7dc381c70a6cb08dc16b8519e8e3f6b66f15ce829f838e50ea8409af35d303b",
+          "artifact_path": "cvelistv5/commits/2026-04-01.json",
+          "key": "2026-04-01",
+          "recorded_sha256": "a7dc381c70a6cb08dc16b8519e8e3f6b66f15ce829f838e50ea8409af35d303b",
+          "source": "cvelistv5",
+          "unchanged": true
+        },
+        {
+          "actual_sha256": "e040ac917f18d34642f11847ad085b848fd5f77fa3c1fcd77ee872230cbf3ead",
+          "artifact_path": "kev/revisions/2025-02-01/known_exploited_vulnerabilities.json",
+          "key": "2025-02-01",
+          "recorded_sha256": "e040ac917f18d34642f11847ad085b848fd5f77fa3c1fcd77ee872230cbf3ead",
+          "source": "kev",
+          "unchanged": true
+        },
+        {
+          "actual_sha256": "d4e88aa93681c637c54554b8daa0bd48ce86f2322f134c7932f3c0c000fd01e9",
+          "artifact_path": "kev/revisions/2025-09-01/known_exploited_vulnerabilities.json",
+          "key": "2025-09-01",
+          "recorded_sha256": "d4e88aa93681c637c54554b8daa0bd48ce86f2322f134c7932f3c0c000fd01e9",
+          "source": "kev",
+          "unchanged": true
+        },
+        {
+          "actual_sha256": "a925400c147a1d08e8832c164d5b7ee11012fc333e4f38e6e8c343bafb74642f",
+          "artifact_path": "kev/revisions/2026-04-01/known_exploited_vulnerabilities.json",
+          "key": "2026-04-01",
+          "recorded_sha256": "a925400c147a1d08e8832c164d5b7ee11012fc333e4f38e6e8c343bafb74642f",
+          "source": "kev",
+          "unchanged": true
+        },
+        {
+          "actual_sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d",
+          "artifact_path": "kev/current/known_exploited_vulnerabilities.json",
+          "key": "current#github",
+          "recorded_sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d",
+          "source": "kev",
+          "unchanged": true
+        }
+      ],
+      "manifest": {
+        "available": true,
+        "bytes": 33020,
+        "path": "vulnova_product/reports/acquisition_1_7/acquisition_manifest.json",
+        "sha256": "581696e799d7d6e9ed2353fda038b82f20c632d0f52d2997ea67674f3a8d2069"
+      },
+      "manifest_digest": "5993ce8ce98a0051bd2accec5e5f6259a799d6f05e8cbc9784c2f3b65a40b8c8"
+    },
+    "before": {
+      "all_artifacts_unchanged": true,
+      "artifact_count": 7,
+      "artifacts": [
+        {
+          "actual_sha256": "bc59fc810c0fcb6e34394e7d301d5ef0ebc370ff8b8a5b90e55d9a5b2c1701cf",
+          "artifact_path": "cvelistv5/commits/2025-02-01.json",
+          "key": "2025-02-01",
+          "recorded_sha256": "bc59fc810c0fcb6e34394e7d301d5ef0ebc370ff8b8a5b90e55d9a5b2c1701cf",
+          "source": "cvelistv5",
+          "unchanged": true
+        },
+        {
+          "actual_sha256": "eec42dd7c31a789b291dab5dceb98ef16659cc707fe87b833eb71545f1e1a08f",
+          "artifact_path": "cvelistv5/commits/2025-09-01.json",
+          "key": "2025-09-01",
+          "recorded_sha256": "eec42dd7c31a789b291dab5dceb98ef16659cc707fe87b833eb71545f1e1a08f",
+          "source": "cvelistv5",
+          "unchanged": true
+        },
+        {
+          "actual_sha256": "a7dc381c70a6cb08dc16b8519e8e3f6b66f15ce829f838e50ea8409af35d303b",
+          "artifact_path": "cvelistv5/commits/2026-04-01.json",
+          "key": "2026-04-01",
+          "recorded_sha256": "a7dc381c70a6cb08dc16b8519e8e3f6b66f15ce829f838e50ea8409af35d303b",
+          "source": "cvelistv5",
+          "unchanged": true
+        },
+        {
+          "actual_sha256": "e040ac917f18d34642f11847ad085b848fd5f77fa3c1fcd77ee872230cbf3ead",
+          "artifact_path": "kev/revisions/2025-02-01/known_exploited_vulnerabilities.json",
+          "key": "2025-02-01",
+          "recorded_sha256": "e040ac917f18d34642f11847ad085b848fd5f77fa3c1fcd77ee872230cbf3ead",
+          "source": "kev",
+          "unchanged": true
+        },
+        {
+          "actual_sha256": "d4e88aa93681c637c54554b8daa0bd48ce86f2322f134c7932f3c0c000fd01e9",
+          "artifact_path": "kev/revisions/2025-09-01/known_exploited_vulnerabilities.json",
+          "key": "2025-09-01",
+          "recorded_sha256": "d4e88aa93681c637c54554b8daa0bd48ce86f2322f134c7932f3c0c000fd01e9",
+          "source": "kev",
+          "unchanged": true
+        },
+        {
+          "actual_sha256": "a925400c147a1d08e8832c164d5b7ee11012fc333e4f38e6e8c343bafb74642f",
+          "artifact_path": "kev/revisions/2026-04-01/known_exploited_vulnerabilities.json",
+          "key": "2026-04-01",
+          "recorded_sha256": "a925400c147a1d08e8832c164d5b7ee11012fc333e4f38e6e8c343bafb74642f",
+          "source": "kev",
+          "unchanged": true
+        },
+        {
+          "actual_sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d",
+          "artifact_path": "kev/current/known_exploited_vulnerabilities.json",
+          "key": "current#github",
+          "recorded_sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d",
+          "source": "kev",
+          "unchanged": true
+        }
+      ],
+      "manifest": {
+        "available": true,
+        "bytes": 33020,
+        "path": "vulnova_product/reports/acquisition_1_7/acquisition_manifest.json",
+        "sha256": "581696e799d7d6e9ed2353fda038b82f20c632d0f52d2997ea67674f3a8d2069"
+      },
+      "manifest_digest": "5993ce8ce98a0051bd2accec5e5f6259a799d6f05e8cbc9784c2f3b65a40b8c8"
+    },
+    "protected_paths": [
+      "vulnova_product/data/acquisition_store",
+      "vulnova_product/reports/acquisition_1_7",
+      "vulnova_product/reports/evaluation_readiness_1_6",
+      "vulnova_product/data/snapshots",
+      "phase2.3k-export"
+    ]
+  },
+  "as_of": "2026-10-20",
+  "catalog": {
+    "artifact_path": "kev/refresh/github/known_exploited_vulnerabilities.json",
+    "available": true,
+    "catalog_version": "2026.10.16",
+    "channel": "OFFICIAL_GITHUB",
+    "content_status": "VERIFIED",
+    "declared_count": 1748,
+    "final_url": "https://api.github.com/repos/cisagov/kev-data/git/blobs/fd8de296db5877570e6d30a85e003665fc802cf2",
+    "key": "current#github",
+    "parsed_count": 1748,
+    "reason_code": "OK_VERIFIED",
+    "redirected": false,
+    "released": "2026-10-16T17:15:48.8752Z",
+    "released_day": "2026-10-16",
+    "request_url": "https://api.github.com/repos/cisagov/kev-data/git/blobs/fd8de296db5877570e6d30a85e003665fc802cf2",
+    "retrieved_at": "2026-10-20T03:31:20Z",
+    "revision": "6a392940c663b52271fa4e6aa7b39995b18c9a71",
+    "sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d",
+    "verified": true
+  },
+  "date_added_filters": {
+    "2025-02-01": {
+      "applied": true,
+      "basis": "FILTERED_BY_DATE_ADDED",
+      "catalog_released": "2026-10-16T17:15:48.8752Z",
+      "entries_after_maturity": 342,
+      "entries_invalid": 0,
+      "entries_observable": 1406,
+      "entries_total": 1748,
+      "maturity_date": "2025-08-30",
+      "note": "Derived lower bound over one catalog, not an observed point-in-time membership set; the 1.6 event rules still govern any real label.",
+      "reason_code": "FILTERED_BY_DATE_ADDED",
+      "sample_after_maturity": [
+        "CVE-2026-102764",
+        "CVE-2025-61624",
+        "CVE-2026-21589",
+        "CVE-2026-105134",
+        "CVE-2026-76519"
+      ],
+      "trustworthy": true
+    },
+    "2025-09-01": {
+      "applied": true,
+      "basis": "FILTERED_BY_DATE_ADDED",
+      "catalog_released": "2026-10-16T17:15:48.8752Z",
+      "entries_after_maturity": 193,
+      "entries_invalid": 0,
+      "entries_observable": 1555,
+      "entries_total": 1748,
+      "maturity_date": "2026-03-30",
+      "note": "Derived lower bound over one catalog, not an observed point-in-time membership set; the 1.6 event rules still govern any real label.",
+      "reason_code": "FILTERED_BY_DATE_ADDED",
+      "sample_after_maturity": [
+        "CVE-2026-102764",
+        "CVE-2025-61624",
+        "CVE-2026-21589",
+        "CVE-2026-105134",
+        "CVE-2026-76519"
+      ],
+      "trustworthy": true
+    },
+    "2026-04-01": {
+      "applied": false,
+      "basis": "RIGHT_CENSORED_NOT_FILTERED",
+      "catalog_released": "2026-10-16T17:15:48.8752Z",
+      "entries_after_maturity": null,
+      "entries_invalid": 0,
+      "entries_observable": null,
+      "entries_total": null,
+      "maturity_date": "2026-10-28",
+      "note": "Not filtered: the catalog cannot observe the entire maturity window, so no subset of its entries may be reported as the matured labels.",
+      "reason_code": "RIGHT_CENSORED_NOT_FILTERED",
+      "sample_after_maturity": [],
+      "trustworthy": true
+    }
+  },
+  "epss_records": [
+    {
+      "access_provenance": "NOT_RETRIEVED",
+      "artifact_path": null,
+      "bytes": null,
+      "channel": "OFFICIAL",
+      "content_status": "UNAVAILABLE",
+      "cutoff": "2025-02-01",
+      "details": {
+        "error": "UNREACHABLE",
+        "mirror_available": "github.com/empiricalsec/epss_scores (third party, not used)",
+        "requested_date": "2025-02-01"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "2025-02-01",
+      "reason_code": "OFFICIAL_SOURCE_UNREACHABLE",
+      "request_url": "https://epss.cyentia.com/epss_scores-2025-02-01.csv.gz",
+      "retrieved_at": "2026-10-20T03:31:20Z",
+      "revision": null,
+      "sha256": null,
+      "source": "epss",
+      "source_timestamp": null,
+      "source_url": "https://epss.cyentia.com/epss_scores-2025-02-01.csv.gz",
+      "status": "UNAVAILABLE"
+    },
+    {
+      "access_provenance": "NOT_RETRIEVED",
+      "artifact_path": null,
+      "bytes": null,
+      "channel": "OFFICIAL",
+      "content_status": "UNAVAILABLE",
+      "cutoff": "2025-09-01",
+      "details": {
+        "error": "UNREACHABLE",
+        "mirror_available": "github.com/empiricalsec/epss_scores (third party, not used)",
+        "requested_date": "2025-09-01"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "2025-09-01",
+      "reason_code": "OFFICIAL_SOURCE_UNREACHABLE",
+      "request_url": "https://epss.cyentia.com/epss_scores-2025-09-01.csv.gz",
+      "retrieved_at": "2026-10-20T03:31:20Z",
+      "revision": null,
+      "sha256": null,
+      "source": "epss",
+      "source_timestamp": null,
+      "source_url": "https://epss.cyentia.com/epss_scores-2025-09-01.csv.gz",
+      "status": "UNAVAILABLE"
+    },
+    {
+      "access_provenance": "NOT_RETRIEVED",
+      "artifact_path": null,
+      "bytes": null,
+      "channel": "OFFICIAL",
+      "content_status": "UNAVAILABLE",
+      "cutoff": "2026-04-01",
+      "details": {
+        "error": "UNREACHABLE",
+        "mirror_available": "github.com/empiricalsec/epss_scores (third party, not used)",
+        "requested_date": "2026-04-01"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "2026-04-01",
+      "reason_code": "OFFICIAL_SOURCE_UNREACHABLE",
+      "request_url": "https://epss.cyentia.com/epss_scores-2026-04-01.csv.gz",
+      "retrieved_at": "2026-10-20T03:31:21Z",
+      "revision": null,
+      "sha256": null,
+      "source": "epss",
+      "source_timestamp": null,
+      "source_url": "https://epss.cyentia.com/epss_scores-2026-04-01.csv.gz",
+      "status": "UNAVAILABLE"
+    }
+  ],
+  "final_candidate": {
+    "calendar_matured": false,
+    "cutoff": "2026-04-01",
+    "days_remaining": 8,
+    "maturity_claimed": false,
+    "maturity_date": "2026-10-28"
+  },
+  "gate_summary": {
+    "all_calendar_matured": false,
+    "all_maturity_observable": false,
+    "blocks": 3,
+    "final_block_maturity_observable": false,
+    "final_cutoff": "2026-04-01",
+    "final_days_remaining": 8,
+    "final_maturity_date": "2026-10-28",
+    "worst_status": "NOT_MATURED"
+  },
+  "generated_at": "2026-10-20T03:31:29Z",
+  "honesty": {
+    "date_added_filter": "KEV entries are filtered by dateAdded only when the catalog observes the entire maturity window. Otherwise the observation is right-censored and is reported RIGHT_CENSORED_NOT_FILTERED rather than presented as complete.",
+    "derived_view": "A dateAdded-filtered view is a derived lower bound over one catalog, not an observed point-in-time membership set, and never a substitute for the 1.6 event-membership rules.",
+    "integrity_is_not_viability": "A VERIFIED integrity result proves the stored bytes are intact. It is not evidence that a historical evaluation is viable.",
+    "late_retrieval": "Historical EPSS files retrieved today are LATE_RETRIEVAL, not contemporaneous provenance, however authentic their bytes are.",
+    "maturity_gate": "A block is usable only when its label maturity date has arrived and the catalog was published on or after that date. Calendar maturity alone is never sufficient.",
+    "no_substitution": "A later score file, a backfilled value or a third-party mirror is never substituted for a missing official historical snapshot.",
+    "protocol_approval": "Protocol approval remains an explicit human decision. No refresh status authorises protocol execution or model training.",
+    "sealed_archive": "The 1.7 archive and the sealed Phase 2.3K export are read-only inputs. A refresh writes to its own store and its own report directory."
+  },
+  "kev_records": [
+    {
+      "access_provenance": "NOT_RETRIEVED",
+      "artifact_path": null,
+      "bytes": null,
+      "channel": "OFFICIAL",
+      "content_status": "UNAVAILABLE",
+      "cutoff": null,
+      "details": {
+        "error": "UNREACHABLE"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "current",
+      "reason_code": "OFFICIAL_SOURCE_UNREACHABLE",
+      "request_url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+      "retrieved_at": "2026-10-20T03:31:19Z",
+      "revision": null,
+      "sha256": null,
+      "source": "kev",
+      "source_timestamp": null,
+      "source_url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+      "status": "UNAVAILABLE"
+    },
+    {
+      "access_provenance": "CONTEMPORANEOUS",
+      "artifact_path": "kev/refresh/github/known_exploited_vulnerabilities.json",
+      "bytes": 1792713,
+      "channel": "OFFICIAL_GITHUB",
+      "content_status": "VERIFIED",
+      "cutoff": null,
+      "details": {
+        "blob_declared_bytes": 1792713,
+        "blob_sha": "fd8de296db5877570e6d30a85e003665fc802cf2",
+        "blob_url": "https://api.github.com/repos/cisagov/kev-data/git/blobs/fd8de296db5877570e6d30a85e003665fc802cf2",
+        "catalog_version": "2026.10.16",
+        "commit_url": "https://api.github.com/repos/cisagov/kev-data/commits?sha=HEAD&per_page=1",
+        "date_released": "2026-10-16T17:15:48.8752Z",
+        "declared_count": 1748,
+        "maturity_date": "2026-10-28",
+        "maturity_observable": false,
+        "observation": "CATALOG_PREDATES_MATURITY",
+        "parsed_count": 1748,
+        "right_censored_at": "2026-10-16T17:15:48.8752Z",
+        "tree_sha": "9669cc24a112fa503e3c88c4e8d46442ad6b6ed2"
+      },
+      "historical_retrieval_verified": false,
+      "http_status": null,
+      "key": "current#github",
+      "reason_code": "OK_VERIFIED",
+      "request_url": "https://api.github.com/repos/cisagov/kev-data/git/blobs/fd8de296db5877570e6d30a85e003665fc802cf2",
+      "retrieved_at": "2026-10-20T03:31:20Z",
+      "revision": "6a392940c663b52271fa4e6aa7b39995b18c9a71",
+      "sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d",
+      "source": "kev",
+      "source_timestamp": "2026-10-16T17:15:48.8752Z",
+      "source_url": "https://github.com/cisagov/kev-data",
+      "status": "VERIFIED"
+    }
+  ],
+  "limitations": [
+    "The final candidate block matures 2026-10-28; this run is 8 day(s) earlier, so no final-block label set is produced and maturity is not claimed.",
+    "The catalog (2026.10.16, released 2026-10-16T17:15:48.8752Z) predates 2026-10-28; those observations are right-censored and are not filtered.",
+    "Exact historical EPSS files were not obtained for 2025-02-01, 2025-09-01, 2026-04-01; those requirements stay UNAVAILABLE and no newer file or mirror is substituted.",
+    "Readiness checks were re-run at this as-of date. Their statuses (unchanged) are technical evidence, not an approval.",
+    "A green integrity result proves the bytes are intact. It does not prove the historical evaluation is viable.",
+    "The final KEV maturity requirement is not satisfied; the maturity gate remains the primary blocker and no label set is reported.",
+    "The two report digests differ. A readiness report embeds its as-of date and derived maturity rows, so a digest difference is expected even when every check status is identical; compare statuses, not digests.",
+    "Exact historical EPSS files are not available; the EPSS requirement stays UNAVAILABLE and is never satisfied by a newer file or a mirror."
+  ],
+  "maturity_gate": [
+    {
+      "as_of": "2026-10-20",
+      "calendar_matured": true,
+      "catalog_available": true,
+      "catalog_observes_maturity": true,
+      "catalog_released": "2026-10-16T17:15:48.8752Z",
+      "cutoff": "2025-02-01",
+      "days_remaining": -416,
+      "detail": "labels matured 2025-08-30 and the catalog was released 2026-10-16T17:15:48.8752Z; a dateAdded view up to maturity is permitted",
+      "filter_applied": true,
+      "filter_basis": "FILTERED_BY_DATE_ADDED",
+      "horizon_days": 180,
+      "maturity_claimed": true,
+      "maturity_date": "2025-08-30",
+      "maturity_lag_days": 30,
+      "maturity_span_days": 210,
+      "reason_code": "OK_VERIFIED",
+      "secondary_reason": null,
+      "status": "MATURED_AND_OBSERVED"
+    },
+    {
+      "as_of": "2026-10-20",
+      "calendar_matured": true,
+      "catalog_available": true,
+      "catalog_observes_maturity": true,
+      "catalog_released": "2026-10-16T17:15:48.8752Z",
+      "cutoff": "2025-09-01",
+      "days_remaining": -204,
+      "detail": "labels matured 2026-03-30 and the catalog was released 2026-10-16T17:15:48.8752Z; a dateAdded view up to maturity is permitted",
+      "filter_applied": true,
+      "filter_basis": "FILTERED_BY_DATE_ADDED",
+      "horizon_days": 180,
+      "maturity_claimed": true,
+      "maturity_date": "2026-03-30",
+      "maturity_lag_days": 30,
+      "maturity_span_days": 210,
+      "reason_code": "OK_VERIFIED",
+      "secondary_reason": null,
+      "status": "MATURED_AND_OBSERVED"
+    },
+    {
+      "as_of": "2026-10-20",
+      "calendar_matured": false,
+      "catalog_available": true,
+      "catalog_observes_maturity": false,
+      "catalog_released": "2026-10-16T17:15:48.8752Z",
+      "cutoff": "2026-04-01",
+      "days_remaining": 8,
+      "detail": "labels mature 2026-10-28, 8 day(s) after the run date 2026-10-20; maturity is not claimed and no filtered label view is produced",
+      "filter_applied": false,
+      "filter_basis": "RIGHT_CENSORED_NOT_FILTERED",
+      "horizon_days": 180,
+      "maturity_claimed": false,
+      "maturity_date": "2026-10-28",
+      "maturity_lag_days": 30,
+      "maturity_span_days": 210,
+      "reason_code": "MATURITY_NOT_REACHED",
+      "secondary_reason": "CATALOG_PREDATES_MATURITY",
+      "status": "NOT_MATURED"
+    }
+  ],
+  "parameters": {
+    "horizon_days": 180,
+    "maturity_lag_days": 30,
+    "maturity_span_days": 210,
+    "required_distinct_test_events": 30,
+    "required_sequential_blocks": 3
+  },
+  "phase": {
+    "product": "VULNOVA",
+    "release": "1.8",
+    "title": "Maturity Gate and Evidence Refresh"
+  },
+  "protocol": {
+    "adopted_design": null,
+    "approval_state": "NOT_APPROVED",
+    "approved": false,
+    "path": "vulnova_product/protocol/evaluation_protocol.json",
+    "protocol_execution_authorized": false,
+    "protocol_id": "vulnova-evaluation-protocol-1.6",
+    "reference_date": "2026-10-15",
+    "version": "1.6"
+  },
+  "readiness_comparison": {
+    "baseline": {
+      "as_of": "2026-10-15",
+      "available": true,
+      "path": "vulnova_product/reports/evaluation_readiness_1_6/readiness_report.json",
+      "protocol_approval_state": "NOT_APPROVED",
+      "readiness_status": "BLOCKED_PROTOCOL_NOT_APPROVED",
+      "report_digest": "1d51544af41a8421522e566ffb051e2835b27d7cccc0bbd1cc42a25497322010",
+      "summary": {
+        "BLOCKED": 1,
+        "FAIL": 0,
+        "NOT_APPLICABLE": 1,
+        "PASS": 42,
+        "total": 44
+      }
+    },
+    "checks": {
+      "baseline_total": 44,
+      "changed": [],
+      "current_total": 44,
+      "only_in_baseline": [],
+      "only_in_current": [],
+      "unchanged_blocked_or_failed": [
+        {
+          "blocking": false,
+          "id": "PRV-06_retrieval_timestamp_provenance",
+          "status": "BLOCKED"
+        }
+      ]
+    },
+    "current": {
+      "as_of": "2026-10-20",
+      "available": true,
+      "protocol_approval_state": "NOT_APPROVED",
+      "readiness_status": "BLOCKED_PROTOCOL_NOT_APPROVED",
+      "report_digest": "f38d0393e34321cf4a26a97960842d59321f32101972163ba631ad2cb9c4ecac",
+      "summary": {
+        "BLOCKED": 1,
+        "FAIL": 0,
+        "NOT_APPLICABLE": 1,
+        "PASS": 42,
+        "total": 44
+      }
+    },
+    "designs": {
+      "any_protocol_admissible": false,
+      "rows": [
+        {
+          "baseline_verdict": "INFEASIBLE",
+          "changed": false,
+          "current_verdict": "INFEASIBLE",
+          "id": "A2_EARLIEST_3BLOCK",
+          "protocol_admissible": false,
+          "reason_codes": [
+            "BLOCK_LABELS_NOT_MATURED",
+            "LABEL_STABILITY_NOT_OBSERVABLE"
+          ]
+        },
+        {
+          "baseline_verdict": "INFEASIBLE",
+          "changed": false,
+          "current_verdict": "INFEASIBLE",
+          "id": "A_180D_SPACED_3SEG",
+          "protocol_admissible": false,
+          "reason_codes": [
+            "LABELS_NOT_MATURED_BEFORE_NEXT_BLOCK"
+          ]
+        },
+        {
+          "baseline_verdict": "INFEASIBLE",
+          "changed": false,
+          "current_verdict": "INFEASIBLE",
+          "id": "B_CONTIGUOUS_THIRDS",
+          "protocol_admissible": false,
+          "reason_codes": [
+            "LABELS_NOT_MATURED_BEFORE_NEXT_BLOCK",
+            "SHARED_EVENTS_BETWEEN_BLOCKS"
+          ]
+        },
+        {
+          "baseline_verdict": "FEASIBLE_BUT_INSUFFICIENT_BLOCKS",
+          "changed": false,
+          "current_verdict": "FEASIBLE_BUT_INSUFFICIENT_BLOCKS",
+          "id": "C_SINGLE_FINAL_CUTOFF",
+          "protocol_admissible": false,
+          "reason_codes": [
+            "INSUFFICIENT_BLOCKS"
+          ]
+        },
+        {
+          "baseline_verdict": "INFEASIBLE",
+          "changed": false,
+          "current_verdict": "INFEASIBLE",
+          "id": "D_ROLLING_ORIGIN",
+          "protocol_admissible": false,
+          "reason_codes": [
+            "ROLLING_ORIGIN_NOT_SEQUENTIAL_DESIGN"
+          ]
+        },
+        {
+          "baseline_verdict": "FEASIBLE_BUT_INSUFFICIENT_BLOCKS",
+          "changed": false,
+          "current_verdict": "FEASIBLE_BUT_INSUFFICIENT_BLOCKS",
+          "id": "E_LABEL_MATURED_2BLOCK",
+          "protocol_admissible": false,
+          "reason_codes": [
+            "INSUFFICIENT_BLOCKS"
+          ]
+        }
+      ]
+    },
+    "limitations": [
+      "The final KEV maturity requirement is not satisfied; the maturity gate remains the primary blocker and no label set is reported.",
+      "The two report digests differ. A readiness report embeds its as-of date and derived maturity rows, so a digest difference is expected even when every check status is identical; compare statuses, not digests.",
+      "Exact historical EPSS files are not available; the EPSS requirement stays UNAVAILABLE and is never satisfied by a newer file or a mirror."
+    ],
+    "note": "Maturity is necessary, not sufficient: the gate says whether a block's labels could be observed, while the readiness checks say whether the evidence and the protocol actually support an evaluation.",
+    "questions": {
+      "any_candidate_design_admissible": false,
+      "exact_historical_epss_available": false,
+      "final_kev_maturity_requirement_satisfied": false,
+      "model_training_authorized": false,
+      "protocol_execution_authorized": false,
+      "protocol_remains_not_approved": true,
+      "report_digest_matches_baseline": false,
+      "required_provenance_complete": false,
+      "semantic_check_statuses_match_baseline": true
+    }
+  },
+  "refresh_digest": "36803f26f02331e705c26e31a437fae04f0dc5705b837a11a849c3cd6ea174f4",
+  "requirements": [
+    {
+      "detail": "direct feed: UNAVAILABLE (OFFICIAL_SOURCE_UNREACHABLE)",
+      "id": "KEV-R1_DIRECT_CISA_FEED",
+      "reason_code": "OFFICIAL_SOURCE_UNREACHABLE",
+      "records": [
+        "kev:current"
+      ],
+      "status": "UNAVAILABLE",
+      "title": "The direct CISA feed is reachable and preserved"
+    },
+    {
+      "detail": "selected OFFICIAL_GITHUB:current#github (catalog 2026.10.16, released 2026-10-16T17:15:48.8752Z, 1748 entries, sha256 b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d)",
+      "evidence": {
+        "selected_catalog": {
+          "artifact_path": "kev/refresh/github/known_exploited_vulnerabilities.json",
+          "available": true,
+          "catalog_version": "2026.10.16",
+          "channel": "OFFICIAL_GITHUB",
+          "content_status": "VERIFIED",
+          "declared_count": 1748,
+          "final_url": "https://api.github.com/repos/cisagov/kev-data/git/blobs/fd8de296db5877570e6d30a85e003665fc802cf2",
+          "key": "current#github",
+          "parsed_count": 1748,
+          "reason_code": "OK_VERIFIED",
+          "redirected": false,
+          "released": "2026-10-16T17:15:48.8752Z",
+          "released_day": "2026-10-16",
+          "request_url": "https://api.github.com/repos/cisagov/kev-data/git/blobs/fd8de296db5877570e6d30a85e003665fc802cf2",
+          "retrieved_at": "2026-10-20T03:31:20Z",
+          "revision": "6a392940c663b52271fa4e6aa7b39995b18c9a71",
+          "sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d",
+          "verified": true
+        }
+      },
+      "id": "KEV-R2_CURRENT_CATALOG",
+      "reason_code": "OK_VERIFIED",
+      "records": [
+        "kev:current",
+        "kev:current#github"
+      ],
+      "status": "VERIFIED",
+      "title": "A current KEV catalog is preserved from a first-party channel"
+    },
+    {
+      "detail": "2025-02-01: MATURED_AND_OBSERVED (OK_VERIFIED); 2025-09-01: MATURED_AND_OBSERVED (OK_VERIFIED); 2026-04-01: NOT_MATURED (MATURITY_NOT_REACHED)",
+      "evidence": {
+        "filter": {
+          "2025-02-01": {
+            "applied": true,
+            "basis": "FILTERED_BY_DATE_ADDED",
+            "catalog_released": "2026-10-16T17:15:48.8752Z",
+            "entries_after_maturity": 342,
+            "entries_invalid": 0,
+            "entries_observable": 1406,
+            "entries_total": 1748,
+            "maturity_date": "2025-08-30",
+            "note": "Derived lower bound over one catalog, not an observed point-in-time membership set; the 1.6 event rules still govern any real label.",
+            "reason_code": "FILTERED_BY_DATE_ADDED",
+            "sample_after_maturity": [
+              "CVE-2026-102764",
+              "CVE-2025-61624",
+              "CVE-2026-21589",
+              "CVE-2026-105134",
+              "CVE-2026-76519"
+            ],
+            "trustworthy": true
+          },
+          "2025-09-01": {
+            "applied": true,
+            "basis": "FILTERED_BY_DATE_ADDED",
+            "catalog_released": "2026-10-16T17:15:48.8752Z",
+            "entries_after_maturity": 193,
+            "entries_invalid": 0,
+            "entries_observable": 1555,
+            "entries_total": 1748,
+            "maturity_date": "2026-03-30",
+            "note": "Derived lower bound over one catalog, not an observed point-in-time membership set; the 1.6 event rules still govern any real label.",
+            "reason_code": "FILTERED_BY_DATE_ADDED",
+            "sample_after_maturity": [
+              "CVE-2026-102764",
+              "CVE-2025-61624",
+              "CVE-2026-21589",
+              "CVE-2026-105134",
+              "CVE-2026-76519"
+            ],
+            "trustworthy": true
+          },
+          "2026-04-01": {
+            "applied": false,
+            "basis": "RIGHT_CENSORED_NOT_FILTERED",
+            "catalog_released": "2026-10-16T17:15:48.8752Z",
+            "entries_after_maturity": null,
+            "entries_invalid": 0,
+            "entries_observable": null,
+            "entries_total": null,
+            "maturity_date": "2026-10-28",
+            "note": "Not filtered: the catalog cannot observe the entire maturity window, so no subset of its entries may be reported as the matured labels.",
+            "reason_code": "RIGHT_CENSORED_NOT_FILTERED",
+            "sample_after_maturity": [],
+            "trustworthy": true
+          }
+        },
+        "gates": [
+          {
+            "as_of": "2026-10-20",
+            "calendar_matured": true,
+            "catalog_available": true,
+            "catalog_observes_maturity": true,
+            "catalog_released": "2026-10-16T17:15:48.8752Z",
+            "cutoff": "2025-02-01",
+            "days_remaining": -416,
+            "detail": "labels matured 2025-08-30 and the catalog was released 2026-10-16T17:15:48.8752Z; a dateAdded view up to maturity is permitted",
+            "filter_applied": true,
+            "filter_basis": "FILTERED_BY_DATE_ADDED",
+            "horizon_days": 180,
+            "maturity_claimed": true,
+            "maturity_date": "2025-08-30",
+            "maturity_lag_days": 30,
+            "maturity_span_days": 210,
+            "reason_code": "OK_VERIFIED",
+            "secondary_reason": null,
+            "status": "MATURED_AND_OBSERVED"
+          },
+          {
+            "as_of": "2026-10-20",
+            "calendar_matured": true,
+            "catalog_available": true,
+            "catalog_observes_maturity": true,
+            "catalog_released": "2026-10-16T17:15:48.8752Z",
+            "cutoff": "2025-09-01",
+            "days_remaining": -204,
+            "detail": "labels matured 2026-03-30 and the catalog was released 2026-10-16T17:15:48.8752Z; a dateAdded view up to maturity is permitted",
+            "filter_applied": true,
+            "filter_basis": "FILTERED_BY_DATE_ADDED",
+            "horizon_days": 180,
+            "maturity_claimed": true,
+            "maturity_date": "2026-03-30",
+            "maturity_lag_days": 30,
+            "maturity_span_days": 210,
+            "reason_code": "OK_VERIFIED",
+            "secondary_reason": null,
+            "status": "MATURED_AND_OBSERVED"
+          },
+          {
+            "as_of": "2026-10-20",
+            "calendar_matured": false,
+            "catalog_available": true,
+            "catalog_observes_maturity": false,
+            "catalog_released": "2026-10-16T17:15:48.8752Z",
+            "cutoff": "2026-04-01",
+            "days_remaining": 8,
+            "detail": "labels mature 2026-10-28, 8 day(s) after the run date 2026-10-20; maturity is not claimed and no filtered label view is produced",
+            "filter_applied": false,
+            "filter_basis": "RIGHT_CENSORED_NOT_FILTERED",
+            "horizon_days": 180,
+            "maturity_claimed": false,
+            "maturity_date": "2026-10-28",
+            "maturity_lag_days": 30,
+            "maturity_span_days": 210,
+            "reason_code": "MATURITY_NOT_REACHED",
+            "secondary_reason": "CATALOG_PREDATES_MATURITY",
+            "status": "NOT_MATURED"
+          }
+        ]
+      },
+      "id": "KEV-R3_MATURITY_OBSERVABLE",
+      "reason_code": "MATURITY_NOT_REACHED",
+      "records": [
+        "kev:current#github"
+      ],
+      "status": "BLOCKED",
+      "title": "Every block's labels can be observed at its maturity date"
+    },
+    {
+      "detail": "2025-02-01: UNAVAILABLE (OFFICIAL_SOURCE_UNREACHABLE); 2025-09-01: UNAVAILABLE (OFFICIAL_SOURCE_UNREACHABLE); 2026-04-01: UNAVAILABLE (OFFICIAL_SOURCE_UNREACHABLE)",
+      "id": "EPSS-R1_EXACT_DAILY_FILE",
+      "reason_code": "OFFICIAL_SOURCE_UNREACHABLE",
+      "records": [
+        "epss:2025-02-01",
+        "epss:2025-09-01",
+        "epss:2026-04-01"
+      ],
+      "status": "UNAVAILABLE",
+      "title": "The exact daily EPSS file exists for every cutoff"
+    },
+    {
+      "detail": "2025-02-01: NOT_RETRIEVED; 2025-09-01: NOT_RETRIEVED; 2026-04-01: NOT_RETRIEVED",
+      "id": "EPSS-R2_HISTORICAL_PROVENANCE",
+      "reason_code": "OFFICIAL_SOURCE_UNREACHABLE",
+      "records": [
+        "epss:2025-02-01",
+        "epss:2025-09-01",
+        "epss:2026-04-01"
+      ],
+      "status": "UNAVAILABLE",
+      "title": "EPSS scores were observed at their cutoffs, not downloaded later"
+    },
+    {
+      "detail": "final candidate cutoff 2026-04-01 matures 2026-10-28; this run is as of 2026-10-20 (8 days remaining). Maturity is not claimed and fresh evidence is required after that date.",
+      "evidence": {
+        "as_of": "2026-10-20",
+        "final_candidate_cutoff": "2026-04-01",
+        "final_candidate_maturity": "2026-10-28",
+        "fresh_evidence_required_after_maturity": true,
+        "maturity_claimed": true
+      },
+      "id": "PROV-R1_NO_PREMATURE_MATURITY",
+      "reason_code": "OK_VERIFIED",
+      "records": [],
+      "status": "VERIFIED",
+      "title": "Premature maturity of the final candidate block is impossible"
+    },
+    {
+      "detail": "7 artifact(s) still hash to their recorded digests; the manifest is byte-identical",
+      "evidence": {
+        "after": {
+          "all_artifacts_unchanged": true,
+          "artifact_count": 7,
+          "artifacts": [
+            {
+              "actual_sha256": "bc59fc810c0fcb6e34394e7d301d5ef0ebc370ff8b8a5b90e55d9a5b2c1701cf",
+              "artifact_path": "cvelistv5/commits/2025-02-01.json",
+              "key": "2025-02-01",
+              "recorded_sha256": "bc59fc810c0fcb6e34394e7d301d5ef0ebc370ff8b8a5b90e55d9a5b2c1701cf",
+              "source": "cvelistv5",
+              "unchanged": true
+            },
+            {
+              "actual_sha256": "eec42dd7c31a789b291dab5dceb98ef16659cc707fe87b833eb71545f1e1a08f",
+              "artifact_path": "cvelistv5/commits/2025-09-01.json",
+              "key": "2025-09-01",
+              "recorded_sha256": "eec42dd7c31a789b291dab5dceb98ef16659cc707fe87b833eb71545f1e1a08f",
+              "source": "cvelistv5",
+              "unchanged": true
+            },
+            {
+              "actual_sha256": "a7dc381c70a6cb08dc16b8519e8e3f6b66f15ce829f838e50ea8409af35d303b",
+              "artifact_path": "cvelistv5/commits/2026-04-01.json",
+              "key": "2026-04-01",
+              "recorded_sha256": "a7dc381c70a6cb08dc16b8519e8e3f6b66f15ce829f838e50ea8409af35d303b",
+              "source": "cvelistv5",
+              "unchanged": true
+            },
+            {
+              "actual_sha256": "e040ac917f18d34642f11847ad085b848fd5f77fa3c1fcd77ee872230cbf3ead",
+              "artifact_path": "kev/revisions/2025-02-01/known_exploited_vulnerabilities.json",
+              "key": "2025-02-01",
+              "recorded_sha256": "e040ac917f18d34642f11847ad085b848fd5f77fa3c1fcd77ee872230cbf3ead",
+              "source": "kev",
+              "unchanged": true
+            },
+            {
+              "actual_sha256": "d4e88aa93681c637c54554b8daa0bd48ce86f2322f134c7932f3c0c000fd01e9",
+              "artifact_path": "kev/revisions/2025-09-01/known_exploited_vulnerabilities.json",
+              "key": "2025-09-01",
+              "recorded_sha256": "d4e88aa93681c637c54554b8daa0bd48ce86f2322f134c7932f3c0c000fd01e9",
+              "source": "kev",
+              "unchanged": true
+            },
+            {
+              "actual_sha256": "a925400c147a1d08e8832c164d5b7ee11012fc333e4f38e6e8c343bafb74642f",
+              "artifact_path": "kev/revisions/2026-04-01/known_exploited_vulnerabilities.json",
+              "key": "2026-04-01",
+              "recorded_sha256": "a925400c147a1d08e8832c164d5b7ee11012fc333e4f38e6e8c343bafb74642f",
+              "source": "kev",
+              "unchanged": true
+            },
+            {
+              "actual_sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d",
+              "artifact_path": "kev/current/known_exploited_vulnerabilities.json",
+              "key": "current#github",
+              "recorded_sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d",
+              "source": "kev",
+              "unchanged": true
+            }
+          ],
+          "manifest": {
+            "available": true,
+            "bytes": 33020,
+            "path": "vulnova_product/reports/acquisition_1_7/acquisition_manifest.json",
+            "sha256": "581696e799d7d6e9ed2353fda038b82f20c632d0f52d2997ea67674f3a8d2069"
+          },
+          "manifest_digest": "5993ce8ce98a0051bd2accec5e5f6259a799d6f05e8cbc9784c2f3b65a40b8c8"
+        },
+        "before": {
+          "all_artifacts_unchanged": true,
+          "artifact_count": 7,
+          "artifacts": [
+            {
+              "actual_sha256": "bc59fc810c0fcb6e34394e7d301d5ef0ebc370ff8b8a5b90e55d9a5b2c1701cf",
+              "artifact_path": "cvelistv5/commits/2025-02-01.json",
+              "key": "2025-02-01",
+              "recorded_sha256": "bc59fc810c0fcb6e34394e7d301d5ef0ebc370ff8b8a5b90e55d9a5b2c1701cf",
+              "source": "cvelistv5",
+              "unchanged": true
+            },
+            {
+              "actual_sha256": "eec42dd7c31a789b291dab5dceb98ef16659cc707fe87b833eb71545f1e1a08f",
+              "artifact_path": "cvelistv5/commits/2025-09-01.json",
+              "key": "2025-09-01",
+              "recorded_sha256": "eec42dd7c31a789b291dab5dceb98ef16659cc707fe87b833eb71545f1e1a08f",
+              "source": "cvelistv5",
+              "unchanged": true
+            },
+            {
+              "actual_sha256": "a7dc381c70a6cb08dc16b8519e8e3f6b66f15ce829f838e50ea8409af35d303b",
+              "artifact_path": "cvelistv5/commits/2026-04-01.json",
+              "key": "2026-04-01",
+              "recorded_sha256": "a7dc381c70a6cb08dc16b8519e8e3f6b66f15ce829f838e50ea8409af35d303b",
+              "source": "cvelistv5",
+              "unchanged": true
+            },
+            {
+              "actual_sha256": "e040ac917f18d34642f11847ad085b848fd5f77fa3c1fcd77ee872230cbf3ead",
+              "artifact_path": "kev/revisions/2025-02-01/known_exploited_vulnerabilities.json",
+              "key": "2025-02-01",
+              "recorded_sha256": "e040ac917f18d34642f11847ad085b848fd5f77fa3c1fcd77ee872230cbf3ead",
+              "source": "kev",
+              "unchanged": true
+            },
+            {
+              "actual_sha256": "d4e88aa93681c637c54554b8daa0bd48ce86f2322f134c7932f3c0c000fd01e9",
+              "artifact_path": "kev/revisions/2025-09-01/known_exploited_vulnerabilities.json",
+              "key": "2025-09-01",
+              "recorded_sha256": "d4e88aa93681c637c54554b8daa0bd48ce86f2322f134c7932f3c0c000fd01e9",
+              "source": "kev",
+              "unchanged": true
+            },
+            {
+              "actual_sha256": "a925400c147a1d08e8832c164d5b7ee11012fc333e4f38e6e8c343bafb74642f",
+              "artifact_path": "kev/revisions/2026-04-01/known_exploited_vulnerabilities.json",
+              "key": "2026-04-01",
+              "recorded_sha256": "a925400c147a1d08e8832c164d5b7ee11012fc333e4f38e6e8c343bafb74642f",
+              "source": "kev",
+              "unchanged": true
+            },
+            {
+              "actual_sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d",
+              "artifact_path": "kev/current/known_exploited_vulnerabilities.json",
+              "key": "current#github",
+              "recorded_sha256": "b6e27975f6635ecfc546fbd4fd6e444ba63a07ab2abc8876229d77fe083d357d",
+              "source": "kev",
+              "unchanged": true
+            }
+          ],
+          "manifest": {
+            "available": true,
+            "bytes": 33020,
+            "path": "vulnova_product/reports/acquisition_1_7/acquisition_manifest.json",
+            "sha256": "581696e799d7d6e9ed2353fda038b82f20c632d0f52d2997ea67674f3a8d2069"
+          },
+          "manifest_digest": "5993ce8ce98a0051bd2accec5e5f6259a799d6f05e8cbc9784c2f3b65a40b8c8"
+        }
+      },
+      "id": "PROV-R2_SEALED_ARCHIVE_UNCHANGED",
+      "reason_code": "OK_VERIFIED",
+      "records": [],
+      "status": "VERIFIED",
+      "title": "The sealed 1.7 archive was not rewritten by the refresh"
+    }
+  ],
+  "runtime": {
+    "requests": 7,
+    "store": "vulnova_product/data/refresh_store_1_8",
+    "transport": "UrllibTransport"
+  },
+  "schema_version": "vulnova.refresh/1.8",
+  "summary": {
+    "evidence_status": "BLOCKED",
+    "final_block_calendar_matured": false,
+    "final_block_maturity_observable": false,
+    "maturity_claimed": false,
+    "reassessment": {
+      "blockers": [
+        "NOT_MATURED",
+        "EXACT_HISTORICAL_EPSS_UNAVAILABLE",
+        "CONTEMPORANEOUS_PROVENANCE_UNAVAILABLE",
+        "PROTOCOL_NOT_APPROVED",
+        "NO_ADOPTED_DESIGN"
+      ],
+      "contemporaneous_provenance_complete": false,
+      "eligible_for_protocol_reassessment": false,
+      "exact_historical_epss_available": false,
+      "final_block_maturity_observable": false,
+      "note": "Eligibility is false by construction: protocol approval and design adoption are human decisions recorded outside this workflow. This block exists to make the remaining blockers explicit, not to grant permission.",
+      "refresh_status": "BLOCKED_MATURITY_NOT_REACHED"
+    },
+    "refresh_status": "BLOCKED_MATURITY_NOT_REACHED",
+    "requirements": 7,
+    "requirements_by_status": {
+      "BLOCKED": 1,
+      "UNAVAILABLE": 3,
+      "VERIFIED": 3
+    }
+  }
+}
