@@ -107,6 +107,8 @@ def assert_safe_write_targets(
     store_root: Optional[Path | str],
     outputs: Sequence[Path | str] = (),
     protected: Iterable[Path | str] = (),
+    *,
+    store_reason: str = C.REFRESH_STORE_OVERLAPS_ARCHIVE,
 ) -> tuple[Path, ...]:
     """Validate every refresh destination before anything is written.
 
@@ -118,7 +120,9 @@ def assert_safe_write_targets(
     exactly where it will write.  Raises :class:`PathSafetyError` on the first
     unsafe destination:
 
-    * a store that overlaps a protected path (``REFRESH_STORE_OVERLAPS_ARCHIVE``);
+    * a store that overlaps a protected path (``store_reason``, default
+      ``REFRESH_STORE_OVERLAPS_ARCHIVE``; prospective capture passes its own
+      code so the refusing subsystem is visible);
     * an output that overlaps a protected path (``OUTPUT_OVERLAPS_PROTECTED``);
     * an output that overlaps the store, or another output
       (``OUTPUT_PATHS_COLLIDE``).
@@ -131,7 +135,7 @@ def assert_safe_write_targets(
         for item in guarded:
             if _overlaps(resolved_store, item):
                 raise PathSafetyError(
-                    f"{C.REFRESH_STORE_OVERLAPS_ARCHIVE}: refresh store "
+                    f"{store_reason}: store "
                     f"{store_root} overlaps the sealed path {item}; refusing to write"
                 )
 

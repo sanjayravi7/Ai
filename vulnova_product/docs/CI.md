@@ -9,7 +9,7 @@ change to `src/` or `tests/` does not run VULNOVA's tests.
 
 | Workflow | Project | What it runs | Python |
 | --- | --- | --- | --- |
-| `.github/workflows/vulnova-unit-tests.yml` | VULNOVA | `vulnova_product/tests` (467 tests) | 3.11 |
+| `.github/workflows/vulnova-unit-tests.yml` | VULNOVA | `vulnova_product/tests` (633 tests) | 3.11 |
 | `.github/workflows/vulnova-browser.yml` | VULNOVA | `vulnova_product/tools/ui_browser_check.py` (14 Chromium checks) | 3.11 |
 | `.github/workflows/python-package.yml` | Root data pipeline | `tests/` (192 tests + 6 subtests) and flake8 | 3.9, 3.10, 3.11 |
 
@@ -36,7 +36,7 @@ python -m pytest -q
 Expected on Python 3.11 with `pytest==9.1.1`:
 
 ```text
-467 passed
+633 passed
 ```
 
 The suite creates its own temporary SQLite stores through
@@ -72,6 +72,22 @@ HTTPS-to-HTTP downgrade, a non-HTTP scheme, a plaintext initial URL, and the
 final URL being recorded separately. They also assert that urllib's permissive
 default handler is genuinely *replaced* in the installed opener.
 
+The prospective-capture tests (1.9) are fully offline as well.
+`tests/prospective_fixtures.py` serves canned KEV catalogs, EPSS daily files,
+cvelistV5 commit responses and policy-checked redirects; the clock is injected
+through `CaptureOptions`. `tests/conftest.py` installs an autouse guard that fails
+any connection to a non-loopback address, so a test that reached CISA, FIRST or
+GitHub would fail rather than pass slowly and differently on each machine. The
+six `test_prospective_*.py` modules (135 tests) cover capture, verification,
+path safety, the store primitive, the report and the sealed-archive invariant.
+
+CI also runs two 1.9 smoke steps after the 1.8 verifier: the prospective CLI must
+describe itself, and an empty store must report itself as empty and verify as
+`BLOCKED` with zero captures. There is deliberately **no scheduled capture job**:
+a GitHub Actions cron that committed a daily EPSS file would make an expiring
+artifact look like a durable archive, and the store is meant to grow outside the
+repository. See `docs/PROSPECTIVE_CAPTURE_1_9.md`.
+
 ## Optional: verify the committed acquisition archive
 
 This is not part of CI, because it needs neither the network nor a database and
@@ -96,6 +112,19 @@ cd vulnova_product
 python -m vulnova.refresh verify    # offline; exit 1 on tampering
 python -m vulnova.refresh gate      # offline; prints the maturity boundary
 ```
+
+The prospective store has the same offline command, but the repository commits
+no store: a fresh checkout has nothing to verify. On an operator's store:
+
+```bash
+cd vulnova_product
+python -m vulnova.prospective verify --store /srv/vulnova/evidence   # offline
+python -m vulnova.prospective report --store /srv/vulnova/evidence   # offline
+```
+
+`prospective verify` exits `1` for an empty store (`CAPTURES_PRESENT`), because
+"nothing to verify" is not "verified". `prospective report` exits `0` and says the
+store is empty.
 
 `refresh verify` recomputes `refresh_digest`, re-hashes the refreshed catalog,
 re-checks that no block claims maturity before its maturity date, and re-hashes

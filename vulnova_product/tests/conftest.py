@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import socket as _socket
 import sys
 from pathlib import Path
 
@@ -166,3 +167,57 @@ def conn(db):
     connection = store.connect(db)
     yield connection
     connection.close()
+
+
+_ORIGINAL_CONNECT = _socket.socket.connect
+_ORIGINAL_CONNECT_EX = _socket.socket.connect_ex
+_ORIGINAL_CREATE_CONNECTION = _socket.create_connection
+
+#: Loopback is allowed: the browser smoke tests start a local HTTP server.  The
+#: guard is about the internet (CISA, FIRST, GitHub), not about the test host.
+_LOOPBACK = {"127.0.0.1", "::1", "localhost", "0.0.0.0"}
+
+
+def _is_loopback(address) -> bool:
+    if isinstance(address, (str, bytes)):
+        return address in _LOOPBACK or str(address).startswith("/")  # AF_UNIX
+    if isinstance(address, tuple) and address:
+        return address[0] in _LOOPBACK
+    return False
+
+
+@pytest.fixture(autouse=True)
+def _no_network(monkeypatch):
+    """Fail loudly if any test reaches the internet.
+
+    Every acquisition/refresh/prospective test drives a fake transport.  This
+    guard makes that a property of the suite rather than a convention: a test
+    that reached CISA, FIRST or GitHub would fail here instead of passing
+    slowly and differently on each machine.  Loopback stays available for the
+    local web-server tests.
+    """
+
+    def connect(self, address):
+        if not _is_loopback(address):
+            raise AssertionError(
+                f"the test suite must not connect to {address!r}; use FakeTransport"
+            )
+        return _ORIGINAL_CONNECT(self, address)
+
+    def connect_ex(self, address):
+        if not _is_loopback(address):
+            raise AssertionError(
+                f"the test suite must not connect to {address!r}; use FakeTransport"
+            )
+        return _ORIGINAL_CONNECT_EX(self, address)
+
+    def create_connection(address, *args, **kwargs):
+        if not _is_loopback(address):
+            raise AssertionError(
+                f"the test suite must not connect to {address!r}; use FakeTransport"
+            )
+        return _ORIGINAL_CREATE_CONNECTION(address, *args, **kwargs)
+
+    monkeypatch.setattr(_socket.socket, "connect", connect)
+    monkeypatch.setattr(_socket.socket, "connect_ex", connect_ex)
+    monkeypatch.setattr(_socket, "create_connection", create_connection)

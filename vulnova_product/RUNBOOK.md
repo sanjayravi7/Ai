@@ -46,6 +46,23 @@ store (`data/refresh_store_1_8/`) and never touches the 1.7 archive:
 .venv/bin/python -m vulnova.refresh verify   # offline re-hash
 ```
 
+## 2c. Prospective evidence capture (optional, network)
+
+1.9 records evidence while the period is live. A capture uses the network and
+always the real UTC clock; the store defaults to `~/.vulnova/prospective` and
+should live outside the repository:
+
+```bash
+export VULNOVA_PROSPECTIVE_STORE=/srv/vulnova/evidence
+.venv/bin/python -m vulnova.prospective capture
+.venv/bin/python -m vulnova.prospective verify    # offline re-hash
+.venv/bin/python -m vulnova.prospective report    # offline summary
+```
+
+Schedule it once per UTC day after ~13:00 UTC. Do not backfill a missed day, do
+not edit or delete a run, and do not commit the store. See
+`docs/PROSPECTIVE_CAPTURE_1_9.md`.
+
 ## 3. Fetch the pinned sources
 
 ```bash
@@ -125,7 +142,7 @@ ranking     345,249      reference date   2026-10-16
 ./verify_all.sh
 ```
 
-Expected: `109 passed` (pytest), `64 PASS / 0 FAIL` (product), `30 PASS / 0 FAIL`
+Expected: `633 passed` (pytest), `64 PASS / 0 FAIL` (product), `30 PASS / 0 FAIL`
 (DOM-shim render check). Exit code 0.
 
 ## 7. Run the console
@@ -156,3 +173,6 @@ diff <(jq -S . /tmp/after.json) \
 | Server serves stale code | Python modules load at start; restart after edits. |
 | `pytest: command not found` | The venv is not activated — use `.venv/bin/python -m pytest`. |
 | Render check hangs | Server not listening yet; the script waits 20 s, then fails. |
+| `STORE_OVERLAPS_PROTECTED` | The prospective store points at a sealed historical path. Choose a directory outside the repository. |
+| `EPSS_FILE_MISSING` | The daily EPSS file for that UTC date was not published (or not yet). A gap in observation, never a zero. |
+| `CAPTURES_PRESENT` on `prospective verify` | The store has no captures yet; an empty store is `BLOCKED`, not verified. |

@@ -105,8 +105,18 @@ def acquire_daily(
     day: date,
     *,
     store: Optional[ArtifactStore] = None,
+    historical: bool = True,
 ) -> ArtifactRecord:
-    """Fetch the exact EPSS file for ``day`` from the official publisher."""
+    """Fetch the exact EPSS file for ``day`` from the official publisher.
+
+    ``historical=True`` describes a block cutoff: the record carries the cutoff
+    date and an on-the-day retrieval is still ``LATE_RETRIEVAL`` relative to
+    ``T 00:00:00Z``.  ``historical=False`` is for prospective capture, where the
+    date is an *observation date*, not a block boundary; the record then carries
+    no cutoff and its access provenance simply says the bytes were retrieved at
+    the recorded time.  The two are never mixed, because a prospective capture
+    must not look like a retrospective cutoff acquisition.
+    """
     url = official_url(day)
     record = ArtifactRecord(
         source=SOURCE,
@@ -114,10 +124,11 @@ def acquire_daily(
         channel=C.CHANNEL_OFFICIAL,
         source_url=url,
         request_url=url,
-        cutoff=day.isoformat(),
+        cutoff=day.isoformat() if historical else None,
         content_status=C.UNAVAILABLE,
         reason_code=C.EPSS_FILE_MISSING,
     )
+    record.details["historical_cutoff"] = historical
 
     try:
         response = transport.get(url, accept="application/gzip, text/csv")

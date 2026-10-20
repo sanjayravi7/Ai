@@ -7,6 +7,12 @@ name: VULNOVA unit tests
 # network. One readiness test re-runs the committed phase2.3k-export archive and
 # compares the report digest. Do not add a database build to this workflow unless
 # it is made reproducible from committed inputs.
+#
+# There is deliberately no scheduled capture job. Prospective evidence (1.9)
+# must be captured by an operator on a real schedule into a store outside the
+# repository; a GitHub Actions cron that committed a daily EPSS file would turn
+# an expiring artifact into repository history and make the workflow look like a
+# durable archive. CI only exercises the offline surface.
 
 on:
   pull_request:
@@ -68,3 +74,26 @@ jobs:
       - name: Verify the committed 1.8 refresh report offline
         working-directory: vulnova_product
         run: python -m vulnova.refresh verify
+
+      # Prospective capture (1.9) has no committed store: evidence is captured
+      # outside the repository, and an empty store is the honest state of a
+      # fresh checkout. These steps exercise the offline surface only. Do NOT
+      # add a `prospective capture` step: it would make CI depend on CISA/FIRST
+      # reachability, and a daily EPSS file captured here would be a transient
+      # artifact presented as an archive.
+      - name: Prospective capture CLI smoke test (offline)
+        working-directory: vulnova_product
+        run: python -m vulnova.prospective --help
+
+      - name: An empty prospective store is reported as empty, not verified
+        working-directory: vulnova_product
+        run: |
+          python -m vulnova.prospective report --store "$RUNNER_TEMP/empty-prospective" | grep -q "empty store"
+          python -c "
+          from vulnova.prospective.verify import verify_store
+          result = verify_store('$RUNNER_TEMP/empty-prospective')
+          assert result['status'] == 'BLOCKED', result['status']
+          assert result['captures'] == 0, result['captures']
+          assert result['network_used'] is False
+          print('empty store: BLOCKED, 0 captures, no network')
+          "

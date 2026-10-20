@@ -88,6 +88,18 @@ def inspect_catalog(body: bytes) -> dict:
     date_released = payload.get("dateReleased")
     if not isinstance(date_released, str):
         raise ValueError(C.SOURCE_TIMESTAMP_MISSING)
+    try:
+        to_instant(date_released)
+    except (TypeError, ValueError):
+        # A release field that is not a timestamp cannot order the catalog
+        # against a maturity date or a retrieval time.  Refuse it here rather
+        # than letting ``_observe`` raise out of the capture.
+        raise ValueError(C.SOURCE_TIMESTAMP_MISSING) from None
+    if parsed == 0:
+        # An empty catalog is not "no known exploited vulnerabilities".  It is a
+        # feed that produced no records, and calling it VERIFIED would turn an
+        # empty file into evidence of absence.
+        raise ValueError(C.NO_RECORDS)
 
     return {
         "catalog_version": payload.get("catalogVersion"),
@@ -192,7 +204,12 @@ def acquire_current(
             official.artifact_path = path
             official.bytes = size
             official.sha256 = digest
-            records.append(_observe(official.finalize(), facts, maturity=None))
+            # ``_observe`` attaches the catalog's own ``dateReleased``; finalize
+            # after it, so the retrieval-before-source check sees that timestamp.
+            # Previously the direct feed was finalized first, which let a
+            # future-dated catalog pass as VERIFIED while the GitHub path
+            # (which finalizes afterwards) correctly marked it BLOCKED.
+            records.append(_observe(official, facts, maturity=None).finalize())
     return records, facts
 
 
@@ -235,6 +252,11 @@ def acquire_current_github(
         return record.finalize()
 
     commit = commit_result.payload[0]
+    if not isinstance(commit, dict):
+        record.content_status = C.BLOCKED
+        record.reason_code = C.MALFORMED_RESPONSE
+        record.details["error"] = "first commit is not a JSON object"
+        return record.finalize()
     revision = commit.get("sha")
     source_timestamp = GitHubApi.commit_date(commit)
     record.revision = revision if isinstance(revision, str) else None
@@ -418,6 +440,11 @@ def acquire_at_cutoff(
         return record.finalize()
 
     commit = commit_result.payload[0]
+    if not isinstance(commit, dict):
+        record.content_status = C.BLOCKED
+        record.reason_code = C.MALFORMED_RESPONSE
+        record.details["error"] = "first commit is not a JSON object"
+        return record.finalize()
     revision = commit.get("sha")
     source_timestamp = GitHubApi.commit_date(commit)
     record.revision = revision if isinstance(revision, str) else None
@@ -429,7 +456,11 @@ def acquire_at_cutoff(
         record.reason_code = C.SOURCE_TIMESTAMP_MISSING
         return record.finalize()
 
-    committed_at = to_instant(source_timestamp)
+    try:
+        committed_at = to_instant(source_timestamp)
+    except (TypeError, ValueError):
+        record.reason_code = C.SOURCE_TIMESTAMP_MISSING
+        return record.finalize()
     record.details["committed_at"] = committed_at.isoformat()
     if committed_at > cutoff_instant(cutoff):
         record.reason_code = C.REVISION_AFTER_CUTOFF
