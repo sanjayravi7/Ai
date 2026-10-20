@@ -29,7 +29,9 @@ from ..evaluation.protocol import ProtocolError
 from ..evaluation.readiness import ReadinessError, ReadinessOptions, build_report
 from ..provenance import utc_now
 from . import constants as C
+from .errors import PathSafetyError
 from .gate import CatalogFacts, evaluate_gate, gate_summary
+from .paths import assert_safe_write_targets, resolve_path
 from .report import write_json, write_markdown
 from .verify import verify_report_file
 from .workflow import RefreshError, RefreshOptions, run_refresh
@@ -43,10 +45,67 @@ def _repository_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
-def _protected(product: Path, repository: Path) -> tuple[Path, ...]:
-    return tuple(product / relative for relative in C.PROTECTED_RELATIVE_PATHS) + (
-        repository / "phase2.3k-export",
+def protected_paths(
+    args,
+    *,
+    product: Optional[Path] = None,
+    repository: Optional[Path] = None,
+) -> tuple[Path, ...]:
+    """Every input the refresh must never write to.
+
+    Two groups, deliberately kept separate:
+
+    * the fixed sealed directories — the 1.7 archive store and manifest, the
+      committed 1.6 readiness report, the original snapshots and the sealed
+      Phase 2.3K export;
+    * the paths actually configured for this run — the protocol, the baseline
+      report, the Phase 2.3K directory, the sealed manifest and archive store.
+
+    The second group matters because a caller may point ``--baseline`` or
+    ``--archive-store`` somewhere outside the defaults; protecting only the
+    defaults would leave the configured file writable.
+    """
+    product = _product_root() if product is None else product
+    repository = _repository_root() if repository is None else repository
+    guarded = [product / relative for relative in C.PROTECTED_RELATIVE_PATHS]
+    guarded.append(repository / "phase2.3k-export")
+    guarded.extend(
+        (
+            args.protocol,
+            args.baseline,
+            args.artifacts,
+            args.archive_manifest,
+            args.archive_store,
+        )
     )
+    # The defaults make several of these identical (the Phase 2.3K directory is
+    # both a fixed sealed path and the configured --artifacts, for instance).
+    # Deduplicate on the resolved path so each guarded location is named once.
+    seen: set[Path] = set()
+    unique: list[Path] = []
+    for path in guarded:
+        key = resolve_path(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(path)
+    return tuple(unique)
+
+
+def _validate_write_targets(args, protected: tuple[Path, ...]) -> Optional[int]:
+    """Run the shared check, returning an exit code when it refuses.
+
+    Called before the transport is constructed, so a rejected invocation opens
+    neither a socket nor a file.
+    """
+    try:
+        assert_safe_write_targets(
+            args.store, (args.report, args.markdown), protected
+        )
+    except PathSafetyError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    return None
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -223,6 +282,14 @@ def catalog_facts_from_manifest(manifest: dict) -> CatalogFacts:
 def _cmd_run(args) -> int:
     product = _product_root()
     repository = _repository_root()
+    protected = protected_paths(args, product=product, repository=repository)
+
+    # Write safety comes first: no network request, no directory creation and no
+    # store write happens until every destination has been judged safe.
+    refusal = _validate_write_targets(args, protected)
+    if refusal is not None:
+        return refusal
+
     transport: Transport = UrllibTransport()
     api = GitHubApi(transport)
 
@@ -256,7 +323,8 @@ def _cmd_run(args) -> int:
         baseline_report_path=args.baseline,
         baseline_manifest_path=args.archive_manifest,
         baseline_store_path=args.archive_store,
-        protected_paths=_protected(product, repository),
+        protected_paths=protected,
+        output_paths=(args.report, args.markdown),
         readiness_factory=readiness_factory,
         repository_root=repository,
     )
@@ -266,6 +334,12 @@ def _cmd_run(args) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
+    # Re-check immediately before writing.  The acquisition ran since the first
+    # check, so this catches a destination that was replaced by a symlink while
+    # the network calls were in flight.
+    refusal = _validate_write_targets(args, protected)
+    if refusal is not None:
+        return refusal
     out = write_json(report, args.report)
     write_markdown(report, args.markdown)
 

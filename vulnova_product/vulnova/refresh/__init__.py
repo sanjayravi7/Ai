@@ -21,14 +21,18 @@ from .gate import (
     filter_entries_by_date_added,
     gate_summary,
 )
-from .workflow import RefreshError, RefreshOptions, run_refresh
+from .errors import PathSafetyError, RefreshError
+from .paths import assert_safe_write_targets
+from .workflow import RefreshOptions, run_refresh
 
 __all__ = [
     "CatalogFacts",
     "DateAddedFilter",
     "MaturityGateResult",
+    "PathSafetyError",
     "RefreshError",
     "RefreshOptions",
+    "assert_safe_write_targets",
     "catalog_facts",
     "constants",
     "evaluate_gate",

@@ -91,6 +91,11 @@ BASELINE_MISSING = "BASELINE_MISSING"
 READINESS_NOT_RUN = "READINESS_NOT_RUN"
 #: The sealed 1.7 manifest or one of its artifacts changed during the refresh.
 ARCHIVE_CHANGED_DURING_REFRESH = "ARCHIVE_CHANGED_DURING_REFRESH"
+#: A report or Markdown destination overlaps a sealed input, a configured
+#: read-only artifact, or a protected directory.  Raised before any write.
+OUTPUT_OVERLAPS_PROTECTED = "OUTPUT_OVERLAPS_PROTECTED"
+#: Two write destinations overlap, or an output overlaps the refresh store.
+OUTPUT_PATHS_COLLIDE = "OUTPUT_PATHS_COLLIDE"
 
 # --------------------------------------------------------------- 1.8 policies
 POLICIES = {
@@ -177,6 +182,8 @@ __all__ = [
     "MATURITY_CLAIMED_EARLY",
     "MATURITY_NOT_REACHED",
     "OBSERVING_GATE_STATUSES",
+    "OUTPUT_OVERLAPS_PROTECTED",
+    "OUTPUT_PATHS_COLLIDE",
     "PHASE_TITLE",
     "POLICIES",
     "PROTECTED_RELATIVE_PATHS",

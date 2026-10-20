@@ -38,6 +38,8 @@ from ..evaluation import constants as E
 from ..provenance import utc_now
 from . import constants as C
 from .comparison import build_comparison
+from .errors import RefreshError
+from .paths import assert_safe_write_targets
 from .gate import (
     CatalogFacts,
     DateAddedFilter,
@@ -49,8 +51,8 @@ from .gate import (
 )
 
 
-class RefreshError(RuntimeError):
-    """The refresh cannot proceed without violating a safety invariant."""
+# ``RefreshError`` is defined in ``errors`` and re-exported here so that
+# ``from vulnova.refresh.workflow import RefreshError`` keeps working.
 
 
 # ------------------------------------------------------------------- options
@@ -66,33 +68,26 @@ class RefreshOptions:
     baseline_manifest_path: Optional[Path] = None
     baseline_store_path: Optional[Path] = None
     protected_paths: tuple[Path, ...] = ()
+    #: Report and Markdown destinations, validated before any acquisition.  The
+    #: CLI passes them here as well as checking them itself, so a programmatic
+    #: caller cannot skip the check by calling ``run_refresh`` directly.
+    output_paths: tuple[Path, ...] = ()
     readiness_factory: Optional[Callable[[dt.date], Optional[dict]]] = None
     repository_root: Optional[Path] = None
 
 
 # --------------------------------------------------------------- path safety
-def _resolve(path: Path | str) -> Path:
-    try:
-        return Path(path).resolve()
-    except OSError:  # pragma: no cover - defensive
-        return Path(path).absolute()
-
-
 def assert_separate_store(store_root: Path | str, protected: Iterable[Path | str]) -> None:
     """Refuse a refresh store that overlaps a sealed archive directory.
 
     Overlap in *either* direction is refused: a refresh store inside the 1.7
     archive would add files to it, and an archive directory inside the refresh
     store would let a later cleanup delete it.
+
+    This is a thin wrapper over :func:`vulnova.refresh.paths.assert_safe_write_targets`,
+    so the store and the report outputs are judged by the same rules.
     """
-    target = _resolve(store_root)
-    for item in protected:
-        guarded = _resolve(item)
-        if target == guarded or guarded in target.parents or target in guarded.parents:
-            raise RefreshError(
-                f"{C.REFRESH_STORE_OVERLAPS_ARCHIVE}: refresh store {store_root} "
-                f"overlaps the sealed path {item}; refusing to write"
-            )
+    assert_safe_write_targets(store_root, (), protected)
 
 
 def _fingerprint(path: Optional[Path]) -> Optional[dict]:
@@ -249,7 +244,11 @@ def run_refresh(options: RefreshOptions) -> dict:
     except ValueError as exc:  # pragma: no cover - a clock returning junk
         raise RefreshError(f"clock returned a non-ISO timestamp: {started_at!r}") from exc
 
-    assert_separate_store(options.store.root, options.protected_paths)
+    # Every destination is validated before the first network request and before
+    # any file is created: the store, the JSON report and the Markdown summary.
+    assert_safe_write_targets(
+        options.store.root, options.output_paths, options.protected_paths
+    )
     archive_before = archive_fingerprint(
         options.baseline_manifest_path, options.baseline_store_path
     )

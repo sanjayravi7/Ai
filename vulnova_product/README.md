@@ -115,9 +115,12 @@ final labels mature 2026-10-28, 8 days later, and the catalog in hand
 (`2026.10.16`) predates them, so the observation is right-censored and **no**
 `dateAdded`-filtered label view is produced. `run` has no date override — it
 always uses the real UTC clock and records each artifact's actual retrieval
-time. The refresh writes to its own store and report directory, refuses any path
-that overlaps `data/acquisition_store` or `reports/acquisition_1_7`, and
-re-hashes all seven sealed 1.7 artifacts before and after each run.
+time. The refresh writes to its own store and report directory. All three of its
+destinations — store, JSON report, Markdown summary — are validated before the
+first network request against every sealed input (the 1.7 archive and manifest,
+the committed 1.6 report, `data/snapshots`, the Phase 2.3K export and whatever
+`--protocol`/`--baseline`/`--artifacts` name), and it re-hashes all seven sealed
+1.7 artifacts before and after each run. A refused path writes nothing.
 
 The readiness comparison against the committed 1.6 report shows **0 check status
 changes** and **no admissible design**; the protocol remains `NOT_APPROVED`.

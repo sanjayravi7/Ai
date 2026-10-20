@@ -111,6 +111,12 @@ It adds no source adapter and no second definition of a status.
   one by **check status and design verdict**, not by report digest. A readiness
   report embeds its `as_of` date, so digests legitimately differ when nothing
   changed; the report says so rather than letting a reader conflate the two.
+* `paths.py` is the single write-safety gate. Every destination — store, JSON
+  report, Markdown summary — is resolved (following symlinks and `..`) and
+  checked against the sealed directories and the configured read-only inputs
+  before the first network request. Overlap in either direction is refused;
+  `run_refresh` re-runs the check itself, so a caller that bypasses the CLI
+  cannot bypass the rule.
 
 `run_refresh` takes its clock as a parameter. The CLI never exposes a date for
 `run`: production acquisition always uses the real UTC clock, and every

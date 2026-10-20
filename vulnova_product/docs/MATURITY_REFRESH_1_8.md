@@ -131,6 +131,44 @@ requirement and can never satisfy a *historical provenance* requirement.
 | `BLOCKED_EVIDENCE_INCOMPLETE` | Labels are observable, but refreshed evidence is not. |
 | `EVIDENCE_COMPLETE_FOR_REASSESSMENT` | Every requirement is supported — **still not an approval**. |
 
+## Write safety
+
+Three destinations are written by `run`: the artifact store, the JSON report and
+the Markdown summary. All three are checked **before the first network request
+and before any directory is created**, by one function
+(`vulnova.refresh.paths.assert_safe_write_targets`), so the CLI and any
+programmatic caller are judged by the same rules.
+
+Protected, in both directions:
+
+| Protected path | Why |
+|---|---|
+| `data/acquisition_store/` | the sealed 1.7 artifact store |
+| `reports/acquisition_1_7/` | the sealed 1.7 manifest and its report |
+| `reports/evaluation_readiness_1_6/` | the committed 1.6 baseline |
+| `data/snapshots/` | the original publisher snapshots |
+| `phase2.3k-export/` | the sealed Phase 2.3K export |
+| `--protocol`, `--baseline`, `--artifacts`, `--archive-manifest`, `--archive-store` | whatever this run actually reads as sealed input |
+
+Consequences:
+
+* `--report` and `--markdown` may not equal, sit inside, or contain any protected
+  path. `--report reports/` is refused even though `reports/` is a directory,
+  because it contains `reports/evaluation_readiness_1_6/`.
+* `--store` may not overlap a protected path (this was the 1.8.0 check, unchanged).
+* The report and the Markdown summary may not resolve to the same path, may not
+  overlap each other, and may not live inside the refresh store.
+* Paths are resolved with `Path.resolve`, so relative paths, `..` segments and
+  existing symlinks are all judged by where they really point. A symlink aimed at
+  the 1.6 report is the 1.6 report.
+
+A refused run exits with status 2 and prints `error: OUTPUT_OVERLAPS_PROTECTED`
+or `error: OUTPUT_PATHS_COLLIDE`. It opens no socket, creates no directory and
+leaves every protected byte untouched — the tests assert all three.
+
+The check runs again immediately before the files are written, so a destination
+swapped for a symlink while the acquisition was in flight is still caught.
+
 ## What the refresh does to existing artifacts
 
 Nothing. The refresh store is checked against the protected paths before a byte
