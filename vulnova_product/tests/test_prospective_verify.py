@@ -285,3 +285,12 @@ def test_a_requirements_block_that_is_not_a_list_is_reported(tmp_path):
     result = _verify_after(tmp_path, mutate)
     assert result["status"] == A.BLOCKED
     assert "CAPTURE_STATUS" in verify_failure_reasons(result)
+
+
+def test_a_summary_that_is_not_an_object_is_reported(tmp_path):
+    def mutate(payload, _store):
+        payload["summary"] = "looks fine"
+
+    result = _verify_after(tmp_path, mutate)
+    assert result["status"] == A.BLOCKED
+    assert "CAPTURE_STATUS" in verify_failure_reasons(result)

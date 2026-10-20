@@ -46,7 +46,12 @@ REQUIREMENT_KINDS = {
 def _requirement_statuses(run: dict) -> dict:
     """Per-source status as the run itself summarized it."""
     statuses = {}
-    for requirement in run.get("requirements") or []:
+    requirements = run.get("requirements")
+    if not isinstance(requirements, list):
+        return statuses
+    for requirement in requirements:
+        if not isinstance(requirement, dict):
+            continue
         kind = REQUIREMENT_KINDS.get(requirement.get("id"))
         if kind:
             statuses[kind] = requirement.get("status")
@@ -94,7 +99,9 @@ def build_report(store_root) -> dict:
     days: dict[str, dict] = {}
 
     for run in runs:
-        status = (run.get("summary") or {}).get("capture_status", A.BLOCKED)
+        summary = run.get("summary")
+        summary = summary if isinstance(summary, dict) else {}
+        status = summary.get("capture_status", A.BLOCKED)
         status_counts[status] = status_counts.get(status, 0) + 1
         observation = str(run.get("observation_date", ""))
         day = days.setdefault(

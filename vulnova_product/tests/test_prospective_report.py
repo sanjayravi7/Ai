@@ -291,3 +291,16 @@ def test_a_programmatic_report_writer_cannot_overwrite_the_sealed_report(tmp_pat
         write_json(report, sealed)
     assert sealed.read_bytes() == before
     assert C.SCHEMA_VERSION.startswith("vulnova.prospective/")
+
+
+def test_a_summary_that_is_not_an_object_does_not_break_the_report(tmp_path):
+    scenario = _captured(tmp_path)
+    run_file = next((scenario.store_root / "runs").glob("*.json"))
+    payload = json.loads(run_file.read_text())
+    payload["summary"] = "looks fine"
+    payload["requirements"] = {"KEV-CAPTURE": "VERIFIED"}
+    run_file.write_text(json.dumps(payload))
+
+    report = build_report(scenario.store_root)
+    assert report["captures"] == 1
+    assert report["status_counts"][A.BLOCKED] == 1

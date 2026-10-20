@@ -144,7 +144,9 @@ def _is_selected(run: dict, record: dict) -> bool:
     """
     if record.get("source") == C.CVELISTV5:
         return True
-    selected = run.get("summary", {}).get("selected_kev") or {}
+    summary = run.get("summary")
+    summary = summary if isinstance(summary, dict) else {}
+    selected = summary.get("selected_kev") or {}
     return selected.get("sha256") == record.get("sha256")
 
 
@@ -253,7 +255,9 @@ def verify_store(store_root: Path | str) -> dict:
             if isinstance(requirement, dict)
         ]
         expected_status = A.worst(statuses) if statuses else A.BLOCKED
-        recorded_status = (run.get("summary") or {}).get("capture_status")
+        summary = run.get("summary")
+        summary = summary if isinstance(summary, dict) else {}
+        recorded_status = summary.get("capture_status")
         if recorded_status != expected_status:
             status_errors.append(
                 f"{run_id}: summary {recorded_status!r} != derived {expected_status!r}"

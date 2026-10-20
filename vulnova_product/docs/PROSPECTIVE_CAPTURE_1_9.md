@@ -320,7 +320,7 @@ these is answered here.
 
 ## Tests
 
-`tests/test_prospective_*.py` (135 tests) drive the real capture, verify and
+`tests/test_prospective_*.py` (137 tests) drive the real capture, verify and
 report paths against canned responses. No test opens a socket: `tests/conftest.py`
 installs an autouse guard that fails any connection to a non-loopback address, and
 one test asserts the guard is live. The checklist covered:
