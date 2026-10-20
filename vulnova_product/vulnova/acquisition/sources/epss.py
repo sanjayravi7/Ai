@@ -19,7 +19,7 @@ from datetime import date
 from typing import Optional
 
 from .. import constants as C
-from ..records import ArtifactRecord
+from ..records import ArtifactRecord, is_policy_refusal, transport_reason
 from ..store import ArtifactStore
 from ..transport import Transport, TransportError
 
@@ -90,14 +90,10 @@ def _record_error(
     record.request_url = exc.url
     record.http_status = exc.status
     record.retrieved_at = exc.retrieved_at
-    if exc.status == 404:
-        record.reason_code = C.EPSS_FILE_MISSING
-    elif exc.reason == "RATE_LIMITED":
-        record.reason_code = C.RATE_LIMITED
-    elif exc.reason == "UNREACHABLE":
-        record.reason_code = C.OFFICIAL_SOURCE_UNREACHABLE
-    else:
-        record.reason_code = C.HTTP_ERROR
+    record.reason_code = transport_reason(exc, not_found=C.EPSS_FILE_MISSING)
+    if is_policy_refusal(exc):
+        # We declined to follow the request; the publisher never answered.
+        record.content_status = C.BLOCKED
     record.details["error"] = exc.reason
     record.details["requested_date"] = day.isoformat()
     record.details["mirror_available"] = MIRROR_NOTE
@@ -129,6 +125,7 @@ def acquire_daily(
         return _record_error(record, exc, day=day)
 
     record.retrieved_at = response.retrieved_at
+    record.final_url = response.final_url
     record.http_status = response.status
     body = response.body
     record.bytes = len(body)

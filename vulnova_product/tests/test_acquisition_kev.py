@@ -253,3 +253,14 @@ def test_kev_records_never_claim_absence_means_not_exploited(tmp_path):
     assert "not exploited" not in payload
     assert "not_exploited" not in payload
     assert "non-exploitation" not in payload
+
+
+def test_a_refused_redirect_on_the_direct_feed_is_blocked_not_unreachable(tmp_path):
+    transport = FakeTransport().add_error(
+        kev.CISA_FEED_URL, reason="HTTPS_DOWNGRADE_BLOCKED", status=301
+    )
+    records, facts = kev.acquire_current(transport, store=ArtifactStore(tmp_path / "store"))
+    assert facts is None
+    assert records[0].channel == C.CHANNEL_OFFICIAL
+    assert records[0].content_status == C.BLOCKED
+    assert records[0].reason_code == C.REDIRECT_BLOCKED

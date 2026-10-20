@@ -23,6 +23,7 @@ from tests.acquisition_fixtures import (
     build_scenario,
     commit_payload,
     cve_url,
+    epss_url,
     kev_catalog_bytes,
 )
 
@@ -342,3 +343,22 @@ def test_failed_attempts_are_not_reported_as_late_retrievals(tmp_path):
         if record["source"] == "epss" and record["channel"] == C.CHANNEL_OFFICIAL:
             assert record["sha256"] is None
             assert record["access_provenance"] == C.NOT_RETRIEVED
+
+
+def test_a_refused_redirect_blocks_the_requirement_without_claiming_an_outage(tmp_path):
+    """A policy refusal must not look like a publisher that failed to answer."""
+    scenario = build_scenario(tmp_path, epss_available=False)
+    for day in CUTOFFS:
+        scenario.transport.add_error(
+            epss_url(day), reason="DISALLOWED_REDIRECT_HOST", status=302
+        )
+    manifest = _run(scenario)
+    requirement = next(
+        item for item in manifest["requirements"] if item["id"] == "EPSS-01_EXACT_DAILY_FILE"
+    )
+    assert requirement["status"] == C.BLOCKED
+    assert requirement["reason_code"] == C.REDIRECT_BLOCKED
+    assert requirement["reason_code"] != C.OFFICIAL_SOURCE_UNREACHABLE
+    for record in manifest["records"]:
+        if record["source"] == "epss" and record["channel"] == C.CHANNEL_OFFICIAL:
+            assert record["reason_code"] == C.REDIRECT_BLOCKED

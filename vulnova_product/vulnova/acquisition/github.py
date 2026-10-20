@@ -53,6 +53,7 @@ class ApiResult:
     retrieved_at: str
     payload: object
     body: bytes
+    final_url: str = ""
 
 
 def commits_url(repo: str, until_iso: str) -> str:
@@ -86,6 +87,7 @@ class GitHubApi:
             url=url,
             retrieved_at=response.retrieved_at,
             payload=payload,
+            final_url=response.final_url,
             body=response.body,
         )
 
@@ -101,6 +103,7 @@ class GitHubApi:
             url=url,
             retrieved_at=response.retrieved_at,
             payload=payload,
+            final_url=response.final_url,
             body=response.body,
         )
 
@@ -118,6 +121,7 @@ class GitHubApi:
             url=url,
             retrieved_at=response.retrieved_at,
             payload=payload,
+            final_url=response.final_url,
             body=response.body,
         )
 
@@ -162,6 +166,7 @@ class GitHubApi:
             url=url,
             retrieved_at=response.retrieved_at,
             payload=payload,
+            final_url=response.final_url,
             body=response.body,
         )
 
@@ -180,6 +185,7 @@ class GitHubApi:
             retrieved_at=response.retrieved_at,
             payload={"bytes": len(response.body)},
             body=response.body,
+            final_url=response.final_url,
         )
 
     # -------------------------------------------------------------- helpers

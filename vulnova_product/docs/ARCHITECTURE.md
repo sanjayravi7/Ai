@@ -74,7 +74,13 @@ EPSS ───────┘     (host policy,      │              │
 ```
 
 `transport.py` is the only module that can reach the network, and it stamps the
-retrieval time *after* the body is read. `records.py` derives
+retrieval time *after* the body is read. It is also the only place the host
+allowlist is enforced, and it enforces it on **every redirect hop**: urllib's
+default redirect handler follows a `Location` header anywhere, so the transport
+installs a `SafeRedirectHandler` that rejects any destination outside the
+`HostPolicy`, refuses HTTPS-to-HTTP downgrades, and reports the URL that actually
+served the bytes as `HttpResponse.final_url` — kept separate from the requested
+URL, because a redirect is exactly where an allowlist can otherwise be bypassed. `records.py` derives
 `CONTEMPORANEOUS` / `LATE_RETRIEVAL` / `NOT_RETRIEVED` from those timestamps, so
 no caller can declare historical access that the data does not support.
 `verify.py` re-derives the same classification from the manifest alone and

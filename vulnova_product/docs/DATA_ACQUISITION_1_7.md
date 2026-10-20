@@ -49,6 +49,34 @@ satisfy a requirement. A mirror record is also excluded from requirement
 aggregation, so an available mirror cannot drag down a requirement the official
 channel already satisfies.
 
+## Network policy
+
+Every byte passes through one `Transport`, and that transport is the only place
+the host allowlist is enforced.
+
+- **HTTPS only.** A plaintext URL is refused before any socket is opened
+  (`INSECURE_TRANSPORT`).
+- **Redirects are re-checked, not trusted.** urllib's default handler follows a
+  `Location` header to any host, so the transport installs a `SafeRedirectHandler`
+  that re-validates every hop against the same `HostPolicy`. A redirect to an
+  unapproved host is refused before it is issued (`DISALLOWED_REDIRECT_HOST`),
+  and an HTTPS-to-HTTP downgrade is refused even when the host is approved
+  (`HTTPS_DOWNGRADE_BLOCKED`). Relative `Location` headers are resolved against
+  the URL they came from, so `//evil.example.com/x` is caught too.
+- **Defence in depth.** After the body is read, the final URL is checked again;
+  a response can never be handed back from a host or scheme the policy rejects.
+- **Refusals are not outages.** These reasons map to `REDIRECT_BLOCKED` and a
+  `BLOCKED` status, never to `HTTP_ERROR`/`OFFICIAL_SOURCE_UNREACHABLE`. The
+  publisher never answered, so it would be wrong to report that it failed.
+- **The final URL is recorded separately.** `HttpResponse.final_url` carries the
+  URL that actually served the bytes; `HttpResponse.url` stays the URL that was
+  requested. In a record, `final_url` is serialised **only when a redirect moved
+  the request**, so an unchanged URL is not duplicated.
+
+The committed manifest contains no `final_url` field: every request resolved on
+its original URL, so separating the two adds nothing. That is a fact about this
+run, not a default.
+
 ## What this run acquired
 
 Acquisition time is recorded in the manifest (`generated_at`, and a

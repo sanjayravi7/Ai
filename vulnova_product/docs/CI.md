@@ -9,7 +9,7 @@ change to `src/` or `tests/` does not run VULNOVA's tests.
 
 | Workflow | Project | What it runs | Python |
 | --- | --- | --- | --- |
-| `.github/workflows/vulnova-unit-tests.yml` | VULNOVA | `vulnova_product/tests` (343 tests) | 3.11 |
+| `.github/workflows/vulnova-unit-tests.yml` | VULNOVA | `vulnova_product/tests` (374 tests) | 3.11 |
 | `.github/workflows/vulnova-browser.yml` | VULNOVA | `vulnova_product/tools/ui_browser_check.py` (14 Chromium checks) | 3.11 |
 | `.github/workflows/python-package.yml` | Root data pipeline | `tests/` (192 tests + 6 subtests) and flake8 | 3.9, 3.10, 3.11 |
 
@@ -36,7 +36,7 @@ python -m pytest -q
 Expected on Python 3.11 with `pytest==9.1.1`:
 
 ```text
-343 passed
+374 passed
 ```
 
 The suite creates its own temporary SQLite stores through
@@ -52,6 +52,16 @@ The acquisition tests (1.7) use an injected `FakeTransport` with canned bytes an
 fixed clocks. They never open a socket and never read `data/acquisition_store/`:
 tampering, missing timestamps, hash mismatches, cutoff mismatches and
 historical-versus-actual retrieval times are all exercised against the fixture.
+
+The redirect tests are deterministic too. `SafeRedirectHandler.redirect_request`
+is called directly with synthetic `Location` values; a second group drives the
+*real* `OpenerDirector` and redirect chain with a canned handler that never opens
+a socket. No DNS, no live redirect. They cover
+an allowed same-host redirect, an allowed cross-host redirect, a relative
+`Location`, a lookalike `//host/path`, a disallowed host, a 301/303/307/308
+HTTPS-to-HTTP downgrade, a non-HTTP scheme, a plaintext initial URL, and the
+final URL being recorded separately. They also assert that urllib's permissive
+default handler is genuinely *replaced* in the installed opener.
 
 ## Optional: verify the committed acquisition archive
 

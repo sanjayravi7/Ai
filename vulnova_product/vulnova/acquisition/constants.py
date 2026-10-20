@@ -82,6 +82,7 @@ SCORE_DATE_MISMATCH = "SCORE_DATE_MISMATCH"
 THIRD_PARTY_MIRROR_ONLY = "THIRD_PARTY_MIRROR_ONLY"
 PIN_CONFLICT = "PIN_CONFLICT"
 PIN_CROSSCHECK_SKIPPED = "PIN_CROSSCHECK_SKIPPED"
+REDIRECT_BLOCKED = "REDIRECT_BLOCKED"
 LABELS_NOT_MATURE = "LABELS_NOT_MATURE"
 CATALOG_PREDATES_MATURITY = "CATALOG_PREDATES_MATURITY"
 CUTOFF_OUTSIDE_GRID = "CUTOFF_OUTSIDE_GRID"
@@ -129,6 +130,10 @@ REASON_DESCRIPTIONS = {
     ),
     PIN_CONFLICT: "The live source disagrees with the revision recorded earlier.",
     PIN_CROSSCHECK_SKIPPED: "No reference dataset was supplied for a pin cross-check.",
+    REDIRECT_BLOCKED: (
+        "A redirect, or the requested URL itself, was refused because it left the "
+        "approved HTTPS hosts. The request was not sent to the rejected destination."
+    ),
     LABELS_NOT_MATURE: "The block's labels have not matured at the as-of date.",
     CATALOG_PREDATES_MATURITY: (
         "The catalog was released before the maturity date, so it cannot observe "

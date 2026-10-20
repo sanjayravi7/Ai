@@ -121,3 +121,28 @@ def test_epss_header_parser_agrees_with_the_existing_reader(tmp_path):
     facts = epss.inspect_payload(path.read_bytes())
     assert facts["score_date"] == header["score_date"]
     assert facts["model_version"] == header["model_version"]
+
+
+def test_a_redirect_is_recorded_as_a_final_url(tmp_path):
+    transport = FakeTransport().add_bytes(
+        epss_url(DAY),
+        epss_bytes(DAY),
+        content_type="application/gzip",
+        retrieved_at="2026-10-20T10:00:00Z",
+        final_url="https://epss.cyentia.com/daily/epss_scores-2025-02-01.csv.gz",
+    )
+    record = epss.acquire_daily(transport, DAY)
+    payload = record.as_dict()
+    assert payload["request_url"] == epss_url(DAY)
+    assert payload["final_url"].endswith("daily/epss_scores-2025-02-01.csv.gz")
+    assert record.content_status == C.VERIFIED
+
+
+def test_a_refused_redirect_is_blocked_and_not_reported_as_a_publisher_outage():
+    transport = FakeTransport().add_error(
+        epss_url(DAY), reason="DISALLOWED_REDIRECT_HOST", status=302
+    )
+    record = epss.acquire_daily(transport, DAY)
+    assert record.reason_code == C.REDIRECT_BLOCKED
+    assert record.content_status == C.BLOCKED
+    assert record.reason_code != C.OFFICIAL_SOURCE_UNREACHABLE

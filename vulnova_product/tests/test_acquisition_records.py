@@ -13,6 +13,7 @@ from vulnova.acquisition.records import (
     requirement_from_records,
     to_instant,
 )
+from vulnova.acquisition.transport import TransportError
 
 
 def _record(**overrides) -> ArtifactRecord:
@@ -132,3 +133,52 @@ def test_unknown_cutoff_text_degrades_to_not_retrieved():
 @pytest.mark.parametrize("status", C.STATUSES)
 def test_status_vocabulary_is_closed(status):
     assert status in C.STATUSES
+
+
+def test_final_url_is_omitted_when_it_equals_the_request_url():
+    record = _record()
+    record.final_url = record.request_url
+    assert "final_url" not in record.as_dict()
+
+
+def test_final_url_is_serialised_only_when_a_redirect_moved_the_request():
+    record = _record()
+    record.final_url = "https://api.github.com/repositories/42"
+    payload = record.as_dict()
+    assert payload["request_url"] == record.request_url
+    assert payload["final_url"] == "https://api.github.com/repositories/42"
+
+
+def test_policy_refusals_are_recognised_apart_from_publisher_failures():
+    from vulnova.acquisition.records import is_policy_refusal, transport_reason
+
+    downgrade = TransportError("no", url="https://a", reason="HTTPS_DOWNGRADE_BLOCKED")
+    offline = TransportError("no", url="https://a", reason="UNREACHABLE")
+
+    assert is_policy_refusal(downgrade) is True
+    assert is_policy_refusal(offline) is False
+    assert transport_reason(downgrade) == C.REDIRECT_BLOCKED
+    assert transport_reason(offline) == C.OFFICIAL_SOURCE_UNREACHABLE
+
+
+def test_transport_reason_maps_the_whole_vocabulary():
+    from vulnova.acquisition.records import transport_reason
+
+    def reason(code, status=None):
+        return TransportError(
+            "x", url="https://a", reason=code, status=status
+        )
+
+    assert transport_reason(reason("DISALLOWED_REDIRECT_HOST", 302)) == C.REDIRECT_BLOCKED
+    assert transport_reason(reason("INSECURE_TRANSPORT")) == C.REDIRECT_BLOCKED
+    assert transport_reason(reason("RATE_LIMITED", 403)) == C.RATE_LIMITED
+    assert transport_reason(reason("HTTP_ERROR", 500)) == C.HTTP_ERROR
+    assert transport_reason(reason("HTTP_ERROR", 404)) == C.HTTP_ERROR
+    assert transport_reason(reason("HTTP_ERROR", 404), not_found=C.EPSS_FILE_MISSING) == (
+        C.EPSS_FILE_MISSING
+    )
+
+
+def test_redirect_blocked_is_a_documented_reason_code():
+    assert C.REDIRECT_BLOCKED in C.REASON_DESCRIPTIONS
+    assert "HTTPS" in C.REASON_DESCRIPTIONS[C.REDIRECT_BLOCKED]

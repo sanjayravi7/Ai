@@ -15,6 +15,7 @@ from typing import Iterable, Optional
 
 from ..evaluation.temporal import parse_date
 from . import constants as C
+from .transport import REDIRECT_REASONS, TransportError
 
 
 def to_instant(value: str) -> dt.datetime:
@@ -51,6 +52,9 @@ class ArtifactRecord:
     artifact_path: Optional[str] = None
     bytes: Optional[int] = None
     sha256: Optional[str] = None
+    #: The URL that actually served the bytes, when a redirect moved the request.
+    #: ``request_url`` stays the URL we asked for; the two are never merged.
+    final_url: Optional[str] = None
     historical_retrieval_verified: bool = False
     details: dict = field(default_factory=dict)
 
@@ -138,6 +142,10 @@ class ArtifactRecord:
             "bytes": self.bytes,
             "sha256": self.sha256,
         }
+        # Only serialised when it actually differs: an unchanged URL is already
+        # ``request_url``, and repeating it would churn every existing manifest.
+        if self.final_url and self.final_url != self.request_url:
+            payload["final_url"] = self.final_url
         if self.details:
             payload["details"] = self.details
         return payload
@@ -165,6 +173,34 @@ class Requirement:
         if self.evidence:
             payload["evidence"] = self.evidence
         return payload
+
+
+def is_policy_refusal(exc: TransportError) -> bool:
+    """True when our own policy, not the publisher, refused the request.
+
+    Kept separate from :func:`transport_reason` because a refusal is ``BLOCKED``
+    (an unmet precondition) rather than ``UNAVAILABLE`` (evidence the publisher
+    could not supply).
+    """
+    return exc.reason in REDIRECT_REASONS
+
+
+def transport_reason(exc: TransportError, *, not_found: str = C.HTTP_ERROR) -> str:
+    """Map a transport failure onto the manifest's reason vocabulary.
+
+    Centralised so every source names a redirect refusal ``REDIRECT_BLOCKED``
+    instead of the generic ``HTTP_ERROR``; a policy refusal must never look like
+    a server fault.
+    """
+    if exc.reason in REDIRECT_REASONS:
+        return C.REDIRECT_BLOCKED
+    if exc.reason == "RATE_LIMITED":
+        return C.RATE_LIMITED
+    if exc.reason == "UNREACHABLE":
+        return C.OFFICIAL_SOURCE_UNREACHABLE
+    if exc.status == 404:
+        return not_found
+    return C.HTTP_ERROR
 
 
 def _effective_status(record: ArtifactRecord, use_access_provenance: bool) -> str:
@@ -248,7 +284,9 @@ __all__ = [
     "ArtifactRecord",
     "Requirement",
     "cutoff_instant",
+    "is_policy_refusal",
     "late_retrievals",
     "requirement_from_records",
     "to_instant",
+    "transport_reason",
 ]

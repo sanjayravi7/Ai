@@ -22,7 +22,13 @@ from typing import Optional
 
 from .. import constants as C
 from ..github import GitHubApi, MalformedGitHubResponse
-from ..records import ArtifactRecord, cutoff_instant, to_instant
+from ..records import (
+    ArtifactRecord,
+    cutoff_instant,
+    is_policy_refusal,
+    to_instant,
+    transport_reason,
+)
 from ..store import ArtifactStore
 from ..transport import TransportError
 
@@ -80,18 +86,15 @@ def acquire_revision(
         record.request_url = exc.url
         record.http_status = exc.status
         record.retrieved_at = exc.retrieved_at
-        if exc.reason == "RATE_LIMITED":
-            record.reason_code = C.RATE_LIMITED
-        elif exc.status == 404:
-            record.reason_code = C.REVISION_NOT_FOUND
-        elif exc.reason == "UNREACHABLE":
-            record.reason_code = C.OFFICIAL_SOURCE_UNREACHABLE
-        else:
-            record.reason_code = C.HTTP_ERROR
+        record.reason_code = transport_reason(exc, not_found=C.REVISION_NOT_FOUND)
+        if is_policy_refusal(exc):
+            # We declined to follow the request; the source never answered.
+            record.content_status = C.BLOCKED
         record.details["error"] = exc.reason
         return record.finalize()
 
     record.request_url = result.url
+    record.final_url = result.final_url or result.url
     record.retrieved_at = result.retrieved_at
     record.http_status = 200
     record.artifact_path, record.bytes, record.sha256 = _store_response(

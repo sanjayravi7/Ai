@@ -25,7 +25,13 @@ from typing import Optional
 
 from .. import constants as C
 from ..github import BlobNotInline, GitHubApi, MalformedGitHubResponse
-from ..records import ArtifactRecord, cutoff_instant, to_instant
+from ..records import (
+    ArtifactRecord,
+    cutoff_instant,
+    is_policy_refusal,
+    to_instant,
+    transport_reason,
+)
 from ..store import ArtifactStore
 from ..transport import Transport, TransportError
 
@@ -43,6 +49,12 @@ HISTORICAL_ARTIFACT_TEMPLATE = "kev/revisions/{cutoff}/known_exploited_vulnerabi
 
 def _sha(body: bytes) -> str:
     return hashlib.sha256(body).hexdigest()
+
+
+def _mark_refusal(record: ArtifactRecord, exc: Exception) -> None:
+    """A policy refusal is BLOCKED, never a publisher outage."""
+    if isinstance(exc, TransportError) and is_policy_refusal(exc):
+        record.content_status = C.BLOCKED
 
 
 def inspect_catalog(body: bytes) -> dict:
@@ -146,15 +158,14 @@ def acquire_current(transport: Transport, *, store: Optional[ArtifactStore] = No
         official.request_url = exc.url
         official.http_status = exc.status
         official.retrieved_at = exc.retrieved_at
-        official.reason_code = (
-            C.OFFICIAL_SOURCE_UNREACHABLE
-            if exc.reason == "UNREACHABLE"
-            else C.HTTP_ERROR
-        )
+        official.reason_code = transport_reason(exc)
+        if is_policy_refusal(exc):
+            official.content_status = C.BLOCKED
         official.details["error"] = exc.reason
         records.append(official.finalize())
     else:
         official.retrieved_at = response.retrieved_at
+        official.final_url = response.final_url
         official.http_status = response.status
         official.bytes = len(response.body)
         official.sha256 = _sha(response.body)
@@ -195,7 +206,12 @@ def acquire_current_github(
         commit_result = api.latest_commit(REPO)
     except (MalformedGitHubResponse, TransportError) as exc:
         record.request_url = getattr(exc, "url", "")
-        record.reason_code = C.OFFICIAL_SOURCE_UNREACHABLE
+        record.reason_code = (
+            C.MALFORMED_RESPONSE
+            if isinstance(exc, MalformedGitHubResponse)
+            else transport_reason(exc)
+        )
+        _mark_refusal(record, exc)
         record.details["error"] = getattr(exc, "reason", "MALFORMED_RESPONSE")
         return record.finalize()
     if not commit_result.payload:
@@ -244,8 +260,9 @@ def _fetch_blob_at(api: GitHubApi, record: ArtifactRecord, tree_sha: Optional[st
         record.reason_code = (
             C.MALFORMED_RESPONSE
             if isinstance(exc, MalformedGitHubResponse)
-            else C.OFFICIAL_SOURCE_UNREACHABLE
+            else transport_reason(exc)
         )
+        _mark_refusal(record, exc)
         record.details["error"] = getattr(exc, "reason", "MALFORMED_RESPONSE")
         return None, None
 
@@ -275,8 +292,9 @@ def _fetch_blob_at(api: GitHubApi, record: ArtifactRecord, tree_sha: Optional[st
             record.reason_code = (
                 C.MALFORMED_RESPONSE
                 if isinstance(exc, MalformedGitHubResponse)
-                else C.OFFICIAL_SOURCE_UNREACHABLE
+                else transport_reason(exc)
             )
+            _mark_refusal(record, exc)
             record.details["error"] = getattr(exc, "reason", "MALFORMED_RESPONSE")
             return None, None
         record.details["blob_media_type"] = "application/vnd.github.raw"
@@ -286,8 +304,9 @@ def _fetch_blob_at(api: GitHubApi, record: ArtifactRecord, tree_sha: Optional[st
         record.reason_code = (
             C.MALFORMED_RESPONSE
             if isinstance(exc, MalformedGitHubResponse)
-            else C.OFFICIAL_SOURCE_UNREACHABLE
+            else transport_reason(exc)
         )
+        _mark_refusal(record, exc)
         record.details["error"] = getattr(exc, "reason", "MALFORMED_RESPONSE")
         return None, None
 
@@ -313,6 +332,7 @@ def _finish_catalog(
     maturity: Optional[date],
 ) -> ArtifactRecord:
     record.retrieved_at = blob_meta.retrieved_at
+    record.final_url = blob_meta.final_url or blob_meta.url
     record.details["blob_url"] = blob_meta.url
     record.bytes = len(body)
     record.sha256 = _sha(body)
@@ -361,8 +381,9 @@ def acquire_at_cutoff(
         record.reason_code = (
             C.MALFORMED_RESPONSE
             if isinstance(exc, MalformedGitHubResponse)
-            else C.OFFICIAL_SOURCE_UNREACHABLE
+            else transport_reason(exc)
         )
+        _mark_refusal(record, exc)
         record.details["error"] = getattr(exc, "reason", "MALFORMED_RESPONSE")
         return record.finalize()
 
