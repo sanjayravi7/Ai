@@ -31,18 +31,23 @@ from ..provenance import utc_now
 from . import constants as C
 from .errors import PathSafetyError
 from .gate import CatalogFacts, evaluate_gate, gate_summary
-from .paths import assert_safe_write_targets, resolve_path
+from .paths import (
+    assert_safe_write_targets,
+    default_protected_paths,
+    merge_protected_paths,
+    package_roots,
+)
 from .report import write_json, write_markdown
 from .verify import verify_report_file
 from .workflow import RefreshError, RefreshOptions, run_refresh
 
 
 def _product_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    return package_roots()[0]
 
 
 def _repository_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    return package_roots()[1]
 
 
 def protected_paths(
@@ -65,31 +70,19 @@ def protected_paths(
     ``--archive-store`` somewhere outside the defaults; protecting only the
     defaults would leave the configured file writable.
     """
-    product = _product_root() if product is None else product
-    repository = _repository_root() if repository is None else repository
-    guarded = [product / relative for relative in C.PROTECTED_RELATIVE_PATHS]
-    guarded.append(repository / "phase2.3k-export")
-    guarded.extend(
+    default_product, default_repository = package_roots()
+    product = default_product if product is None else product
+    repository = default_repository if repository is None else repository
+    return merge_protected_paths(
+        default_protected_paths(product, repository),
         (
             args.protocol,
             args.baseline,
             args.artifacts,
             args.archive_manifest,
             args.archive_store,
-        )
+        ),
     )
-    # The defaults make several of these identical (the Phase 2.3K directory is
-    # both a fixed sealed path and the configured --artifacts, for instance).
-    # Deduplicate on the resolved path so each guarded location is named once.
-    seen: set[Path] = set()
-    unique: list[Path] = []
-    for path in guarded:
-        key = resolve_path(path)
-        if key in seen:
-            continue
-        seen.add(key)
-        unique.append(path)
-    return tuple(unique)
 
 
 def _validate_write_targets(args, protected: tuple[Path, ...]) -> Optional[int]:
@@ -323,6 +316,7 @@ def _cmd_run(args) -> int:
         baseline_report_path=args.baseline,
         baseline_manifest_path=args.archive_manifest,
         baseline_store_path=args.archive_store,
+        artifacts_path=args.artifacts,
         protected_paths=protected,
         output_paths=(args.report, args.markdown),
         readiness_factory=readiness_factory,

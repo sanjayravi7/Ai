@@ -1,5 +1,5 @@
 # Offline verification of the committed 1.8 refresh report and the sealed 1.7 archive
-# 2026-10-20T03:49:07Z · no network
+# 2026-10-20T04:01:52Z · no network
 
 VULNOVA 1.8 — offline verification
   VERIFIED  SCHEMA — schema_version and required sections are present

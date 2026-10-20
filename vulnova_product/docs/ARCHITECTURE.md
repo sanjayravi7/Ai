@@ -114,9 +114,11 @@ It adds no source adapter and no second definition of a status.
 * `paths.py` is the single write-safety gate. Every destination — store, JSON
   report, Markdown summary — is resolved (following symlinks and `..`) and
   checked against the sealed directories and the configured read-only inputs
-  before the first network request. Overlap in either direction is refused;
-  `run_refresh` re-runs the check itself, so a caller that bypasses the CLI
-  cannot bypass the rule.
+  before the first network request. Overlap in either direction is refused.
+  `default_protected_paths()` derives the five sealed locations from the
+  package layout, and `protected_inputs()` merges them with the options and any
+  caller paths, so `run_refresh` enforces the rule even when invoked without
+  the CLI and with ``protected_paths=()``.
 
 `run_refresh` takes its clock as a parameter. The CLI never exposes a date for
 `run`: production acquisition always uses the real UTC clock, and every

@@ -169,6 +169,26 @@ leaves every protected byte untouched — the tests assert all three.
 The check runs again immediately before the files are written, so a destination
 swapped for a symlink while the acquisition was in flight is still caught.
 
+### The workflow protects the seals itself
+
+`run_refresh` does not trust its caller to supply the protected set. Before the
+archive fingerprint or the first request it calls `protected_inputs(options)`,
+which always starts from `default_protected_paths()` — the five sealed locations
+derived from the package layout, independently of the CLI — and then merges:
+
+* the configured read-only inputs (`protocol_path`, `baseline_report_path`,
+  `baseline_manifest_path`, `baseline_store_path`, `artifacts_path`);
+* the Phase 2.3K export under any caller-supplied `repository_root`, in addition
+  to the package-derived one;
+* whatever extra `protected_paths` the caller passed.
+
+The merge resolves each path and drops duplicates, so passing the same
+directory twice cannot lengthen the list and two spellings of one location
+cannot hide behind each other. **An empty tuple means "no extra paths", never
+"no protection"** — a programmatic caller that bypasses the CLI still cannot
+point the store into `data/acquisition_store` or write a report over the
+committed 1.6 baseline.
+
 ## What the refresh does to existing artifacts
 
 Nothing. The refresh store is checked against the protected paths before a byte

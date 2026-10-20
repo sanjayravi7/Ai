@@ -43,6 +43,57 @@ def resolve_path(path: Path | str) -> Path:
         return target.absolute()
 
 
+def package_roots() -> tuple[Path, Path]:
+    """Return ``(product_root, repository_root)`` for the installed layout.
+
+    ``.../vulnova_product/vulnova/refresh/paths.py`` sits three levels below the
+    product root and four below the repository root.  Deriving them here means
+    the workflow can protect the sealed directories without trusting (or
+    requiring) the CLI.
+    """
+    here = Path(__file__).resolve()
+    return here.parents[2], here.parents[3]
+
+
+def merge_protected_paths(*groups: Iterable[Path | str]) -> tuple[Path, ...]:
+    """Resolve and deduplicate protected paths, preserving first-seen order.
+
+    Resolution happens once, before comparison, so two spellings of the same
+    location (``reports/../reports/x`` and ``reports/x``) cannot mask each
+    other, and a duplicate entry cannot make the list look longer than it is.
+    """
+    seen: set[Path] = set()
+    merged: list[Path] = []
+    for group in groups:
+        for path in group:
+            resolved = resolve_path(path)
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            merged.append(resolved)
+    return tuple(merged)
+
+
+def default_protected_paths(
+    product_root: Optional[Path | str] = None,
+    repository_root: Optional[Path | str] = None,
+) -> tuple[Path, ...]:
+    """The sealed paths that are protected no matter who calls the refresh.
+
+    These are fixed properties of the repository, not configuration.  The
+    default arguments derive them from the package location, so a programmatic
+    caller that passes ``protected_paths=()`` still cannot write into the 1.7
+    archive, the 1.6 readiness report, the original snapshots or the Phase 2.3K
+    export.
+    """
+    default_product, default_repository = package_roots()
+    product = default_product if product_root is None else Path(product_root)
+    repository = default_repository if repository_root is None else Path(repository_root)
+    fixed = [product / relative for relative in C.PROTECTED_RELATIVE_PATHS]
+    fixed.append(repository / "phase2.3k-export")
+    return merge_protected_paths(fixed)
+
+
 def _overlaps(target: Path, guarded: Path) -> bool:
     return target == guarded or guarded in target.parents or target in guarded.parents
 
@@ -72,7 +123,7 @@ def assert_safe_write_targets(
     * an output that overlaps the store, or another output
       (``OUTPUT_PATHS_COLLIDE``).
     """
-    guarded = tuple(resolve_path(item) for item in protected)
+    guarded = merge_protected_paths(protected)
     resolved_store: Optional[Path] = None
 
     if store_root is not None:
@@ -113,6 +164,9 @@ def assert_safe_write_targets(
 
 __all__ = [
     "assert_safe_write_targets",
+    "default_protected_paths",
+    "merge_protected_paths",
+    "package_roots",
     "paths_overlap",
     "resolve_path",
 ]

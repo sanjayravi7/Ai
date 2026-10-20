@@ -1,0 +1,16 @@
+# Workflow-level protection: run_refresh() called directly, protected_paths empty
+# 2026-10-20T04:02:12Z · no CLI, no network
+
+default_protected_paths():
+   /home/user/Ai/vulnova_product/data/acquisition_store
+   /home/user/Ai/vulnova_product/reports/acquisition_1_7
+   /home/user/Ai/vulnova_product/reports/evaluation_readiness_1_6
+   /home/user/Ai/vulnova_product/data/snapshots
+   /home/user/Ai/phase2.3k-export
+
+caller supplied protected_paths: ()
+effective protected inputs     : 6
+
+refused: REFRESH_STORE_OVERLAPS_ARCHIVE: refresh store /home/user/Ai/vulnova_product/data/acquisition_store/must_not_be_created overlaps the sealed path /home/user/Ai/vulnova_product/data/acquisition_store; refusing to write
+transport calls: []
+store created  : False

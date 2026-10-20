@@ -1,5 +1,5 @@
 # Write-safety refusals, exercised through the real CLI (no network)
-# 2026-10-20T03:49:24Z
+# 2026-10-20T04:02:11Z
 
 $ python -m vulnova.refresh run --report reports/evaluation_readiness_1_6/readiness_report.json
 error: OUTPUT_OVERLAPS_PROTECTED: write target reports/evaluation_readiness_1_6/readiness_report.json resolves to /home/user/Ai/vulnova_product/reports/evaluation_readiness_1_6/readiness_report.json, which overlaps the protected path /home/user/Ai/vulnova_product/reports/evaluation_readiness_1_6; refusing to write
@@ -10,5 +10,5 @@ error: REFRESH_STORE_OVERLAPS_ARCHIVE: refresh store data/acquisition_store/nest
 exit=2
 
 # The guard tests
-....................                                                     [100%]
-20 passed in 0.10s
+...........................                                              [100%]
+27 passed in 0.14s

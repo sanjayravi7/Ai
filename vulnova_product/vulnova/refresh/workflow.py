@@ -39,7 +39,11 @@ from ..provenance import utc_now
 from . import constants as C
 from .comparison import build_comparison
 from .errors import RefreshError
-from .paths import assert_safe_write_targets
+from .paths import (
+    assert_safe_write_targets,
+    default_protected_paths,
+    merge_protected_paths,
+)
 from .gate import (
     CatalogFacts,
     DateAddedFilter,
@@ -67,6 +71,11 @@ class RefreshOptions:
     baseline_report_path: Optional[Path] = None
     baseline_manifest_path: Optional[Path] = None
     baseline_store_path: Optional[Path] = None
+    #: The Phase 2.3K directory used by the readiness re-run, when a caller
+    #: overrides it.  The default export location is protected unconditionally.
+    artifacts_path: Optional[Path] = None
+    #: Additional read-only paths supplied by a caller.  These *add to* the
+    #: fixed sealed directories; an empty tuple never disables them.
     protected_paths: tuple[Path, ...] = ()
     #: Report and Markdown destinations, validated before any acquisition.  The
     #: CLI passes them here as well as checking them itself, so a programmatic
@@ -74,6 +83,43 @@ class RefreshOptions:
     output_paths: tuple[Path, ...] = ()
     readiness_factory: Optional[Callable[[dt.date], Optional[dict]]] = None
     repository_root: Optional[Path] = None
+
+
+def protected_inputs(options: RefreshOptions) -> tuple[Path, ...]:
+    """Everything this run must treat as read-only.
+
+    Four groups, merged and deduplicated by resolved path:
+
+    * the fixed sealed directories, derived from the package layout — never
+      from the caller, so ``protected_paths=()`` cannot switch them off;
+    * the configured read-only inputs carried by the options (protocol, the 1.6
+      baseline report, the sealed 1.7 manifest and archive store, and the
+      Phase 2.3K directory);
+    * the Phase 2.3K export under a caller-supplied ``repository_root``, in
+      addition to the package-derived one, so overriding the root cannot point
+      protection away from the real export;
+    * any additional ``protected_paths`` a caller passes.
+    """
+    configured = [
+        path
+        for path in (
+            options.protocol_path,
+            options.baseline_report_path,
+            options.baseline_manifest_path,
+            options.baseline_store_path,
+            options.artifacts_path,
+        )
+        if path is not None
+    ]
+    caller_root: list[Path] = []
+    if options.repository_root is not None:
+        caller_root.append(Path(options.repository_root) / "phase2.3k-export")
+    return merge_protected_paths(
+        default_protected_paths(),
+        configured,
+        caller_root,
+        options.protected_paths,
+    )
 
 
 # --------------------------------------------------------------- path safety
@@ -246,8 +292,10 @@ def run_refresh(options: RefreshOptions) -> dict:
 
     # Every destination is validated before the first network request and before
     # any file is created: the store, the JSON report and the Markdown summary.
+    # ``protected_inputs`` re-derives the sealed directories itself, so a direct
+    # caller cannot switch them off by leaving ``protected_paths`` empty.
     assert_safe_write_targets(
-        options.store.root, options.output_paths, options.protected_paths
+        options.store.root, options.output_paths, protected_inputs(options)
     )
     archive_before = archive_fingerprint(
         options.baseline_manifest_path, options.baseline_store_path
@@ -805,6 +853,7 @@ __all__ = [
     "RefreshOptions",
     "archive_fingerprint",
     "assert_separate_store",
+    "protected_inputs",
     "is_instant",
     "run_refresh",
     "select_catalog",
