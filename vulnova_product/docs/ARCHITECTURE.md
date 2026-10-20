@@ -90,8 +90,8 @@ with no network access.
 The EPSS adapter is the one source whose host has moved. FIRST's current
 documentation names `epss.empiricalsecurity.com` for the daily CSV, with
 date-specific files at `epss_scores-YYYY-MM-DD.csv.gz`; the legacy
-`epss.cyentia.com` is no longer documented and only redirects, so it is not in the
-allowlist and is not requested. Because a `Transport` is injectable, the EPSS
+`epss.cyentia.com` is no longer documented, so it is not in the allowlist and is
+not requested. Because a `Transport` is injectable, the EPSS
 adapter *also* re-checks the URL that actually answered — HTTPS, and a host in
 `APPROVED_RESPONSE_HOSTS` (the EPSS host plus FIRST's own `www.first.org`) —
 before it inspects, hashes or stores a byte. The transport's `SafeRedirectHandler`

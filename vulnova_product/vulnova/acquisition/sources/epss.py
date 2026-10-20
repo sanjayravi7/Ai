@@ -12,10 +12,9 @@ is checked against the requested cutoff; a mismatch is reported as
 **Host.**  FIRST's current "Get the Data" / API documentation names
 ``epss.empiricalsecurity.com`` as the daily CSV host, with date-specific files at
 ``https://epss.empiricalsecurity.com/epss_scores-YYYY-MM-DD.csv.gz``.  The legacy
-``epss.cyentia.com`` host is no longer named there; it now redirects to the
-current host, so requesting it would spend a redirect hop (and one policy
-decision) to reach the same bytes.  This module requests the documented endpoint
-directly.
+``epss.cyentia.com`` host is no longer named there.  This module therefore
+requests the documented endpoint directly rather than relying on an undocumented
+redirect from a host FIRST no longer documents.
 
 **Redirects.**  The transport refuses redirects to unapproved hosts and refuses
 HTTPS downgrades on every hop.  A :class:`~vulnova.acquisition.transport.Transport`

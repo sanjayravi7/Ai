@@ -141,10 +141,9 @@ class HostPolicy:
 #:
 #: The EPSS entry is the host FIRST's current documentation names for the daily
 #: CSV.  ``epss.cyentia.com`` was removed rather than left alongside it: it is no
-#: longer documented as the daily-CSV host, it redirects to the current one, and
-#: an allowlisted host that exists only to bounce a request elsewhere is policy
-#: surface without a purpose.  Removing it narrows the allowlist; it does not
-#: relax any redirect or downgrade check.
+#: longer documented as the daily-CSV host, so keeping it allowlisted would leave
+#: policy surface without a documented purpose.  Removing it narrows the
+#: allowlist; it does not relax any redirect or downgrade check.
 DEFAULT_ALLOWED_HOSTS = (
     "api.github.com",
     "codeload.github.com",
