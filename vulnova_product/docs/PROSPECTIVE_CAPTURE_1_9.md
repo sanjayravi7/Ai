@@ -13,15 +13,19 @@ a design or approve the protocol.
 
 ```
 python -m vulnova.prospective capture   # network: record one observation
+python -m vulnova.prospective cycle     # network: one capture + verify + report
 python -m vulnova.prospective verify    # offline: re-hash every capture
 python -m vulnova.prospective report    # offline: deterministic summary
 ```
 
-`capture` is the only command that touches the network, and it has no date
-override: it always reads the real UTC clock. A prospective capture that its
-caller could date would be worth no more than the backdated historical evidence
-this subsystem exists to avoid repeating. Tests inject a clock through
-`vulnova.prospective.capture.CaptureOptions`; the CLI never does.
+`capture` and `cycle` are the only commands that touch the network, and neither
+has a date override: both always read the real UTC clock. A prospective capture
+that its caller could date would be worth no more than the backdated historical
+evidence this subsystem exists to avoid repeating. Tests inject a clock through
+`vulnova.prospective.capture.CaptureOptions` or
+`vulnova.prospective.cycle.CycleOptions`; the CLI never does. `cycle` is the same
+capture, followed by the same offline verification and the same deterministic
+report — not a second evidence format.
 
 ## What one capture records
 
@@ -284,6 +288,8 @@ unreadable rather than silently skipped.
 
 `verify` exits `0` only when the store verifies and `1` when it does not.
 `capture` and `report` exit `2` when a write-safety rule refuses the command.
+`cycle` combines capture, verification and reporting and uses `0` / `2` / `3` /
+`4` to say whether a scheduler must act; the mapping is below.
 
 A matching SHA-256 proves the stored bytes are the bytes that were captured. It
 does not prove historical correctness or completeness, and it does not prove
@@ -327,6 +333,18 @@ three-block protocol.
 
 ### Manual run
 
+One command does the whole round trip:
+
+```bash
+cd /srv/vulnova/vulnova_product
+.venv/bin/python -m vulnova.prospective cycle --store /srv/vulnova/evidence
+```
+
+`cycle` is `capture`, then `verify`, then `report`, in that order, against the
+same store. It is the same capture code and the same verification code — not a
+second evidence format and not a second copy of the logic. The three commands
+remain available separately when an operator wants one step at a time:
+
 ```bash
 cd /srv/vulnova/vulnova_product
 VULNOVA_PROSPECTIVE_STORE=/srv/vulnova/evidence .venv/bin/python -m vulnova.prospective capture
@@ -336,32 +354,121 @@ VULNOVA_PROSPECTIVE_STORE=/srv/vulnova/evidence .venv/bin/python -m vulnova.pros
 
 `capture` exits `0` when the attempt was recorded, whatever the sources did; the
 status is in the record and on stdout. `verify` exits non-zero if anything is
-wrong. Neither command retries silently.
+wrong. Neither command retries silently, and neither does `cycle`.
+
+The store is any directory outside the repository. `--store` accepts an absolute
+path; `VULNOVA_PROSPECTIVE_STORE` sets the default when the flag is omitted:
+
+```bash
+export VULNOVA_PROSPECTIVE_STORE=/srv/vulnova/evidence
+.venv/bin/python -m vulnova.prospective cycle
+```
 
 ### Scheduling
 
-Capture on a real schedule, once per UTC day, after the EPSS daily file normally
-appears (about 12:00 UTC). A cron entry:
+Run one cycle per UTC day, after the EPSS daily file normally appears (about
+12:00 UTC). Because `cycle` already verifies and reports, a scheduler invokes it
+once and alerts on the exit status.
+
+| Exit | Meaning | What a human should do |
+| --- | --- | --- |
+| `0` | Every source verified **and** the store verified. | Nothing. |
+| `2` | Nothing was recorded: an unsafe destination, or a capture that failed before its run record was written. | Read the error; fix the path or the environment. No evidence was lost. |
+| `3` | **The run was recorded, but at least one source did not verify.** | Nothing to repair in the store — the gap is in the observation. Investigate the publisher; the next cycle tries again. |
+| `4` | The store did not verify: tampered bytes, a missing artifact, an orphan, an unreadable or malformed run. | Stop and investigate the disk. Do not delete anything to make the check green. |
+
+A non-zero exit **never** removes a capture that was written. A run with two of
+three sources verified is still evidence that an attempt happened, and it stays
+in the store; `3` means "look at the publisher", not "discard the day".
+
+`--json` emits the same result for a monitoring script. It carries `exit_code`
+and `reason` (`OK`, `UNSAFE_CONFIGURATION`, `CAPTURE_NOT_RECORDED`,
+`CAPTURE_INCOMPLETE`, `INTEGRITY_FAILED`, `REPORT_NOT_WRITTEN`), the `run_id`,
+`observation_date`, `capture_status`, a `sources` list with one `status` /
+`reason_code` pair per requirement, an `integrity` block naming the failed
+checks, and `report_digest`. The process exit status is the same number, so a
+scheduler can use either. `--out PATH` writes the deterministic report as well;
+that path is validated before the capture starts and may not sit inside the
+store or inside a sealed path.
+
+**cron** (Linux, macOS):
 
 ```cron
-# 13:10 UTC every day; capture, then verify what is on disk.
+# 13:10 UTC daily: one cycle, a persistent report, and an alert on failure.
 10 13 * * * cd /srv/vulnova/vulnova_product && \
-  VULNOVA_PROSPECTIVE_STORE=/srv/vulnova/evidence \
-  .venv/bin/python -m vulnova.prospective capture --quiet \
-  >> /var/log/vulnova-capture.log 2>&1 && \
-  VULNOVA_PROSPECTIVE_STORE=/srv/vulnova/evidence \
-  .venv/bin/python -m vulnova.prospective verify \
-  >> /var/log/vulnova-capture.log 2>&1
+  .venv/bin/python -m vulnova.prospective cycle \
+    --store /srv/vulnova/evidence \
+    --out /srv/vulnova/reports/prospective.md \
+    >> /var/log/vulnova-cycle.log 2>&1 || \
+  /usr/local/bin/alert-vulnova "prospective cycle failed: see /var/log/vulnova-cycle.log"
 ```
 
-A systemd timer works the same way (`OnCalendar=*-*-* 13:10:00 UTC`,
-`Type=oneshot`, `Persistent=true`); Windows Task Scheduler needs the same command
-line with an absolute `--store`.
+**systemd** timer, same schedule:
+
+```ini
+# /etc/systemd/system/vulnova-cycle.service
+[Unit]
+Description=VULNOVA prospective evidence cycle
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/vulnova/vulnova_product
+ExecStart=/srv/vulnova/vulnova_product/.venv/bin/python -m vulnova.prospective cycle --store /srv/vulnova/evidence --out /srv/vulnova/reports/prospective.md
+```
+
+```ini
+# /etc/systemd/system/vulnova-cycle.timer
+[Unit]
+Description=Daily VULNOVA prospective cycle
+
+[Timer]
+OnCalendar=*-*-* 13:10:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Use `OnFailure=vulnova-alert.service` on the service (or a `FailureAction=` in
+`[Unit]`) to alert on a non-zero exit.
+
+**Windows Task Scheduler.** `schtasks` has no working-directory option, and
+`python -m vulnova.prospective` must run from `vulnova_product`, so change
+directory inside the command itself:
+
+```
+schtasks /Create /TN "VULNOVA prospective cycle" /SC DAILY /ST 13:10 ^
+  /TR "cmd /c cd /d C:\vulnova\vulnova_product && .venv\Scripts\python.exe -m vulnova.prospective cycle --store C:\vulnova\evidence --out C:\vulnova\reports\prospective.md" ^
+  /RU SYSTEM
+```
+
+Equivalently in the GUI: *Create Task* → *Triggers* → daily at 13:10 → *Actions*
+→ Start a program: `cmd.exe`, arguments
+`/c cd /d C:\vulnova\vulnova_product && .venv\Scripts\python.exe -m vulnova.prospective cycle --store C:\vulnova\evidence`,
+and set *Start in* to `C:\vulnova\vulnova_product`. Tick *Run whether user is
+logged on or not*. PowerShell can register the same task:
+
+```powershell
+$action  = New-ScheduledTaskAction -Execute "cmd.exe" `
+  -Argument '/c cd /d C:\vulnova\vulnova_product && .venv\Scripts\python.exe -m vulnova.prospective cycle --store C:\vulnova\evidence'
+$trigger = New-ScheduledTaskTrigger -Daily -At 13:10
+Register-ScheduledTask -TaskName "VULNOVA prospective cycle" -Action $action -Trigger $trigger
+```
+
+The exit status of `cmd.exe` is the Python process's exit status, so Task
+Scheduler's *Last Run Result* carries `0` / `2` / `3` / `4` unchanged.
+
+**Alert on the exit status, not on the presence of a log line.** Exit `3` should
+page nobody at 3 a.m.; it should be a daily digest item. Exit `4` should page
+someone, because the archive itself is in question. Exit `2` means the schedule
+is misconfigured — wrong path, wrong permissions, wrong interpreter.
 
 Rules for the schedule:
 
-* **Missed days are left missing.** There is no backfill: running later cannot
-  create a contemporaneous observation, and the CLI has no date override.
+* **Missed days are left missing.** There is no backfill and no date override:
+  running later cannot create a contemporaneous observation, and a file
+  downloaded today can never be stored as evidence of what was observable last
+  week. Do not hand-edit, re-date or replay a captured run to fill a gap.
 * **Re-runs are new captures.** A second capture on the same day appends a new
   run; it does not overwrite the first. Repeated unsuccessful attempts stay
   visible.
@@ -370,6 +477,8 @@ Rules for the schedule:
   exploitation.
 * **No substitution.** Do not drop a mirror file into the store or edit a record
   by hand. Both would break `verify`, which is the point.
+* **No retry loop.** One cycle per schedule slot. If a source is down, the cycle
+  records the outage and exits; the next *scheduled* run is the retry.
 
 ### Backup and restore
 
@@ -382,8 +491,20 @@ cd /srv/vulnova/vulnova_product
 ```
 
 Never back up with a deleting mode that could remove older evidence, and verify
-the copy rather than trusting the copy command. `report` prints a digest; compare
-it before and after a restore.
+the copy rather than trusting the copy command:
+
+* `verify --store <copy>` must report `integrity: VERIFIED`;
+* `report --json --store <copy>` must print the same `report_digest` as the live
+  store. A copy with a different digest is not the archive, however successful
+  the copy command looked.
+
+A restore is the same operation in reverse. After restoring, run `verify` (not
+`cycle`) against the restored store before treating it as evidence: a restore
+that does not verify is a second incident, not a recovery. Keep at least one
+copy off the machine that runs the cycle, and remember that `verify` detects
+corruption relative to the stored record — it cannot detect a forgery that was
+re-signed, so an append-only or WORM backup target is stronger than a mutable
+one.
 
 ### Unavailable sources
 
@@ -409,8 +530,9 @@ There is **no scheduled GitHub Actions capture job**, and there must not be one.
 A cron that committed a daily EPSS file would turn a transient, expiring artifact
 into repository history, grow without bound, and make the workflow look like a
 durable archive it is not. Capture is an operator-run task against a store
-outside the repository. No cloud credentials are needed for local capture,
-verification or the tests.
+outside the repository. No workflow runs `cycle` either: it is a networked
+capture, and CI exercises only the offline surface. No cloud credentials are
+needed for local capture, verification or the tests.
 
 ## Evidence status of this milestone
 
@@ -451,14 +573,16 @@ these is answered here.
 
 ## Tests
 
-`tests/test_prospective_*.py` (195 tests) drive the real capture, verify and
-report paths against canned responses. No test opens a socket: `tests/conftest.py`
-installs an autouse guard that fails any connection to a non-loopback address, and
-one test asserts the guard is live. The seven modules are:
+`tests/test_prospective_*.py` (224 tests) drive the real capture, cycle, verify
+and report paths against canned responses. No test opens a socket:
+`tests/conftest.py` installs an autouse guard that fails any connection to a
+non-loopback address, and one test asserts the guard is live. The eight modules
+are:
 
 | Module | Tests | Focus |
 | --- | --- | --- |
-| `test_prospective_capture.py` | 38 | KEV/EPSS/cvelistV5 capture, fallback, redirects, provenance, clock |
+| `test_prospective_capture.py` | 39 | KEV/EPSS/cvelistV5 capture, fallback, redirects, provenance, clock |
+| `test_prospective_cycle.py` | 28 | one-shot cycle: exit status, JSON, refusals before any request, no retries, idempotency |
 | `test_prospective_verify.py` | 19 | tampered/deleted artifacts and records, run identity, conflicts |
 | `test_prospective_paths.py` | 23 | protected-path guard, traversal, symlinks, refusals before I/O |
 | `test_prospective_store.py` | 26 | create-once, atomicity, concurrency, capability refusal, path safety |
@@ -504,6 +628,15 @@ The checklist covered:
   no directory and read no clock;
 * programmatic calls with empty defaults still protected; the sealed 1.7 archive
   and every committed report byte-identical after capture, verify and report;
+* the cycle: a healthy run exits `0`; a partial or blocked source exits `3` while
+  keeping the run; a tampered, malformed or orphaned store exits `4` without
+  deleting the new capture; a capture that cannot be recorded exits `2` with no
+  run written; unsafe store and report paths, and a report path that collides
+  with the store, are refused with the transport never asked for a URL; a
+  crashed verifier is reported as `INTEGRITY_FAILED` rather than a traceback; an
+  unwritable report exits `2` and still keeps the recorded capture; one cycle
+  issues one request per source and never retries; repeating the same instant is
+  `ALREADY_CAPTURED` with one run and one digest;
 * missing EPSS and KEV absence never turned into a negative label.
 
 ## Known limitations
