@@ -136,7 +136,7 @@ Every record carries, independently:
 | `artifact_path` | Where the bytes live in the store, or `null` if nothing was stored |
 | `content_status`, `status`, `reason_code` | The three-state outcome and a stable reason code |
 | `access_provenance` | `CONTEMPORANEOUS` for a prospective record; `historical_retrieval_verified` is always `false` |
-| `details` | Source-specific validation facts (counts, declared dates, model version, `observation_date`, `prospective`) |
+| `details` | Source-specific validation facts (counts, declared dates, model version, `observation_date`, `prospective`) and, on a failed EPSS request, a bounded `error_detail` |
 
 Retrieval time is never derived from the publisher's timestamp. If a source
 timestamp is later than the retrieval time, `finalize()` marks the record
@@ -152,6 +152,42 @@ a `historical=False` mode that records the observation date instead of a block
 boundary, and the capture layer refuses any record whose `cutoff` is not `None`
 with `HISTORICAL_CUTOFF_IN_PROSPECTIVE_CAPTURE`. The default remains
 `historical=True`, so 1.7 behaviour is unchanged.
+
+### Failed requests keep bounded diagnostics
+
+A capture that fails still records *why*, and from this patch it also records
+what the publisher said. For an EPSS request that ends in a transport error, the
+record keeps:
+
+| Field | Content |
+| --- | --- |
+| `http_status` | The response status, when there was a response (`403`, `429`, `404`, …), otherwise `null` |
+| `reason_code` | The stable classification (`RATE_LIMITED`, `HTTP_ERROR`, `OFFICIAL_SOURCE_UNREACHABLE`, `REDIRECT_BLOCKED`, …) |
+| `details.error` | The transport's own reason string |
+| `details.error_detail` | A bounded, single-line excerpt of the response body, when the transport captured one. **Omitted entirely when there is nothing to record** |
+
+`error_detail` is at most 400 characters, ellipsis included, and every run of
+whitespace is collapsed to a single space, so an HTML error page cannot make a
+stored record depend on the publisher's formatting. A non-string detail is not
+response text and is not recorded.
+
+**A 403 status does not establish rate limiting as the cause.** `RATE_LIMITED` is
+the transport's classification of *both* `403` and `429`
+(`transport.py`: `reason = "RATE_LIMITED" if exc.code in (403, 429)`). A 403 can
+equally be a bot block, a WAF challenge, a geographic restriction or a rejected
+request signature. The stored status and reason are unchanged by this patch — the
+excerpt is what a later reader uses to tell those cases apart, and treating the
+label as a finding would be exactly the kind of "plausible URL becomes a claimed
+fact" collapse this subsystem exists to avoid.
+
+Nothing else about a failed request changes: `sha256`, `artifact_path` and the
+stored bytes are still absent, the classification vocabulary is untouched, and a
+refused redirect is still `BLOCKED` / `REDIRECT_BLOCKED`. Records written before
+this field existed are unaffected — the field is additive and the verifier does
+not require it, so old and new run records verify on the same store.
+
+Diagnostics are not a licence to retry: one cycle still makes one request per
+source, and a 403 recorded once is not a signal to hammer the publisher.
 
 ## The three states
 
@@ -737,8 +773,12 @@ one.
 
 When a source is down, the capture records the failure and finishes. There is
 nothing to repair in the store: the run says what happened, with the URL, the
-status, the reason code and the time. Investigate the publisher, then let the
-next scheduled capture try again. Do not rewrite history to look complete.
+status, the reason code, the time and — when the publisher sent one — a bounded
+excerpt of the error body in `details.error_detail`. Start an investigation from
+that excerpt rather than from the status alone: `403` is classified
+`RATE_LIMITED` alongside `429`, and the body is what distinguishes a real rate
+limit from a WAF block. Then let the next scheduled capture try again. Do not
+rewrite history to look complete, and do not retry the same request in a loop.
 
 ### Growth
 
@@ -800,7 +840,7 @@ these is answered here.
 
 ## Tests
 
-`tests/test_prospective_*.py` (224 tests) and `test_schedule_preflight.py` (24)
+`tests/test_prospective_*.py` (227 tests) and `test_schedule_preflight.py` (24)
 drive the real capture, cycle, verify and report paths against canned responses,
 and exercise the schedule preflight against temporary directories. No test opens a
 socket: `tests/conftest.py` installs an autouse guard that fails any connection to
@@ -809,7 +849,7 @@ are:
 
 | Module | Tests | Focus |
 | --- | --- | --- |
-| `test_prospective_capture.py` | 39 | KEV/EPSS/cvelistV5 capture, fallback, redirects, provenance, clock |
+| `test_prospective_capture.py` | 42 | KEV/EPSS/cvelistV5 capture, fallback, redirects, provenance, clock |
 | `test_prospective_cycle.py` | 28 | one-shot cycle: exit status, JSON, refusals before any request, no retries, idempotency |
 | `test_prospective_verify.py` | 19 | tampered/deleted artifacts and records, run identity, conflicts |
 | `test_prospective_paths.py` | 23 | protected-path guard, traversal, symlinks, refusals before I/O |
